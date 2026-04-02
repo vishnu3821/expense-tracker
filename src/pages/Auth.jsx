@@ -36,12 +36,10 @@ export default function Auth() {
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-slate-50 px-4 font-sans">
-      <div className="w-full max-w-md card p-8">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-600 text-white mb-4 shadow-sm">
-            <span className="font-bold text-2xl">E</span>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+      <div className="w-full max-w-md card p-8 mx-auto">
+        <div className="text-center mb-8 flex flex-col items-center relative overflow-hidden">
+          <img src="/logo.png" alt="Expense Tracker" className="h-32 w-auto object-contain -my-8" />
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight pt-4 relative z-10">
             {isLogin ? 'Welcome back' : 'Create an account'}
           </h2>
           <p className="text-slate-500 mt-2 text-sm">

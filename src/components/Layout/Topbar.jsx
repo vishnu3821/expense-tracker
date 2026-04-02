@@ -12,11 +12,8 @@ export default function Topbar({ onMenuClick }) {
         <button onClick={onMenuClick} className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors">
           <Menu className="h-6 w-6" />
         </button>
-        <Link to="/" className="md:hidden font-bold text-lg text-teal-600 flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-teal-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">E</span>
-          </div>
-          Expenser
+        <Link to="/" className="md:hidden flex items-center overflow-hidden h-8">
+          <img src="/logo.png" alt="Expense Tracker" className="h-16 w-auto object-contain -ml-2 select-none pointer-events-none" />
         </Link>
       </div>
       

@@ -24,14 +24,10 @@ export default function Sidebar({ isOpen, onClose }) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 bg-white">
-          <h1 className="text-xl font-bold text-teal-600 tracking-tight flex items-center gap-2">
-            {/* A minimalistic icon for logo */}
-            <div className="w-8 h-8 rounded-lg bg-teal-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">E</span>
-            </div>
-            Tracker
-          </h1>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 bg-white overflow-hidden">
+          <div className="flex items-center shrink-0">
+            <img src="/logo.png" alt="Expense Tracker" className="h-24 w-auto object-contain -ml-4" />
+          </div>
           <button onClick={onClose} className="md:hidden text-slate-500 hover:text-slate-900 p-2 -mr-2 rounded-lg hover:bg-slate-50" aria-label="Close menu">
             <X className="h-5 w-5" />
           </button>
