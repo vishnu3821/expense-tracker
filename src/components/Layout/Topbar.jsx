@@ -3,13 +3,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LogOut, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export default function Topbar() {
+export default function Topbar({ onMenuClick }) {
   const { user, signOut } = useAuth();
 
   return (
     <header className="h-16 flex-shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8">
       <div className="flex items-center gap-4">
-        <button className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors">
+        <button onClick={onMenuClick} className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors">
           <Menu className="h-6 w-6" />
         </button>
         <Link to="/" className="md:hidden font-bold text-lg text-teal-600 flex items-center gap-2">
