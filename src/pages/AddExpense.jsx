@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { Loader2, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { get, del } from 'idb-keyval';
 
 export default function AddExpense() {
   const { user } = useAuth();
@@ -16,6 +17,21 @@ export default function AddExpense() {
     date: format(new Date(), 'yyyy-MM-dd'),
     image: null
   });
+
+  useEffect(() => {
+    async function checkSharedImage() {
+      try {
+        const sharedBlob = await get('shared-image');
+        if (sharedBlob) {
+          setFormData(prev => ({ ...prev, image: sharedBlob }));
+          await del('shared-image');
+        }
+      } catch (e) {
+        console.error("Failed to load shared image", e);
+      }
+    }
+    checkSharedImage();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -35,7 +51,8 @@ export default function AddExpense() {
       let image_url = null;
 
       if (formData.image) {
-        const fileExt = formData.image.name.split('.').pop();
+        const fileNameOriginal = formData.image.name || 'shared_receipt.png';
+        const fileExt = fileNameOriginal.split('.').pop() || 'png';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${user.id}/${fileName}`;
 
@@ -158,34 +175,50 @@ export default function AddExpense() {
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">Receipt Image (Optional)</label>
-            <div className="mt-2 flex justify-center rounded-xl border border-dashed border-slate-300 px-6 py-8 hover:bg-slate-50 transition-colors">
-              <div className="text-center group">
-                <UploadCloud className="mx-auto h-10 w-10 text-slate-400 group-hover:text-teal-500 transition-colors" />
-                <div className="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
-                  <label
-                    htmlFor="image-upload"
-                    className="relative cursor-pointer rounded-md font-semibold text-teal-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2 hover:text-teal-500"
-                  >
-                    <span>Upload a file</span>
-                    <input
-                      id="image-upload"
-                      name="image"
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={handleChange}
-                    />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs leading-5 text-slate-500 mt-1">PNG, JPG, GIF up to 10MB</p>
-                {formData.image && (
-                  <p className="mt-3 text-sm font-medium text-teal-700 bg-teal-50 inline-block px-3 py-1 rounded-full border border-teal-100">
-                    Selected: {formData.image.name}
-                  </p>
-                )}
+            {formData.image ? (
+              <div className="relative mt-2 rounded-xl border border-slate-200 bg-slate-100 overflow-hidden group flex justify-center items-center">
+                <img 
+                  src={URL.createObjectURL(formData.image)} 
+                  alt="Receipt Preview" 
+                  className="w-full h-auto max-h-[300px] object-contain rounded-xl"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, image: null }));
+                    const fileInput = document.getElementById('image-upload');
+                    if (fileInput) fileInput.value = '';
+                  }}
+                  className="absolute top-2 right-2 p-2 bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-all z-10"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-            </div>
+            ) : (
+              <div className="mt-2 flex justify-center rounded-xl border border-dashed border-slate-300 px-6 py-8 hover:bg-slate-50 transition-colors">
+                <div className="text-center group">
+                  <UploadCloud className="mx-auto h-10 w-10 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                  <div className="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
+                    <label
+                      htmlFor="image-upload"
+                      className="relative cursor-pointer rounded-md font-semibold text-teal-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-teal-600 focus-within:ring-offset-2 hover:text-teal-500"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="image-upload"
+                        name="image"
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={handleChange}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs leading-5 text-slate-500 mt-1">PNG, JPG up to 10MB</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-100 flex justify-end">
