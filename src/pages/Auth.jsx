@@ -9,6 +9,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
@@ -18,7 +19,14 @@ export default function Auth() {
     setError(null);
     
     try {
-      if (isLogin) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/profile',
+        });
+        if (error) throw error;
+        alert('Check your email for the password reset link!');
+        setIsForgotPassword(false);
+      } else if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
@@ -40,10 +48,10 @@ export default function Auth() {
         <div className="text-center mb-8 flex flex-col items-center relative overflow-hidden">
           <img src="/logo.png" alt="Expense Tracker" className="h-32 w-auto object-contain -my-8" />
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight pt-4 relative z-10">
-            {isLogin ? 'Welcome back' : 'Create an account'}
+            {isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome back' : 'Create an account')}
           </h2>
           <p className="text-slate-500 mt-2 text-sm">
-            {isLogin ? 'Enter your details to sign in.' : 'Sign up to start tracking expenses.'}
+            {isForgotPassword ? 'Enter your email to receive a secure reset link.' : (isLogin ? 'Enter your details to sign in.' : 'Sign up to start tracking expenses.')}
           </p>
         </div>
 
@@ -66,45 +74,69 @@ export default function Auth() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-slate-700">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                className="input-field pr-10"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+          {!isForgotPassword && (
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-medium text-slate-700">Password</label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgotPassword(true); setError(null); }}
+                    className="text-xs font-semibold text-teal-600 hover:text-teal-700 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="input-field pr-10"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <div className="pt-2">
             <button
               type="submit"
               disabled={loading}
               className="btn-primary w-full"
             >
-              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (isLogin ? 'Sign In' : 'Sign Up')}
+              {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (isForgotPassword ? 'Send Reset Link' : (isLogin ? 'Sign In' : 'Sign Up'))}
             </button>
           </div>
         </form>
 
         <div className="mt-8 text-center text-sm text-slate-500">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="font-semibold text-teal-600 hover:text-teal-700 underline-offset-4 hover:underline transition-all"
-          >
-            {isLogin ? 'Sign up' : 'Sign in'}
-          </button>
+          {isForgotPassword ? (
+            <button
+              onClick={() => { setIsForgotPassword(false); setError(null); }}
+              className="font-semibold text-slate-600 hover:text-slate-900 transition-all flex items-center justify-center w-full gap-2"
+            >
+              <span>←</span> Back to login
+            </button>
+          ) : (
+            <>
+              {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <button
+                onClick={() => { setIsLogin(!isLogin); setError(null); }}
+                className="font-semibold text-teal-600 hover:text-teal-700 underline-offset-4 hover:underline transition-all"
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -1,11 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, History, X } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, X, UserCircle } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard, end: true },
   { name: 'Add Expense', path: '/add', icon: PlusCircle, end: false },
   { name: 'History', path: '/history', icon: History, end: false },
+  { name: 'Profile', path: '/profile', icon: UserCircle, end: false },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Auth from './pages/Auth'
 import AddExpense from './pages/AddExpense'
 import History from './pages/History'
+import Profile from './pages/Profile'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -21,6 +22,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="add" element={<AddExpense />} />
             <Route path="history" element={<History />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
       </Router>
