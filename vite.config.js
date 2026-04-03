@@ -24,14 +24,10 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: 'logo.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'logo.png',
-            sizes: '512x512',
-            type: 'image/png'
+            src: '/logo.png',
+            sizes: '192x192 512x512 any',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ],
         share_target: {
@@ -42,7 +38,7 @@ export default defineConfig({
             files: [
               {
                 name: 'file',
-                accept: ['image/*', 'image/jpeg', 'image/png', 'image/webp']
+                accept: ['image/*', '.png', '.jpg', '.jpeg', '.webp']
               }
             ]
           }
