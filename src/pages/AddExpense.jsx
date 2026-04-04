@@ -1,22 +1,102 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X, Sparkles, Hash } from 'lucide-react';
 import { get, del } from 'idb-keyval';
+
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+
+async function analyzeReceiptImage(imageFile) {
+  // Convert image to base64
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(imageFile);
+  });
+
+  const mimeType = imageFile.type || 'image/png';
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `You are a payment receipt OCR assistant. Analyze this payment screenshot and extract:
+1. The total amount paid (numbers only, no currency symbol)
+2. The transaction ID / UTR number / reference number / order ID (the unique alphanumeric code)
+
+Return ONLY a raw JSON object with exactly these two keys (no markdown, no code blocks):
+{"amount": "123.45", "transaction_id": "ABC123XYZ"}
+
+If a field is not found, use an empty string "". Do not include any other text.`
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64}`,
+                detail: 'high'
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 200,
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(err?.error?.message || 'OpenAI API request failed');
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content?.trim();
+
+  try {
+    // Strip markdown code blocks if model wrapped the response anyway
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error('Could not parse AI response. Please fill fields manually.');
+  }
+}
 
 export default function AddExpense() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [scanMessage, setScanMessage] = useState(null);
+  const imagePreviewUrl = useRef(null);
 
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
     date: format(new Date(), 'yyyy-MM-dd'),
+    transaction_id: '',
     image: null
   });
+
+  // Cleanup blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl.current) {
+        URL.revokeObjectURL(imagePreviewUrl.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function checkSharedImage() {
@@ -27,7 +107,7 @@ export default function AddExpense() {
           await del('shared-image');
         }
       } catch (e) {
-        console.error("Failed to load shared image", e);
+        console.error('Failed to load shared image', e);
       }
     }
     checkSharedImage();
@@ -35,10 +115,54 @@ export default function AddExpense() {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: files ? files[0] : value
-    }));
+    if (files) {
+      const file = files[0];
+      setFormData(prev => ({ ...prev, [name]: file }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleScanImage = async () => {
+    if (!formData.image) return;
+    if (!OPENAI_API_KEY) {
+      setScanMessage({ type: 'error', text: 'No OpenAI API key found. Add VITE_OPENAI_API_KEY in .env.local' });
+      return;
+    }
+
+    setScanning(true);
+    setScanMessage(null);
+
+    try {
+      const result = await analyzeReceiptImage(formData.image);
+      let filled = [];
+
+      if (result.amount && result.amount !== '') {
+        setFormData(prev => ({ ...prev, amount: result.amount }));
+        filled.push('amount');
+      }
+      if (result.transaction_id && result.transaction_id !== '') {
+        setFormData(prev => ({ ...prev, transaction_id: result.transaction_id }));
+        filled.push('transaction ID');
+      }
+
+      if (filled.length > 0) {
+        setScanMessage({ type: 'success', text: `✓ Auto-filled: ${filled.join(' & ')}` });
+      } else {
+        setScanMessage({ type: 'warn', text: 'No amount or transaction ID detected. Please fill manually.' });
+      }
+    } catch (err) {
+      setScanMessage({ type: 'error', text: err.message });
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image: null }));
+    setScanMessage(null);
+    const fileInput = document.getElementById('image-upload');
+    if (fileInput) fileInput.value = '';
   };
 
   const handleSubmit = async (e) => {
@@ -65,7 +189,7 @@ export default function AddExpense() {
         const { data: { publicUrl } } = supabase.storage
           .from('receipts')
           .getPublicUrl(filePath);
-          
+
         image_url = publicUrl;
       }
 
@@ -77,6 +201,7 @@ export default function AddExpense() {
             name: formData.name,
             amount: parseFloat(formData.amount),
             date: formData.date,
+            transaction_id: formData.transaction_id || null,
             image_url
           }
         ]);
@@ -87,15 +212,17 @@ export default function AddExpense() {
         name: '',
         amount: '',
         date: format(new Date(), 'yyyy-MM-dd'),
+        transaction_id: '',
         image: null
       });
-      
+
       const fileInput = document.getElementById('image-upload');
       if (fileInput) fileInput.value = '';
-      
+      setScanMessage(null);
+
       setSuccess(true);
       setTimeout(() => setSuccess(false), 5000);
-      
+
     } catch (err) {
       console.error(err);
       setError(err.message || 'An error occurred while adding the expense.');
@@ -104,95 +231,87 @@ export default function AddExpense() {
     }
   };
 
+  const imagePreview = formData.image ? URL.createObjectURL(formData.image) : null;
+
   return (
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Add New Expense</h2>
-        <p className="text-slate-500 text-sm mt-1">Record a new transaction and keep track of your spending.</p>
+        <p className="text-slate-500 text-sm mt-1">Upload a payment screenshot and let AI auto-fill the details.</p>
       </div>
 
       <div className="card pt-1 shadow-sm">
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-          
+
           {success && (
             <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 flex items-center gap-3 text-teal-800">
-              <CheckCircle2 className="h-5 w-5 text-teal-600" />
+              <CheckCircle2 className="h-5 w-5 text-teal-600 shrink-0" />
               <p className="text-sm font-medium">Expense added successfully!</p>
             </div>
           )}
 
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-800">
-              <AlertCircle className="h-5 w-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
               <p className="text-sm font-medium">{error}</p>
             </div>
           )}
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2 sm:col-span-2">
-              <label htmlFor="name" className="text-sm font-medium text-slate-700">Expense Name</label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                placeholder="e.g. Groceries at Whole Foods"
-                className="input-field"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label htmlFor="amount" className="text-sm font-medium text-slate-700">Amount (₹)</label>
-              <input
-                id="amount"
-                name="amount"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-                placeholder="0.00"
-                className="input-field"
-                value={formData.amount}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="date" className="text-sm font-medium text-slate-700">Date</label>
-              <input
-                id="date"
-                name="date"
-                type="date"
-                required
-                className="input-field"
-                value={formData.date}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
+          {/* Receipt Image Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Receipt Image (Optional)</label>
+            <label className="text-sm font-medium text-slate-700">
+              Receipt / Payment Screenshot
+              <span className="ml-2 text-xs font-normal text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">AI auto-fill ✨</span>
+            </label>
+
             {formData.image ? (
-              <div className="relative mt-2 rounded-xl border border-slate-200 bg-slate-100 overflow-hidden group flex justify-center items-center">
-                <img 
-                  src={URL.createObjectURL(formData.image)} 
-                  alt="Receipt Preview" 
-                  className="w-full h-auto max-h-[300px] object-contain rounded-xl"
-                />
+              <div className="space-y-3">
+                <div className="relative mt-2 rounded-xl border border-slate-200 bg-slate-100 overflow-hidden flex justify-center items-center">
+                  <img
+                    src={imagePreview}
+                    alt="Receipt Preview"
+                    className="w-full h-auto max-h-[300px] object-contain rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-2 bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-all z-10"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* AI Scan Button */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setFormData(prev => ({ ...prev, image: null }));
-                    const fileInput = document.getElementById('image-upload');
-                    if (fileInput) fileInput.value = '';
-                  }}
-                  className="absolute top-2 right-2 p-2 bg-white/90 hover:bg-white text-slate-700 rounded-lg shadow-sm transition-all z-10"
+                  onClick={handleScanImage}
+                  disabled={scanning || !OPENAI_API_KEY}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 hover:border-teal-400 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <X className="h-4 w-4" />
+                  {scanning ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing screenshot...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Scan with AI — Auto-fill Amount & Transaction ID
+                    </>
+                  )}
                 </button>
+
+                {scanMessage && (
+                  <div className={`rounded-xl p-3 text-sm font-medium flex items-center gap-2 ${
+                    scanMessage.type === 'success' ? 'bg-teal-50 text-teal-700 border border-teal-200' :
+                    scanMessage.type === 'warn' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                    'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {scanMessage.type === 'success' && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                    {scanMessage.type !== 'success' && <AlertCircle className="h-4 w-4 shrink-0" />}
+                    {scanMessage.text}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="mt-2 flex justify-center rounded-xl border border-dashed border-slate-300 px-6 py-8 hover:bg-slate-50 transition-colors">
@@ -219,6 +338,72 @@ export default function AddExpense() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <label htmlFor="name" className="text-sm font-medium text-slate-700">Expense Name</label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                required
+                placeholder="e.g. Amazon Order, Electricity Bill"
+                className="input-field"
+                value={formData.name}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="amount" className="text-sm font-medium text-slate-700">
+                Amount (₹)
+                {formData.amount && <span className="ml-2 text-xs text-teal-600">✓ auto-filled</span>}
+              </label>
+              <input
+                id="amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                placeholder="0.00"
+                className="input-field"
+                value={formData.amount}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="date" className="text-sm font-medium text-slate-700">Date</label>
+              <input
+                id="date"
+                name="date"
+                type="date"
+                required
+                className="input-field"
+                value={formData.date}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <label htmlFor="transaction_id" className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                <Hash className="h-4 w-4 text-slate-400" />
+                Transaction ID / UTR
+                {formData.transaction_id && <span className="text-xs text-teal-600">✓ auto-filled</span>}
+                <span className="text-xs font-normal text-slate-400">(Optional)</span>
+              </label>
+              <input
+                id="transaction_id"
+                name="transaction_id"
+                type="text"
+                placeholder="e.g. 425912345678 or T2504041234567"
+                className="input-field font-mono text-sm tracking-tight"
+                value={formData.transaction_id}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 flex justify-end">

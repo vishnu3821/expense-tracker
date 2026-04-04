@@ -47,7 +47,8 @@ export default function History() {
     setEditForm({
       name: selectedExpense.name,
       amount: selectedExpense.amount,
-      date: selectedExpense.date.split('T')[0] // ensures yyyy-MM-dd format for input type="date"
+      date: selectedExpense.date.split('T')[0], // ensures yyyy-MM-dd format for input type="date"
+      transaction_id: selectedExpense.transaction_id || ''
     });
     setIsEditing(true);
   };
@@ -68,7 +69,8 @@ export default function History() {
         .update({ 
           name: editForm.name, 
           amount: parseFloat(editForm.amount), 
-          date: normalizedDate 
+          date: normalizedDate,
+          transaction_id: editForm.transaction_id || null
         })
         .eq('id', selectedExpense.id)
         .eq('user_id', user.id);
@@ -80,7 +82,8 @@ export default function History() {
         ...selectedExpense,
         name: editForm.name,
         amount: parseFloat(editForm.amount),
-        date: normalizedDate
+        date: normalizedDate,
+        transaction_id: editForm.transaction_id || null
       };
       
       setExpenses(expenses.map(exp => exp.id === selectedExpense.id ? updatedExpense : exp));
@@ -327,6 +330,22 @@ export default function History() {
                     <p className="text-slate-900 font-semibold text-base">{selectedExpense.name}</p>
                   )}
                 </div>
+                {(isEditing || selectedExpense.transaction_id) && (
+                  <div className="col-span-2">
+                    <p className="text-slate-500 font-medium mb-1">Transaction ID / UTR</p>
+                    {isEditing ? (
+                      <input 
+                        type="text" 
+                        className="input-field font-mono text-sm"
+                        placeholder="e.g. 425912345678"
+                        value={editForm.transaction_id}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, transaction_id: e.target.value }))}
+                      />
+                    ) : (
+                      <p className="text-slate-900 font-mono text-sm bg-slate-50 rounded-lg px-3 py-2 border border-slate-200 break-all">{selectedExpense.transaction_id}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {selectedExpense.image_url && (
