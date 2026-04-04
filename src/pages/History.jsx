@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, parseISO } from 'date-fns';
-import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search } from 'lucide-react';
+import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search, Edit3, Save } from 'lucide-react';
 
 export default function History() {
   const { user } = useAuth();
@@ -11,6 +11,9 @@ export default function History() {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', amount: '', date: '' });
 
   const filteredExpenses = expenses.filter(expense => {
     if (!searchQuery) return true;
@@ -38,6 +41,62 @@ export default function History() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const openEditMode = () => {
+    setEditForm({
+      name: selectedExpense.name,
+      amount: selectedExpense.amount,
+      date: selectedExpense.date.split('T')[0] // ensures yyyy-MM-dd format for input type="date"
+    });
+    setIsEditing(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editForm.name || !editForm.amount || !editForm.date) {
+      return alert("Please fill in all fields.");
+    }
+    
+    setIsSaving(true);
+    try {
+      // Normalize date to ISO format representing start of day in UTC roughly
+      let [year, month, day] = editForm.date.split("-");
+      const normalizedDate = new Date(Date.UTC(year, month - 1, day)).toISOString();
+
+      const { error } = await supabase
+        .from('expenses')
+        .update({ 
+          name: editForm.name, 
+          amount: parseFloat(editForm.amount), 
+          date: normalizedDate 
+        })
+        .eq('id', selectedExpense.id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state smoothly
+      const updatedExpense = {
+        ...selectedExpense,
+        name: editForm.name,
+        amount: parseFloat(editForm.amount),
+        date: normalizedDate
+      };
+      
+      setExpenses(expenses.map(exp => exp.id === selectedExpense.id ? updatedExpense : exp));
+      setSelectedExpense(updatedExpense);
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Error updating expense:', err);
+      alert('Failed to update expense.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const closeDetailsModal = () => {
+    setSelectedExpense(null);
+    setIsEditing(false);
   };
 
   const handleDelete = async (id, e) => {
@@ -206,15 +265,15 @@ export default function History() {
 
       {/* Modal for viewing details */}
       {selectedExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedExpense(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeDetailsModal}>
           <div 
             className="card bg-white w-full max-w-lg shadow-xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-full" 
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">Expense Details</h3>
+              <h3 className="text-lg font-bold text-slate-900">{isEditing ? 'Edit Expense' : 'Expense Details'}</h3>
               <button 
-                onClick={() => setSelectedExpense(null)}
+                onClick={closeDetailsModal}
                 className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-xl transition-colors"
               >
                 <X className="h-5 w-5" />
@@ -225,15 +284,48 @@ export default function History() {
               <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
                 <div>
                   <p className="text-slate-500 font-medium mb-1">Date</p>
-                  <p className="text-slate-900 font-semibold">{format(parseISO(selectedExpense.date), 'MMMM dd, yyyy')}</p>
+                  {isEditing ? (
+                    <input 
+                      type="date" 
+                      className="input-field" 
+                      value={editForm.date}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                      max={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  ) : (
+                    <p className="text-slate-900 font-semibold">{format(parseISO(selectedExpense.date), 'MMMM dd, yyyy')}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-slate-500 font-medium mb-1">Amount</p>
-                  <p className="text-teal-600 font-bold text-lg leading-tight">₹{Number(selectedExpense.amount).toFixed(2)}</p>
+                  {isEditing ? (
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0"
+                      className="input-field" 
+                      value={editForm.amount}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
+                      required
+                    />
+                  ) : (
+                    <p className="text-teal-600 font-bold text-lg leading-tight">₹{Number(selectedExpense.amount).toFixed(2)}</p>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <p className="text-slate-500 font-medium mb-1">Expense Name</p>
-                  <p className="text-slate-900 font-semibold text-base">{selectedExpense.name}</p>
+                  {isEditing ? (
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  ) : (
+                    <p className="text-slate-900 font-semibold text-base">{selectedExpense.name}</p>
+                  )}
                 </div>
               </div>
 
@@ -257,20 +349,52 @@ export default function History() {
               )}
             </div>
             
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 rounded-b-2xl">
-              <button 
-                className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                onClick={() => setSelectedExpense(null)}
-              >
-                Close
-              </button>
-              <button 
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
-                onClick={(e) => handleDelete(selectedExpense.id, e)}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete Expense'}
-              </button>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 rounded-b-2xl">
+              {isEditing ? (
+                <>
+                  <div className="flex-1"></div>
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                    onClick={() => setIsEditing(false)}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                    onClick={handleEditSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save Changes
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex-1">
+                    <button 
+                      className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-transparent hover:bg-slate-200/50 rounded-xl transition-colors flex items-center gap-2"
+                      onClick={openEditMode}
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      Edit
+                    </button>
+                  </div>
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                    onClick={closeDetailsModal}
+                  >
+                    Close
+                  </button>
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                    onClick={(e) => handleDelete(selectedExpense.id, e)}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Deleting...' : 'Delete Expense'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
