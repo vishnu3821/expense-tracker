@@ -14,32 +14,19 @@ async function analyzeReceiptImage(imageFile) {
     const { data: { text } } = await worker.recognize(imageUrl);
     URL.revokeObjectURL(imageUrl);
 
-    // Extract amount — look for ₹ or Rs followed by digits
-    let amount = '';
-    const amountMatch = text.match(/(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/i);
-    if (amountMatch) {
-      amount = amountMatch[1].replace(/,/g, '');
-    } else {
-      // fallback: find standalone number that looks like a payment amount
-      const fallback = text.match(/\b(\d{1,6}(?:\.\d{2})?)\b/);
-      if (fallback) amount = fallback[1];
-    }
-
-    // Extract transaction ID / UTR — typically 12+ alphanumeric chars
+    // Extract transaction ID / UTR — look for labels first, then long alphanumeric string
     let transaction_id = '';
-    // Look for common labels first
     const txnLabels = text.match(
       /(?:UTR|UPI Ref|Transaction ID|Txn ID|Ref No|Order ID|Reference)[^\w]*([\w]{8,})/i
     );
     if (txnLabels) {
       transaction_id = txnLabels[1];
     } else {
-      // fallback: find a long alphanumeric string that looks like an ID
       const fallbackId = text.match(/\b([A-Z0-9]{12,})\b/);
       if (fallbackId) transaction_id = fallbackId[1];
     }
 
-    return { amount, transaction_id };
+    return { transaction_id };
   } finally {
     await worker.terminate();
   }
@@ -105,21 +92,12 @@ export default function AddExpense() {
 
     try {
       const result = await analyzeReceiptImage(formData.image);
-      let filled = [];
 
-      if (result.amount && result.amount !== '') {
-        setFormData(prev => ({ ...prev, amount: result.amount }));
-        filled.push('amount');
-      }
       if (result.transaction_id && result.transaction_id !== '') {
         setFormData(prev => ({ ...prev, transaction_id: result.transaction_id }));
-        filled.push('transaction ID');
-      }
-
-      if (filled.length > 0) {
-        setScanMessage({ type: 'success', text: `✓ Auto-filled: ${filled.join(' & ')}` });
+        setScanMessage({ type: 'success', text: `✓ Auto-filled: transaction ID` });
       } else {
-        setScanMessage({ type: 'warn', text: 'No amount or transaction ID detected. Please fill manually.' });
+        setScanMessage({ type: 'warn', text: 'No transaction ID detected. Please fill manually.' });
       }
     } catch (err) {
       setScanMessage({ type: 'error', text: err.message });
@@ -328,7 +306,6 @@ export default function AddExpense() {
             <div className="space-y-2">
               <label htmlFor="amount" className="text-sm font-medium text-slate-700">
                 Amount (₹)
-                {formData.amount && <span className="ml-2 text-xs text-teal-600">✓ auto-filled</span>}
               </label>
               <input
                 id="amount"
