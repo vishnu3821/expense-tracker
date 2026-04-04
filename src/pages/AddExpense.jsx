@@ -5,68 +5,46 @@ import { format } from 'date-fns';
 import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X, Sparkles, Hash } from 'lucide-react';
 import { get, del } from 'idb-keyval';
 
+import { createWorker } from 'tesseract.js';
+
 async function analyzeReceiptImage(imageFile) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error('Gemini API key is not configured.');
-
-  // Convert image to base64
-  const base64 = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(imageFile);
-  });
-
-  const mimeType = imageFile.type || 'image/png';
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `You are a payment receipt OCR assistant. Analyze this payment screenshot and extract:
-1. The total amount paid (numbers only, no currency symbol)
-2. The transaction ID / UTR number / reference number / order ID (the unique alphanumeric code)
-
-Return ONLY a raw JSON object with exactly these two keys (no markdown, no code blocks):
-{"amount": "123.45", "transaction_id": "ABC123XYZ"}
-
-If a field is not found, use an empty string "". Do not include any other text.`
-              },
-              {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: base64
-                }
-              }
-            ]
-          }
-        ],
-        generationConfig: { maxOutputTokens: 200, temperature: 0 }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err?.error?.message || 'Gemini API request failed');
-  }
-
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-
+  const worker = await createWorker('eng');
   try {
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
-    throw new Error('Could not parse AI response. Please fill fields manually.');
+    const imageUrl = URL.createObjectURL(imageFile);
+    const { data: { text } } = await worker.recognize(imageUrl);
+    URL.revokeObjectURL(imageUrl);
+
+    // Extract amount — look for ₹ or Rs followed by digits
+    let amount = '';
+    const amountMatch = text.match(/(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/i);
+    if (amountMatch) {
+      amount = amountMatch[1].replace(/,/g, '');
+    } else {
+      // fallback: find standalone number that looks like a payment amount
+      const fallback = text.match(/\b(\d{1,6}(?:\.\d{2})?)\b/);
+      if (fallback) amount = fallback[1];
+    }
+
+    // Extract transaction ID / UTR — typically 12+ alphanumeric chars
+    let transaction_id = '';
+    // Look for common labels first
+    const txnLabels = text.match(
+      /(?:UTR|UPI Ref|Transaction ID|Txn ID|Ref No|Order ID|Reference)[^\w]*([\w]{8,})/i
+    );
+    if (txnLabels) {
+      transaction_id = txnLabels[1];
+    } else {
+      // fallback: find a long alphanumeric string that looks like an ID
+      const fallbackId = text.match(/\b([A-Z0-9]{12,})\b/);
+      if (fallbackId) transaction_id = fallbackId[1];
+    }
+
+    return { amount, transaction_id };
+  } finally {
+    await worker.terminate();
   }
 }
+
 
 export default function AddExpense() {
   const { user } = useAuth();
@@ -121,13 +99,6 @@ export default function AddExpense() {
 
   const handleScanImage = async () => {
     if (!formData.image) return;
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (!apiKey) {
-      setScanMessage({ type: 'error', text: 'No Gemini API key found. Add VITE_GEMINI_API_KEY in .env.local and restart the server.' });
-      return;
-    }
 
     setScanning(true);
     setScanMessage(null);
