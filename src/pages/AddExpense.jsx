@@ -5,9 +5,10 @@ import { format } from 'date-fns';
 import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X, Sparkles, Hash } from 'lucide-react';
 import { get, del } from 'idb-keyval';
 
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-
 async function analyzeReceiptImage(imageFile) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) throw new Error('Gemini API key is not configured.');
+
   // Convert image to base64
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -18,21 +19,17 @@ async function analyzeReceiptImage(imageFile) {
 
   const mimeType = imageFile.type || 'image/png';
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `You are a payment receipt OCR assistant. Analyze this payment screenshot and extract:
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `You are a payment receipt OCR assistant. Analyze this payment screenshot and extract:
 1. The total amount paid (numbers only, no currency symbol)
 2. The transaction ID / UTR number / reference number / order ID (the unique alphanumeric code)
 
@@ -40,31 +37,30 @@ Return ONLY a raw JSON object with exactly these two keys (no markdown, no code 
 {"amount": "123.45", "transaction_id": "ABC123XYZ"}
 
 If a field is not found, use an empty string "". Do not include any other text.`
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64}`,
-                detail: 'high'
+              },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64
+                }
               }
-            }
-          ]
-        }
-      ],
-      max_tokens: 200,
-    })
-  });
+            ]
+          }
+        ],
+        generationConfig: { maxOutputTokens: 200, temperature: 0 }
+      })
+    }
+  );
 
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err?.error?.message || 'OpenAI API request failed');
+    throw new Error(err?.error?.message || 'Gemini API request failed');
   }
 
   const data = await response.json();
-  const text = data.choices?.[0]?.message?.content?.trim();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
   try {
-    // Strip markdown code blocks if model wrapped the response anyway
     const cleaned = text.replace(/```json|```/g, '').trim();
     return JSON.parse(cleaned);
   } catch {
@@ -125,8 +121,11 @@ export default function AddExpense() {
 
   const handleScanImage = async () => {
     if (!formData.image) return;
-    if (!OPENAI_API_KEY) {
-      setScanMessage({ type: 'error', text: 'No OpenAI API key found. Add VITE_OPENAI_API_KEY in .env.local' });
+
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+    if (!apiKey) {
+      setScanMessage({ type: 'error', text: 'No Gemini API key found. Add VITE_GEMINI_API_KEY in .env.local and restart the server.' });
       return;
     }
 
@@ -285,7 +284,7 @@ export default function AddExpense() {
                 <button
                   type="button"
                   onClick={handleScanImage}
-                  disabled={scanning || !OPENAI_API_KEY}
+                  disabled={scanning}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 hover:border-teal-400 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {scanning ? (
