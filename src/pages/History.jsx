@@ -266,153 +266,176 @@ export default function History() {
         )}
       </div>
 
-      {/* Modal for viewing details */}
+      {/* Modal for viewing / editing details */}
       {selectedExpense && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={closeDetailsModal}>
-          <div 
-            className="card bg-white w-full max-w-lg shadow-xl animate-in zoom-in-95 duration-200 overflow-hidden flex flex-col max-h-full" 
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={closeDetailsModal}
+        >
+          <div
+            className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[92vh]"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-900">{isEditing ? 'Edit Expense' : 'Expense Details'}</h3>
-              <button 
-                onClick={closeDetailsModal}
-                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-xl transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            {/* ── Header ── */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <div className="flex items-center gap-2">
+                {isEditing && (
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors mr-1"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+                <h3 className="text-base font-bold text-slate-800">
+                  {isEditing ? 'Edit Expense' : 'Expense Details'}
+                </h3>
+              </div>
+              {!isEditing && (
+                <button
+                  onClick={closeDetailsModal}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
             </div>
-            
-            <div className="p-6 space-y-6 overflow-y-auto">
-              <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
-                <div>
-                  <p className="text-slate-500 font-medium mb-1">Date</p>
+
+            {/* ── Scrollable body ── */}
+            <div className="overflow-y-auto flex-1 px-5 pb-2 space-y-4">
+
+              {/* Amount hero card */}
+              <div className="rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 p-5 text-white relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 h-20 w-20 rounded-full bg-white/10" />
+                <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-white/10" />
+                <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-1">Amount Paid</p>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="w-full bg-white/20 text-white placeholder-white/60 border border-white/30 rounded-xl px-3 py-2 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-white/50"
+                    value={editForm.amount}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
+                    required
+                  />
+                ) : (
+                  <p className="text-4xl font-extrabold tracking-tight">₹{Number(selectedExpense.amount).toFixed(2)}</p>
+                )}
+              </div>
+
+              {/* Name + Date row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-2xl p-4 col-span-2">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Expense Name</p>
                   {isEditing ? (
-                    <input 
-                      type="date" 
-                      className="input-field" 
+                    <input
+                      type="text"
+                      className="input-field"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  ) : (
+                    <p className="text-slate-900 font-bold text-lg">{selectedExpense.name}</p>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date</p>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      className="input-field text-sm"
                       value={editForm.date}
                       onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
                       max={new Date().toISOString().split('T')[0]}
                       required
                     />
                   ) : (
-                    <p className="text-slate-900 font-semibold">{format(parseISO(selectedExpense.date), 'MMMM dd, yyyy')}</p>
+                    <p className="text-slate-900 font-semibold text-sm">{format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}</p>
                   )}
                 </div>
-                <div>
-                  <p className="text-slate-500 font-medium mb-1">Amount</p>
-                  {isEditing ? (
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      min="0"
-                      className="input-field" 
-                      value={editForm.amount}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, amount: e.target.value }))}
-                      required
-                    />
-                  ) : (
-                    <p className="text-teal-600 font-bold text-lg leading-tight">₹{Number(selectedExpense.amount).toFixed(2)}</p>
-                  )}
-                </div>
-                <div className="col-span-2">
-                  <p className="text-slate-500 font-medium mb-1">Expense Name</p>
-                  {isEditing ? (
-                    <input 
-                      type="text" 
-                      className="input-field" 
-                      value={editForm.name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                      required
-                    />
-                  ) : (
-                    <p className="text-slate-900 font-semibold text-base">{selectedExpense.name}</p>
-                  )}
-                </div>
+
+                {/* Transaction ID */}
                 {(isEditing || selectedExpense.transaction_id) && (
-                  <div className="col-span-2">
-                    <p className="text-slate-500 font-medium mb-1">Transaction ID / UTR</p>
+                  <div className="bg-slate-50 rounded-2xl p-4">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">UTR / Txn ID</p>
                     {isEditing ? (
-                      <input 
-                        type="text" 
-                        className="input-field font-mono text-sm"
+                      <input
+                        type="text"
+                        className="input-field font-mono text-xs"
                         placeholder="e.g. 425912345678"
                         value={editForm.transaction_id}
                         onChange={(e) => setEditForm(prev => ({ ...prev, transaction_id: e.target.value }))}
                       />
                     ) : (
-                      <p className="text-slate-900 font-mono text-sm bg-slate-50 rounded-lg px-3 py-2 border border-slate-200 break-all">{selectedExpense.transaction_id}</p>
+                      <p className="text-slate-700 font-mono text-xs font-semibold break-all leading-relaxed">
+                        {selectedExpense.transaction_id}
+                      </p>
                     )}
                   </div>
                 )}
               </div>
 
+              {/* Receipt image */}
               {selectedExpense.image_url && (
-                <div className="border-t border-slate-100 pt-6">
-                  <p className="text-slate-500 font-medium mb-3 text-sm flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4" />
-                    Receipt Image
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <ImageIcon className="h-3.5 w-3.5" /> Receipt
                   </p>
-                  <div className="rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex justify-center">
-                    <a href={selectedExpense.image_url} target="_blank" rel="noreferrer" title="Open full image">
-                      <img 
-                        src={selectedExpense.image_url} 
-                        alt="Receipt" 
-                        className="max-h-[300px] w-auto object-contain cursor-zoom-in hover:opacity-90 transition-opacity"
+                  <a href={selectedExpense.image_url} target="_blank" rel="noreferrer">
+                    <div className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 flex justify-center hover:opacity-90 transition-opacity cursor-zoom-in">
+                      <img
+                        src={selectedExpense.image_url}
+                        alt="Receipt"
+                        className="max-h-56 w-auto object-contain"
                         loading="lazy"
                       />
-                    </a>
-                  </div>
+                    </div>
+                  </a>
                 </div>
               )}
             </div>
-            
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 rounded-b-2xl">
+
+            {/* ── Footer actions ── */}
+            <div className="px-5 py-4 border-t border-slate-100 bg-white">
               {isEditing ? (
-                <>
-                  <div className="flex-1"></div>
-                  <button 
-                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 py-3 text-sm font-semibold text-slate-600 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-colors"
                     onClick={() => setIsEditing(false)}
                     disabled={isSaving}
                   >
                     Cancel
                   </button>
-                  <button 
-                    className="px-4 py-2 text-sm font-medium text-white bg-teal-600 rounded-xl hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                  <button
+                    className="flex-1 py-3 text-sm font-semibold text-white bg-teal-600 rounded-2xl hover:bg-teal-700 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
                     onClick={handleEditSave}
                     disabled={isSaving}
                   >
                     {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save Changes
                   </button>
-                </>
+                </div>
               ) : (
-                <>
-                  <div className="flex-1">
-                    <button 
-                      className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-transparent hover:bg-slate-200/50 rounded-xl transition-colors flex items-center gap-2"
-                      onClick={openEditMode}
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      Edit
-                    </button>
-                  </div>
-                  <button 
-                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                    onClick={closeDetailsModal}
+                <div className="flex gap-3">
+                  <button
+                    className="flex-1 py-3 text-sm font-semibold text-slate-600 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2"
+                    onClick={openEditMode}
                   >
-                    Close
+                    <Edit3 className="h-4 w-4" />
+                    Edit
                   </button>
-                  <button 
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                  <button
+                    className="flex-1 py-3 text-sm font-semibold text-white bg-red-500 rounded-2xl hover:bg-red-600 transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
                     onClick={(e) => handleDelete(selectedExpense.id, e)}
                     disabled={isDeleting}
                   >
-                    {isDeleting ? 'Deleting...' : 'Delete Expense'}
+                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    {isDeleting ? 'Deleting...' : 'Delete'}
                   </button>
-                </>
+                </div>
               )}
             </div>
           </div>
