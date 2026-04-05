@@ -12,8 +12,7 @@ const navItems = [
 export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      {/* Frosted glass container */}
-      <div className="mx-3 mb-3 rounded-2xl bg-white/90 backdrop-blur-xl border border-slate-200/80 shadow-[0_8px_32px_rgba(0,0,0,0.12)] px-2 py-2">
+      <div className="mx-3 mb-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 shadow-[0_4px_24px_rgba(0,0,0,0.10)] px-1 py-1.5">
         <div className="flex items-center justify-around">
           {navItems.map((item) => (
             <NavLink
@@ -21,36 +20,32 @@ export default function BottomNav() {
               to={item.path}
               end={item.end}
               className={({ isActive }) => {
-                if (item.isPrimary) {
-                  return 'flex flex-col items-center gap-1';
-                }
-                return `flex flex-col items-center gap-1 px-4 py-1.5 rounded-xl transition-all duration-200 ${
-                  isActive ? 'text-teal-700' : 'text-slate-400 hover:text-slate-600'
+                if (item.isPrimary) return 'flex flex-col items-center gap-0.5';
+                return `flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 ${
+                  isActive ? 'text-teal-700' : 'text-slate-400'
                 }`;
               }}
             >
               {({ isActive }) =>
                 item.isPrimary ? (
                   <>
-                    <div className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-200 ${
-                      isActive
-                        ? 'bg-teal-700 scale-105 shadow-teal-300'
-                        : 'bg-teal-600 hover:bg-teal-700 shadow-teal-200'
+                    <div className={`h-11 w-11 rounded-xl flex items-center justify-center shadow-md transition-all duration-200 ${
+                      isActive ? 'bg-teal-700 scale-105' : 'bg-teal-600'
                     }`}>
-                      <item.icon className="h-7 w-7 text-white" strokeWidth={2.5} />
+                      <item.icon className="h-5 w-5 text-white" strokeWidth={2.5} />
                     </div>
-                    <span className={`text-xs font-semibold ${isActive ? 'text-teal-700' : 'text-slate-500'}`}>
+                    <span className={`text-[10px] font-semibold ${isActive ? 'text-teal-700' : 'text-slate-500'}`}>
                       {item.name}
                     </span>
                   </>
                 ) : (
                   <>
-                    <div className={`p-2 rounded-xl transition-all duration-200 ${
+                    <div className={`p-1.5 rounded-lg transition-all duration-200 ${
                       isActive ? 'bg-teal-50' : 'bg-transparent'
                     }`}>
-                      <item.icon className="h-6 w-6" strokeWidth={isActive ? 2.5 : 1.8} />
+                      <item.icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 1.8} />
                     </div>
-                    <span className={`text-xs font-medium transition-colors ${
+                    <span className={`text-[10px] font-medium transition-colors ${
                       isActive ? 'text-teal-700 font-semibold' : 'text-slate-400'
                     }`}>
                       {item.name}
