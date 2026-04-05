@@ -269,12 +269,12 @@ export default function History() {
       {/* Modal for viewing / editing details */}
       {selectedExpense && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6 pb-20 sm:pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={closeDetailsModal}
         >
           <div
             className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 overflow-hidden flex flex-col"
-            style={{ maxHeight: 'calc(100vh - 88px)' }}
+            style={{ maxHeight: 'calc(100vh - 100px)' }}
             onClick={e => e.stopPropagation()}
           >
             {/* ── Header ── */}
