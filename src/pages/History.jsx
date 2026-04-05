@@ -13,7 +13,7 @@ export default function History() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', amount: '', date: '' });
+  const [editForm, setEditForm] = useState({ name: '', amount: '', date: '', category: 'Other' });
 
   const filteredExpenses = expenses.filter(expense => {
     if (!searchQuery) return true;
@@ -47,6 +47,7 @@ export default function History() {
     setEditForm({
       name: selectedExpense.name,
       amount: selectedExpense.amount,
+      category: selectedExpense.category || 'Other',
       date: selectedExpense.date.split('T')[0], // ensures yyyy-MM-dd format for input type="date"
       transaction_id: selectedExpense.transaction_id || ''
     });
@@ -68,7 +69,8 @@ export default function History() {
         .from('expenses')
         .update({ 
           name: editForm.name, 
-          amount: parseFloat(editForm.amount), 
+          amount: parseFloat(editForm.amount),
+          category: editForm.category,
           date: normalizedDate,
           transaction_id: editForm.transaction_id || null
         })
@@ -82,6 +84,7 @@ export default function History() {
         ...selectedExpense,
         name: editForm.name,
         amount: parseFloat(editForm.amount),
+        category: editForm.category,
         date: normalizedDate,
         transaction_id: editForm.transaction_id || null
       };
@@ -211,6 +214,7 @@ export default function History() {
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-medium text-sm">
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Name</th>
+                  <th className="px-6 py-4">Category</th>
                   <th className="px-6 py-4 text-right">Amount</th>
                   <th className="px-6 py-4 w-16"></th>
                 </tr>
@@ -225,13 +229,16 @@ export default function History() {
                     <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
                       {format(parseISO(expense.date), 'MMM dd, yyyy')}
                     </td>
+                    <td className="px-6 py-4 flex items-center gap-2">
+                      <span className="text-sm font-medium text-slate-900">{expense.name}</span>
+                      {expense.image_url && (
+                        <ImageIcon className="h-4 w-4 text-teal-600 shrink-0" title="Has receipt" />
+                      )}
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-slate-900">{expense.name}</span>
-                        {expense.image_url && (
-                          <ImageIcon className="h-4 w-4 text-teal-600 shrink-0" title="Has receipt" />
-                        )}
-                      </div>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                        {expense.category || 'Other'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-slate-900 text-right whitespace-nowrap">
                       ₹{Number(expense.amount).toFixed(2)}
@@ -343,6 +350,31 @@ export default function History() {
                 </div>
 
                 <div className="bg-slate-50 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Category</p>
+                  {isEditing ? (
+                    <select
+                      className="input-field py-[0.6rem] text-sm font-medium"
+                      value={editForm.category}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                      required
+                    >
+                      <option value="Food & Dining">Food & Dining</option>
+                      <option value="Transport">Transport</option>
+                      <option value="Shopping">Shopping</option>
+                      <option value="Entertainment">Entertainment</option>
+                      <option value="Utilities">Utilities</option>
+                      <option value="Health">Health</option>
+                      <option value="Housing">Housing</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-700">
+                      {selectedExpense.category || 'Other'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-slate-50 rounded-2xl p-4">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date</p>
                   {isEditing ? (
                     <input
@@ -360,7 +392,7 @@ export default function History() {
 
                 {/* Transaction ID */}
                 {(isEditing || selectedExpense.transaction_id) && (
-                  <div className="bg-slate-50 rounded-2xl p-4">
+                  <div className="bg-slate-50 rounded-2xl p-4 col-span-2">
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">UTR / Txn ID</p>
                     {isEditing ? (
                       <input

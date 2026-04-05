@@ -45,6 +45,7 @@ export default function AddExpense() {
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
+    category: 'Other',
     date: format(new Date(), 'yyyy-MM-dd'),
     transaction_id: '',
     image: null
@@ -149,6 +150,7 @@ export default function AddExpense() {
             user_id: user.id,
             name: formData.name,
             amount: parseFloat(formData.amount),
+            category: formData.category,
             date: formData.date,
             transaction_id: formData.transaction_id || null,
             image_url
@@ -160,6 +162,7 @@ export default function AddExpense() {
       setFormData({
         name: '',
         amount: '',
+        category: 'Other',
         date: format(new Date(), 'yyyy-MM-dd'),
         transaction_id: '',
         image: null
@@ -316,31 +319,51 @@ export default function AddExpense() {
             </div>
 
             <div className="space-y-2">
+              <label htmlFor="category" className="text-sm font-medium text-slate-700">Category</label>
+              <select
+                id="category"
+                name="category"
+                className="input-field py-[0.6rem]" // Slight padding tweak for uniform height with inputs
+                value={formData.category}
+                onChange={handleChange}
+                required
+              >
+                <option value="Food & Dining">Food & Dining</option>
+                <option value="Transport">Transport</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Health">Health</option>
+                <option value="Housing">Housing</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
               <label htmlFor="date" className="text-sm font-medium text-slate-700">Date</label>
               <input
                 id="date"
                 name="date"
                 type="date"
                 required
-                className="input-field"
+                max={new Date().toISOString().split('T')[0]}
+                className="input-field block w-full"
                 value={formData.date}
                 onChange={handleChange}
               />
             </div>
 
-            <div className="space-y-2 sm:col-span-2">
-              <label htmlFor="transaction_id" className="text-sm font-medium text-slate-700 flex items-center gap-2">
-                <Hash className="h-4 w-4 text-slate-400" />
-                Transaction ID / UTR
-                {formData.transaction_id && <span className="text-xs text-teal-600">✓ auto-filled</span>}
-                <span className="text-xs font-normal text-slate-400">(Optional)</span>
+            <div className="space-y-2">
+              <label htmlFor="transaction_id" className="text-sm font-medium text-slate-700">
+                Transaction ID / UTR <span className="text-slate-400 font-normal">(Optional)</span>
+                {formData.transaction_id && <span className="text-xs text-teal-600 ml-2">✓ auto-filled</span>}
               </label>
               <input
                 id="transaction_id"
                 name="transaction_id"
                 type="text"
-                placeholder="e.g. 425912345678 or T2504041234567"
-                className="input-field font-mono text-sm tracking-tight"
+                placeholder="e.g. 129083109283"
+                className="input-field font-mono text-sm placeholder:font-sans placeholder:text-base"
                 value={formData.transaction_id}
                 onChange={handleChange}
               />
