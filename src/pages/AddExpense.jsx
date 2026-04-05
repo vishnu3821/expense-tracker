@@ -37,7 +37,7 @@ export default function AddExpense() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [successName, setSuccessName] = useState(null); // stores item name for toast
   const [error, setError] = useState(null);
   const [scanMessage, setScanMessage] = useState(null);
   const imagePreviewUrl = useRef(null);
@@ -117,7 +117,8 @@ export default function AddExpense() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(false);
+    setSuccessName(null);
+    const savedName = formData.name; // capture before reset
 
     try {
       let image_url = null;
@@ -168,8 +169,8 @@ export default function AddExpense() {
       if (fileInput) fileInput.value = '';
       setScanMessage(null);
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 5000);
+      setSuccessName(savedName);
+      setTimeout(() => setSuccessName(null), 2000);
 
     } catch (err) {
       console.error(err);
@@ -190,13 +191,6 @@ export default function AddExpense() {
 
       <div className="card pt-1 shadow-sm">
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
-
-          {success && (
-            <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 flex items-center gap-3 text-teal-800">
-              <CheckCircle2 className="h-5 w-5 text-teal-600 shrink-0" />
-              <p className="text-sm font-medium">Expense added successfully!</p>
-            </div>
-          )}
 
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-800">
@@ -371,6 +365,34 @@ export default function AddExpense() {
           </div>
         </form>
       </div>
+
+      {/* ── Animated success toast ── */}
+      {successName && (
+        <div
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] pointer-events-none"
+          style={{
+            animation: 'toastPop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards'
+          }}
+        >
+          <div className="flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl whitespace-nowrap">
+            <div className="h-8 w-8 rounded-full bg-teal-500 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 leading-none mb-0.5">Added successfully</p>
+              <p className="text-sm font-bold leading-none capitalize">{successName}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes toastPop {
+          0%   { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9); }
+          60%  { opacity: 1; transform: translateX(-50%) translateY(-4px) scale(1.03); }
+          100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+        }
+      `}</style>
     </div>
   );
 }
