@@ -392,18 +392,18 @@ export default function AddExpense() {
       {/* ── Animated success toast ── */}
       {successName && (
         <div
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] pointer-events-none"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] pointer-events-none w-[90vw] max-w-sm"
           style={{
             animation: 'toastPop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards'
           }}
         >
-          <div className="flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl whitespace-nowrap">
+          <div className="flex items-center gap-3 bg-slate-900 text-white px-4 py-3.5 rounded-2xl shadow-2xl overflow-hidden">
             <div className="h-8 w-8 rounded-full bg-teal-500 flex items-center justify-center shrink-0">
               <CheckCircle2 className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <p className="text-xs text-slate-400 leading-none mb-0.5">Added successfully</p>
-              <p className="text-sm font-bold leading-none capitalize">{successName}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-slate-400 leading-none mb-1">Added successfully</p>
+              <p className="text-sm font-bold leading-tight capitalize truncate" title={successName}>{successName}</p>
             </div>
           </div>
         </div>
