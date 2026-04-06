@@ -1,11 +1,15 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Layout from './components/Layout/Layout'
 import Dashboard from './pages/Dashboard'
 import Auth from './pages/Auth'
 import AddExpense from './pages/AddExpense'
 import History from './pages/History'
 import Profile from './pages/Profile'
+import More from './pages/More'
+import YearBreakdown from './pages/YearBreakdown'
+import MonthDetail from './pages/MonthDetail'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -14,19 +18,24 @@ function PrivateRoute({ children }) {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-            <Route index element={<Dashboard />} />
-            <Route path="add" element={<AddExpense />} />
-            <Route path="history" element={<History />} />
-            <Route path="profile" element={<Profile />} />
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+              <Route index element={<Dashboard />} />
+              <Route path="add" element={<AddExpense />} />
+              <Route path="history" element={<History />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="more" element={<More />} />
+              <Route path="more/year" element={<YearBreakdown />} />
+              <Route path="more/year/:year/:month" element={<MonthDetail />} />
+            </Route>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

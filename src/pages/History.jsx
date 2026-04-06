@@ -178,27 +178,27 @@ export default function History() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-8 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Expense History</h2>
-          <p className="text-slate-500 text-sm mt-1">Review all your transactions and export data.</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Expense History</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Review, search, and export your records.</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
           <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search name or amount..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field pl-9 w-full"
+              className="input-field pl-9 w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
             />
           </div>
           <button
             onClick={exportCSV}
             disabled={filteredExpenses.length === 0}
-            className="btn-primary whitespace-nowrap !bg-white !text-slate-700 !border !border-slate-200 hover:!bg-slate-50 flex items-center gap-2 w-full sm:w-auto"
+            className="btn-primary whitespace-nowrap !bg-white dark:!bg-slate-900 !text-slate-700 dark:!text-slate-300 !border !border-slate-200 dark:!border-slate-700 hover:!bg-slate-50 dark:hover:!bg-slate-800 flex items-center gap-2 w-full sm:w-auto"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -211,7 +211,7 @@ export default function History() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 font-medium text-sm">
+                <tr className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-medium text-sm">
                   <th className="px-6 py-4">Date</th>
                   <th className="px-6 py-4">Name</th>
                   <th className="px-6 py-4">Category</th>
@@ -219,28 +219,28 @@ export default function History() {
                   <th className="px-6 py-4 w-16"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
                 {filteredExpenses.map((expense) => (
                   <tr 
                     key={expense.id} 
-                    className="hover:bg-slate-50 transition-colors cursor-pointer group"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                     onClick={() => setSelectedExpense(expense)}
                   >
-                    <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       {format(parseISO(expense.date), 'MMM dd, yyyy')}
                     </td>
                     <td className="px-6 py-4 flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900">{expense.name}</span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{expense.name}</span>
                       {expense.image_url && (
                         <ImageIcon className="h-4 w-4 text-teal-600 shrink-0" title="Has receipt" />
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                         {expense.category || 'Other'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900 text-right whitespace-nowrap">
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-white text-right whitespace-nowrap">
                       ₹{Number(expense.amount).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -275,17 +275,20 @@ export default function History() {
 
       {/* Modal for viewing / editing details */}
       {selectedExpense && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6 pb-20 sm:pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200"
-          onClick={closeDetailsModal}
-        >
-          <div
-            className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 overflow-hidden flex flex-col"
-            style={{ maxHeight: 'calc(100vh - 100px)' }}
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6 pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer transition-opacity duration-300"
+            onClick={() => {
+              if(!isEditing) setSelectedExpense(null);
+            }}
+          />
+          <div 
+            className="relative w-full sm:w-[32rem] bg-white dark:bg-slate-900 sm:rounded-3xl rounded-t-[2rem] shadow-2xl flex flex-col transform transition-all duration-300 translate-y-0 pb-safe sm:pb-0 max-h-[90vh] sm:max-h-[85vh]"
             onClick={e => e.stopPropagation()}
           >
-            {/* ── Header ── */}
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+            <div className="absolute left-1/2 top-4 -translate-x-1/2 w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full sm:hidden" />
+            
+            <div className="flex items-center justify-between p-5 pt-8 sm:pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10 rounded-t-[2rem]">
               <div className="flex items-center gap-2">
                 {isEditing && (
                   <button
@@ -295,16 +298,16 @@ export default function History() {
                     <X className="h-5 w-5" />
                   </button>
                 )}
-                <h3 className="text-base font-bold text-slate-800">
-                  {isEditing ? 'Edit Expense' : 'Expense Details'}
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                  {isEditing ? 'Edit Expense' : 'Transaction Details'}
                 </h3>
               </div>
               {!isEditing && (
-                <button
-                  onClick={closeDetailsModal}
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                <button 
+                  onClick={() => setSelectedExpense(null)}
+                  className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               )}
             </div>

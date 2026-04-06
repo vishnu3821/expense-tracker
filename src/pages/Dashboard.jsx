@@ -87,15 +87,15 @@ export default function Dashboard() {
   }
 
   const StatCard = ({ title, amount, icon: Icon, colorClass }) => (
-    <div className="card p-6 flex flex-col gap-4 bg-white hover:-translate-y-1 transition-transform duration-200">
+    <div className="card p-6 flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-500">{title}</h3>
+        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</h3>
         <div className={`p-2.5 rounded-xl ${colorClass}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>
       <div>
-        <p className="text-3xl font-bold text-slate-900">₹{amount.toFixed(2)}</p>
+        <p className="text-3xl font-bold text-slate-900 dark:text-white">₹{amount.toFixed(2)}</p>
       </div>
     </div>
   );
@@ -103,20 +103,20 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 pb-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Dashboard</h2>
-        <p className="text-slate-500 text-sm mt-1">Overview of your expenses and financial activity.</p>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
       </div>
 
       <div className="grid gap-5 md:grid-cols-3">
-        <StatCard title="Today's Total" amount={stats.today} icon={IndianRupee} colorClass="bg-blue-50 text-blue-600 border border-blue-100" />
-        <StatCard title="Monthly Total" amount={stats.month} icon={Calendar} colorClass="bg-teal-50 text-teal-600 border border-teal-100" />
-        <StatCard title="Yearly Total" amount={stats.year} icon={TrendingUp} colorClass="bg-purple-50 text-purple-600 border border-purple-100" />
+        <StatCard title="Today's Total" amount={stats.today} icon={IndianRupee} colorClass="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50" />
+        <StatCard title="Monthly Total" amount={stats.month} icon={Calendar} colorClass="bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50" />
+        <StatCard title="Yearly Total" amount={stats.year} icon={TrendingUp} colorClass="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/50" />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Chart */}
         <div className="card p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">Expense Trends</h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Expense Trends</h3>
           <div className="h-72 w-full">
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -140,7 +140,7 @@ export default function Dashboard() {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                 No expense data available for trends
               </div>
             )}
@@ -149,7 +149,7 @@ export default function Dashboard() {
 
         {/* Category Breakdown */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-slate-900 mb-6">Month's Breakdown</h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Month's Breakdown</h3>
           <div className="h-56 w-full relative">
             {categoryData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -175,7 +175,7 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                 No spending this month
               </div>
             )}
@@ -183,8 +183,8 @@ export default function Dashboard() {
             {/* Center Text for empty donut */}
             {categoryData.length > 0 && (
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1">Total</span>
-                <span className="text-lg font-bold text-slate-900 leading-tight">₹{stats.month.toFixed(0)}</span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Total</span>
+                <span className="text-lg font-bold text-slate-900 dark:text-white leading-tight">₹{stats.month.toFixed(0)}</span>
               </div>
             )}
           </div>
@@ -193,7 +193,7 @@ export default function Dashboard() {
               {categoryData.slice(0,6).map((entry, index) => (
                 <div key={entry.name} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ['#0d9488', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f59e0b', '#84cc16', '#64748b'][index % 7] }}></div>
-                  <span className="text-slate-600 truncate text-xs font-medium">{entry.name}</span>
+                  <span className="text-slate-600 dark:text-slate-300 truncate text-xs font-medium">{entry.name}</span>
                 </div>
               ))}
             </div>
@@ -202,29 +202,29 @@ export default function Dashboard() {
 
         {/* Recent Transactions */}
         <div className="card p-0 overflow-hidden flex flex-col">
-          <div className="p-6 pb-4 border-b border-slate-100">
-            <h3 className="text-lg font-semibold text-slate-900">Recent Transactions</h3>
+          <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Transactions</h3>
           </div>
           <div className="flex-1 p-6 pt-4 space-y-5">
             {recent.length > 0 ? (
               recent.map((expense) => (
                 <div key={expense.id} className="flex items-center justify-between group">
                   <div className="flex items-center gap-3.5">
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 group-hover:bg-teal-50 transition-colors flex items-center justify-center text-slate-500 group-hover:text-teal-600">
+                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400">
                       <CreditCard className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate pr-2">{expense.name}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{format(parseISO(expense.date), 'MMM dd, yyyy')}</p>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{expense.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{format(parseISO(expense.date), 'MMM dd, yyyy')}</p>
                     </div>
                   </div>
-                  <div className="font-semibold text-slate-900 whitespace-nowrap">
+                  <div className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">
                     ₹{Number(expense.amount).toFixed(2)}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center text-slate-500 text-sm py-8">
+              <div className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">
                 No recent transactions
               </div>
             )}

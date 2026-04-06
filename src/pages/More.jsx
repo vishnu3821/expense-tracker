@@ -1,0 +1,167 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { format, parseISO } from 'date-fns';
+import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun } from 'lucide-react';
+
+export default function More() {
+  const { user, signOut } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        alert("No expenses found to export.");
+        return;
+      }
+
+      const headers = ['Date,Name,Category,Amount,Transaction ID'];
+      const rows = data.map(exp => {
+        const date = format(parseISO(exp.date), 'yyyy-MM-dd');
+        const name = `"${(exp.name || '').replace(/"/g, '""')}"`;
+        const category = `"${(exp.category || 'Other').replace(/"/g, '""')}"`;
+        const amount = exp.amount;
+        const txn = `"${(exp.transaction_id || '').replace(/"/g, '""')}"`;
+        return `${date},${name},${category},${amount},${txn}`;
+      });
+
+      const csvContent = headers.concat(rows).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `all_expenses_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Error exporting CSV:', err);
+      alert('Failed to export data.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (window.confirm("Are you sure you want to sign out?")) {
+      try {
+        await signOut();
+      } catch (error) {
+        console.error("Error signing out", error);
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">More Options</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Manage your data and account.</p>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="p-2 space-y-1">
+          <Link 
+            to="/more/year" 
+            className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 transition-colors group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Year Breakdown</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">View your spending month by month</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
+          </Link>
+
+          <Link 
+            to="/profile" 
+            className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50">
+                <UserCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Profile Settings</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage your account information</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
+          </Link>
+
+          <button 
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 transition-colors group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50">
+                {isExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Export All Data</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Download your expenses as a CSV</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="p-2">
+          <button 
+            onClick={toggleDarkMode}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 transition-colors group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
+                {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Dark Mode</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{isDarkMode ? 'Dark theme active' : 'Light theme active'}</p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full flex items-center transition-colors px-1 shadow-inner ${isDarkMode ? 'bg-teal-500 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'}`}>
+              <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="p-2">
+          <button 
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors group text-left"
+          >
+            <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400 transition-colors group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+              <LogOut className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">Sign Out</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">End your current session</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
