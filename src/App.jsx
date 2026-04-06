@@ -18,8 +18,8 @@ function PrivateRoute({ children }) {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -34,8 +34,8 @@ function App() {
             </Route>
           </Routes>
         </Router>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   )
 }
 

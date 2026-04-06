@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 const ThemeContext = createContext();
 
@@ -7,32 +8,39 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }) {
+  const { user } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  // Initialize theme tracking
   useEffect(() => {
-    // Check initial pref
     const savedTheme = localStorage.getItem('app-theme');
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
       setIsDarkMode(true);
-      document.documentElement.classList.add('dark');
     } else {
       setIsDarkMode(false);
-      document.documentElement.classList.remove('dark');
     }
   }, []);
+
+  // Apply theme only if user is logged in
+  useEffect(() => {
+    if (!user) {
+      document.documentElement.classList.remove('dark');
+      return;
+    }
+    
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode, user]);
 
   const toggleDarkMode = () => {
     setIsDarkMode((prev) => {
       const next = !prev;
-      if (next) {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('app-theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('app-theme', 'light');
-      }
+      localStorage.setItem('app-theme', next ? 'dark' : 'light');
       return next;
     });
   };
