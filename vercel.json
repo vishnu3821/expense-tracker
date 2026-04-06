@@ -5,12 +5,12 @@
   ],
   "crons": [
     {
-      "path": "/api/daily-summary",
-      "schedule": "0 21 * * *"
+      "path": "/api/reminder",
+      "schedule": "0 9 * * *"
     },
     {
-      "path": "/api/reminder",
-      "schedule": "0 */6 * * *"
+      "path": "/api/daily-summary",
+      "schedule": "0 21 * * *"
     }
   ]
 }
