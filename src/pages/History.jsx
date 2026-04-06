@@ -337,8 +337,8 @@ export default function History() {
 
               {/* Name + Date row */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 rounded-2xl p-4 col-span-2">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Expense Name</p>
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 col-span-2">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Expense Name</p>
                   {isEditing ? (
                     <input
                       type="text"
@@ -348,12 +348,12 @@ export default function History() {
                       required
                     />
                   ) : (
-                    <p className="text-slate-900 font-bold text-lg">{selectedExpense.name}</p>
+                    <p className="text-slate-900 dark:text-white font-bold text-lg">{selectedExpense.name}</p>
                   )}
                 </div>
 
-                <div className="bg-slate-50 rounded-2xl p-4">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Category</p>
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Category</p>
                   {isEditing ? (
                     <select
                       className="input-field py-[0.6rem] text-sm font-medium"
@@ -371,14 +371,14 @@ export default function History() {
                       <option value="Other">Other</option>
                     </select>
                   ) : (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-700">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400">
                       {selectedExpense.category || 'Other'}
                     </span>
                   )}
                 </div>
 
-                <div className="bg-slate-50 rounded-2xl p-4">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date</p>
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Date</p>
                   {isEditing ? (
                     <input
                       type="date"
@@ -389,14 +389,14 @@ export default function History() {
                       required
                     />
                   ) : (
-                    <p className="text-slate-900 font-semibold text-sm">{format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}</p>
+                    <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">{format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}</p>
                   )}
                 </div>
 
                 {/* Transaction ID */}
                 {(isEditing || selectedExpense.transaction_id) && (
-                  <div className="bg-slate-50 rounded-2xl p-4 col-span-2">
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">UTR / Txn ID</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 col-span-2">
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">UTR / Txn ID</p>
                     {isEditing ? (
                       <input
                         type="text"
@@ -406,7 +406,7 @@ export default function History() {
                         onChange={(e) => setEditForm(prev => ({ ...prev, transaction_id: e.target.value }))}
                       />
                     ) : (
-                      <p className="text-slate-700 font-mono text-xs font-semibold break-all leading-relaxed">
+                      <p className="text-slate-700 dark:text-slate-300 font-mono text-xs font-semibold break-all leading-relaxed">
                         {selectedExpense.transaction_id}
                       </p>
                     )}
@@ -434,11 +434,11 @@ export default function History() {
               )}
             </div>
 
-            <div className="px-5 py-3 border-t border-slate-100 bg-white">
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
               {isEditing ? (
                 <div className="flex gap-2.5">
                   <button
-                    className="flex-1 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+                    className="flex-1 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                     onClick={() => setIsEditing(false)}
                     disabled={isSaving}
                   >
@@ -456,7 +456,7 @@ export default function History() {
               ) : (
                 <div className="flex gap-2.5">
                   <button
-                    className="flex-1 py-2.5 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-1.5"
                     onClick={openEditMode}
                   >
                     <Edit3 className="h-3.5 w-3.5" />

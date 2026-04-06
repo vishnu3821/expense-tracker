@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2 } from 'lucide-react';
+import { requestNotificationPermission } from '../lib/firebase';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -12,10 +13,28 @@ export default function Dashboard() {
   const [recent, setRecent] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   useEffect(() => {
-    if (user) fetchDashboardData();
+    if (user) {
+      fetchDashboardData();
+      // Check if notifications are supported and not already granted or denied
+      if ('Notification' in window && Notification.permission === 'default') {
+        setShowNotificationPrompt(true);
+      }
+    }
   }, [user]);
+
+  const handleEnableNotifications = async () => {
+    if (!user) return;
+    const token = await requestNotificationPermission(user.id);
+    if (token) {
+      alert("Daily updates enabled successfully!");
+    } else {
+      alert("Could not enable notifications. Please check your browser settings.");
+    }
+    setShowNotificationPrompt(false);
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -102,6 +121,29 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 pb-8 animate-in fade-in duration-500">
+      {showNotificationPrompt && (
+        <div className="bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in slide-in-from-top">
+          <div>
+            <h3 className="font-bold text-teal-800 dark:text-teal-400">Get Daily Summaries!</h3>
+            <p className="text-sm text-teal-600 dark:text-teal-500 mt-0.5">Let us notify you every day at 9 PM with your total daily spend.</p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button 
+              onClick={() => setShowNotificationPrompt(false)}
+              className="px-4 py-2 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-800/50 rounded-xl transition-colors flex-1 sm:flex-none"
+            >
+              Later
+            </button>
+            <button 
+              onClick={handleEnableNotifications}
+              className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors shadow-sm flex-1 sm:flex-none"
+            >
+              Enable
+            </button>
+          </div>
+        </div>
+      )}
+
       <div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
