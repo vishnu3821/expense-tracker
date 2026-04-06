@@ -4,12 +4,55 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun } from 'lucide-react';
+import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff } from 'lucide-react';
+import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
   const { user, signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
+
+  React.useEffect(() => {
+    if (user) checkNotificationStatus();
+  }, [user]);
+
+  const checkNotificationStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_fcm_tokens')
+        .select('fcm_token')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (!error && data) {
+        setNotificationsEnabled(true);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsTogglingNotifications(false);
+    }
+  };
+
+  const handleToggleNotifications = async () => {
+    setIsTogglingNotifications(true);
+    if (notificationsEnabled) {
+      // Turn off by deleting the token
+      await supabase.from('user_fcm_tokens').delete().eq('user_id', user.id);
+      setNotificationsEnabled(false);
+    } else {
+      // Turn on
+      const token = await requestNotificationPermission(user.id);
+      if (token) {
+        setNotificationsEnabled(true);
+      } else {
+        alert("Could not enable notifications. Please check your browser settings or try again.");
+      }
+    }
+    setIsTogglingNotifications(false);
+  };
 
   const handleExportCSV = async () => {
     setIsExporting(true);
@@ -125,7 +168,26 @@ export default function More() {
       </div>
 
       <div className="card overflow-hidden">
-        <div className="p-2">
+        <div className="p-2 space-y-1">
+          <button 
+            onClick={handleToggleNotifications}
+            disabled={isTogglingNotifications}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 transition-colors group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50">
+                {notificationsEnabled ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Daily Summaries</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{notificationsEnabled ? 'Notifications are ON' : 'Notifications are OFF'}</p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full flex items-center transition-colors px-1 shadow-inner ${notificationsEnabled ? 'bg-teal-500 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'}`}>
+              <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+            </div>
+          </button>
+
           <button 
             onClick={toggleDarkMode}
             className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
