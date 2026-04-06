@@ -173,7 +173,7 @@ export default function AddExpense() {
       setScanMessage(null);
 
       setSuccessName(savedName);
-      setTimeout(() => setSuccessName(null), 2000);
+      setTimeout(() => setSuccessName(null), 4000);
 
     } catch (err) {
       console.error(err);
@@ -392,28 +392,34 @@ export default function AddExpense() {
       {/* ── Animated success toast ── */}
       {successName && (
         <div
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] pointer-events-none w-[90vw] max-w-sm"
+          className="fixed bottom-24 left-0 right-0 z-[70] flex justify-center pointer-events-none px-4"
           style={{
             animation: 'toastPop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards'
           }}
         >
-          <div className="flex items-center gap-3 bg-slate-900 text-white px-4 py-3.5 rounded-2xl shadow-2xl overflow-hidden">
+          <div className="flex items-center gap-3 bg-slate-900 text-white px-4 py-3.5 rounded-2xl shadow-2xl overflow-hidden w-full max-w-sm pointer-events-auto relative">
             <div className="h-8 w-8 rounded-full bg-teal-500 flex items-center justify-center shrink-0">
               <CheckCircle2 className="h-5 w-5 text-white" />
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 pr-6">
               <p className="text-xs text-slate-400 leading-none mb-1">Added successfully</p>
               <p className="text-sm font-bold leading-tight capitalize truncate" title={successName}>{successName}</p>
             </div>
+            <button 
+              onClick={() => setSuccessName(null)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
 
       <style>{`
         @keyframes toastPop {
-          0%   { opacity: 0; transform: translateX(-50%) translateY(20px) scale(0.9); }
-          60%  { opacity: 1; transform: translateX(-50%) translateY(-4px) scale(1.03); }
-          100% { opacity: 1; transform: translateX(-50%) translateY(0px) scale(1); }
+          0%   { opacity: 0; transform: translateY(20px) scale(0.9); }
+          60%  { opacity: 1; transform: translateY(-4px) scale(1.03); }
+          100% { opacity: 1; transform: translateY(0px) scale(1); }
         }
       `}</style>
     </div>
