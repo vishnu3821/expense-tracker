@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { startOfDay, startOfMonth, startOfYear, format, parseISO } from 'date-fns';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2 } from 'lucide-react';
+import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function Dashboard() {
@@ -12,13 +12,13 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ today: 0, month: 0, year: 0 });
   const [recent, setRecent] = useState([]);
   const [chartData, setChartData] = useState([]);
-  const [categoryData, setCategoryData] = useState([]);
+  const [calendarData, setCalendarData] = useState({}); // { 'YYYY-MM-DD': amount }
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
-      // Check if notifications are supported and not already granted or denied
       if ('Notification' in window && Notification.permission === 'default') {
         setShowNotificationPrompt(true);
       }
@@ -54,47 +54,108 @@ export default function Dashboard() {
       let todayTotal = 0;
       let monthTotal = 0;
       let yearTotal = 0;
-      
       const monthlyData = {};
-      const categoryTotals = {};
+      const dailyMap = {};
 
       data.forEach(expense => {
-        // Parse the database date as local to avoid off-by-one errors with timezone
-        // Assuming date is in YYYY-MM-DD format
         const expenseDate = parseISO(expense.date);
         const amount = Number(expense.amount);
+        const dateKey = format(expenseDate, 'yyyy-MM-dd');
 
         if (expenseDate >= today) todayTotal += amount;
-        if (expenseDate >= monthStart) {
-          monthTotal += amount;
-          const cat = expense.category || 'Other';
-          categoryTotals[cat] = (categoryTotals[cat] || 0) + amount;
-        }
+        if (expenseDate >= monthStart) monthTotal += amount;
         if (expenseDate >= yearStart) yearTotal += amount;
 
-        // Group by month for chart
+        // Group by month for trend chart
         const monthKey = format(expenseDate, 'MMM yyyy');
         monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
+
+        // Group by day for calendar
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + amount;
       });
 
       const formattedChartData = Object.entries(monthlyData)
         .map(([name, total]) => ({ name, total }))
         .reverse()
-        .slice(-6); // Last 6 months
-
-      const formattedCategoryData = Object.entries(categoryTotals)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value);
+        .slice(-6);
 
       setStats({ today: todayTotal, month: monthTotal, year: yearTotal });
       setRecent(data.slice(0, 5));
       setChartData(formattedChartData);
-      setCategoryData(formattedCategoryData);
+      setCalendarData(dailyMap);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Calendar helpers
+  const renderCalendar = () => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const daysInMonth = getDaysInMonth(calendarMonth);
+    const firstDayOfMonth = getDay(new Date(year, month, 1)); // 0=Sun
+    const weeks = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    // Get max daily spend for intensity scaling
+    const monthValues = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = format(new Date(year, month, d), 'yyyy-MM-dd');
+      if (calendarData[key]) monthValues.push(calendarData[key]);
+    }
+    const maxSpend = Math.max(...monthValues, 1);
+
+    const cells = [];
+    // Empty cells before first day
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      cells.push(<div key={`empty-${i}`} />);
+    }
+    // Day cells
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      const key = format(date, 'yyyy-MM-dd');
+      const amount = calendarData[key] || 0;
+      const intensity = amount > 0 ? Math.min(amount / maxSpend, 1) : 0;
+      const isCurrentDay = isToday(date);
+
+      // Color from light teal to deep teal based on intensity
+      const bg = amount > 0
+        ? `rgba(13, 148, 136, ${0.15 + intensity * 0.75})`
+        : 'transparent';
+
+      cells.push(
+        <div
+          key={d}
+          title={amount > 0 ? `₹${amount.toFixed(0)}` : 'No expenses'}
+          className={`aspect-square flex flex-col items-center justify-center rounded-lg text-xs transition-all cursor-default relative
+            ${isCurrentDay ? 'ring-2 ring-teal-500 ring-offset-1 dark:ring-offset-slate-900 font-bold' : ''}
+            ${amount > 0 ? 'text-white' : 'text-slate-400 dark:text-slate-600'}
+          `}
+          style={{ backgroundColor: bg }}
+        >
+          <span className={`text-[11px] font-semibold ${isCurrentDay && !amount ? 'text-teal-600 dark:text-teal-400' : ''}`}>{d}</span>
+          {amount > 0 && (
+            <span className="text-[9px] opacity-90 font-medium">₹{amount >= 1000 ? `${(amount / 1000).toFixed(1)}k` : amount.toFixed(0)}</span>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {weeks.map(w => (
+            <div key={w} className="text-center text-[10px] font-semibold text-slate-400 dark:text-slate-500 py-1">{w}</div>
+          ))}
+        </div>
+        {/* Day cells */}
+        <div className="grid grid-cols-7 gap-1">
+          {cells}
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -128,13 +189,13 @@ export default function Dashboard() {
             <p className="text-sm text-teal-600 dark:text-teal-500 mt-0.5">Let us notify you every day at 9 PM with your total daily spend.</p>
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button 
+            <button
               onClick={() => setShowNotificationPrompt(false)}
               className="px-4 py-2 text-sm font-medium text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-800/50 rounded-xl transition-colors flex-1 sm:flex-none"
             >
               Later
             </button>
-            <button 
+            <button
               onClick={handleEnableNotifications}
               className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors shadow-sm flex-1 sm:flex-none"
             >
@@ -156,7 +217,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Chart */}
+        {/* Expense Trends Chart */}
         <div className="card p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Expense Trends</h3>
           <div className="h-72 w-full">
@@ -166,19 +227,12 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-10} tickFormatter={(value) => `₹${value}`} />
-                  <RechartsTooltip 
+                  <RechartsTooltip
                     contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     formatter={(value) => [`₹${value}`, 'Total']}
                     cursor={{ stroke: '#e2e8f0', strokeWidth: 2 }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="total" 
-                    stroke="#0d9488" 
-                    strokeWidth={3} 
-                    dot={{ r: 4, fill: '#0d9488', strokeWidth: 2, stroke: '#fff' }} 
-                    activeDot={{ r: 6, strokeWidth: 0, fill: '#0f766e' }} 
-                  />
+                  <Line type="monotone" dataKey="total" stroke="#0d9488" strokeWidth={3} dot={{ r: 4, fill: '#0d9488', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#0f766e' }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -189,57 +243,38 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Category Breakdown */}
+        {/* Expense Calendar */}
         <div className="card p-6">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Month's Breakdown</h3>
-          <div className="h-56 w-full relative">
-            {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={85}
-                    paddingAngle={3}
-                    dataKey="value"
-                    stroke="none"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#0d9488', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f59e0b', '#84cc16', '#64748b'][index % 7]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                    formatter={(value) => `₹${value.toFixed(2)}`}
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                No spending this month
-              </div>
-            )}
-            
-            {/* Center Text for empty donut */}
-            {categoryData.length > 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1">Total</span>
-                <span className="text-lg font-bold text-slate-900 dark:text-white leading-tight">₹{stats.month.toFixed(0)}</span>
-              </div>
-            )}
-          </div>
-          {categoryData.length > 0 && (
-            <div className="mt-6 grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
-              {categoryData.slice(0,6).map((entry, index) => (
-                <div key={entry.name} className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ['#0d9488', '#0ea5e9', '#8b5cf6', '#f43f5e', '#f59e0b', '#84cc16', '#64748b'][index % 7] }}></div>
-                  <span className="text-slate-600 dark:text-slate-300 truncate text-xs font-medium">{entry.name}</span>
-                </div>
-              ))}
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Expense Calendar</h3>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 w-28 text-center">
+                {format(calendarMonth, 'MMMM yyyy')}
+              </span>
+              <button
+                onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+                disabled={isSameMonth(calendarMonth, new Date())}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
-          )}
+          </div>
+          {renderCalendar()}
+          {/* Legend */}
+          <div className="flex items-center gap-2 mt-4 justify-end">
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">Less</span>
+            {[0.15, 0.35, 0.55, 0.75, 0.90].map(op => (
+              <div key={op} className="w-4 h-4 rounded" style={{ backgroundColor: `rgba(13,148,136,${op})` }} />
+            ))}
+            <span className="text-[10px] text-slate-400 dark:text-slate-500">More</span>
+          </div>
         </div>
 
         {/* Recent Transactions */}

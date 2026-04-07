@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search, Edit3, Save } from 'lucide-react';
 
 export default function History() {
@@ -20,6 +20,22 @@ export default function History() {
     const query = searchQuery.toLowerCase();
     return expense.name.toLowerCase().includes(query) || expense.amount.toString().includes(query);
   });
+
+  // Group filtered expenses by date
+  const groupedByDay = filteredExpenses.reduce((acc, expense) => {
+    const dateKey = expense.date.split('T')[0];
+    if (!acc[dateKey]) acc[dateKey] = { expenses: [], total: 0 };
+    acc[dateKey].expenses.push(expense);
+    acc[dateKey].total += Number(expense.amount);
+    return acc;
+  }, {});
+
+  const dayLabel = (dateStr) => {
+    const d = parseISO(dateStr);
+    if (isToday(d)) return 'Today';
+    if (isYesterday(d)) return 'Yesterday';
+    return format(d, 'EEEE, dd MMM yyyy');
+  };
 
   useEffect(() => {
     if (user) fetchExpenses();
@@ -206,58 +222,48 @@ export default function History() {
         </div>
       </div>
 
-      <div className="card overflow-hidden">
-        {filteredExpenses.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-medium text-sm">
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4 text-right">Amount</th>
-                  <th className="px-6 py-4 w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 bg-white dark:bg-slate-900">
-                {filteredExpenses.map((expense) => (
-                  <tr 
-                    key={expense.id} 
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
+      <div className="space-y-4">
+        {Object.keys(groupedByDay).length > 0 ? (
+          Object.entries(groupedByDay).map(([dateKey, { expenses: dayExpenses, total: dayTotal }]) => (
+            <div key={dateKey}>
+              {/* Day Header */}
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{dayLabel(dateKey)}</span>
+                <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-full">₹{dayTotal.toFixed(2)}</span>
+              </div>
+              {/* Expense Cards for this day */}
+              <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                {dayExpenses.map((expense) => (
+                  <div
+                    key={expense.id}
+                    className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                     onClick={() => setSelectedExpense(expense)}
                   >
-                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                      {format(parseISO(expense.date), 'MMM dd, yyyy')}
-                    </td>
-                    <td className="px-6 py-4 flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{expense.name}</span>
-                      {expense.image_url && (
-                        <ImageIcon className="h-4 w-4 text-teal-600 shrink-0" title="Has receipt" />
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        {expense.category || 'Other'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900 dark:text-white text-right whitespace-nowrap">
-                      ₹{Number(expense.amount).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-right">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors flex items-center justify-center text-lg">
+                        {expense.image_url ? <ImageIcon className="h-4 w-4 text-teal-500" /> : '💳'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{expense.name}</p>
+                        <span className="inline-block mt-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded">{expense.category || 'Other'}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">₹{Number(expense.amount).toFixed(2)}</span>
                       <button
                         onClick={(e) => handleDelete(expense.id, e)}
                         disabled={isDeleting}
-                        className="text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                        className="text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
                         title="Delete expense"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </div>
+          ))
         ) : (
           <div className="p-12 text-center text-slate-500">
             <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-4">
