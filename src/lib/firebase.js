@@ -27,7 +27,10 @@ export const requestNotificationPermission = async (userId) => {
       // You need to configure a VAPID key in Firebase Console (Project Settings -> Cloud Messaging -> Web configuration)
       // but if not provided, getToken uses the default. It's recommended to generate a Key Pair in the Cloud Messaging tab.
       // For now we attempt getToken without a explicit vapidKey if not available.
-      const token = await getToken(messaging);
+      const token = await getToken(messaging, {
+        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+        serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js'),
+      });
       
       if (token) {
         // Save logic to Supabase
