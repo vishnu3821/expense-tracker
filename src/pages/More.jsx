@@ -40,16 +40,73 @@ export default function More() {
   const handleToggleNotifications = async () => {
     setIsTogglingNotifications(true);
     if (notificationsEnabled) {
-      // Turn off by deleting the token
       await supabase.from('user_fcm_tokens').delete().eq('user_id', user.id);
       setNotificationsEnabled(false);
     } else {
-      // Turn on
-      const token = await requestNotificationPermission(user.id);
-      if (token) {
+      // Step-by-step diagnostic
+      try {
+        // Step 1: Check browser support
+        if (!('Notification' in window)) {
+          alert('❌ Step 1 Failed: Browser does not support notifications');
+          return;
+        }
+        if (!('serviceWorker' in navigator)) {
+          alert('❌ Step 1 Failed: Browser does not support service workers');
+          return;
+        }
+
+        // Step 2: Request permission
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          alert(`❌ Step 2 Failed: Permission was "${permission}". Please allow notifications for this site in your browser/Android settings.`);
+          return;
+        }
+
+        // Step 3: Check SW
+        let swReg;
+        try {
+          swReg = await navigator.serviceWorker.ready;
+        } catch (e) {
+          alert('❌ Step 3 Failed: Service worker error: ' + e.message);
+          return;
+        }
+
+        // Step 4: Get FCM token
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        if (!vapidKey) {
+          alert('❌ Step 4 Failed: VAPID key missing from build. Contact developer.');
+          return;
+        }
+
+        let token;
+        try {
+          const { getToken } = await import('firebase/messaging');
+          const { messaging } = await import('../lib/firebase');
+          token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swReg });
+        } catch (e) {
+          alert('❌ Step 4 Failed: FCM getToken error: ' + e.message);
+          return;
+        }
+
+        if (!token) {
+          alert('❌ Step 4 Failed: FCM returned no token. Check Firebase project settings.');
+          return;
+        }
+
+        // Step 5: Save token
+        const { error: dbError } = await supabase
+          .from('user_fcm_tokens')
+          .upsert({ user_id: user.id, fcm_token: token }, { onConflict: 'user_id' });
+
+        if (dbError) {
+          alert('❌ Step 5 Failed: Database error: ' + dbError.message);
+          return;
+        }
+
         setNotificationsEnabled(true);
-      } else {
-        alert("Could not enable notifications. Please check your browser settings or try again.");
+        alert('✅ Notifications enabled successfully!');
+      } finally {
+        // always runs
       }
     }
     setIsTogglingNotifications(false);
