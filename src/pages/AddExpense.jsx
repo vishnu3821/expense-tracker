@@ -48,6 +48,7 @@ export default function AddExpense() {
     category: 'Other',
     date: format(new Date(), 'yyyy-MM-dd'),
     transaction_id: '',
+    payment_mode: 'UPI',
     image: null
   });
 
@@ -153,6 +154,7 @@ export default function AddExpense() {
             category: formData.category,
             date: formData.date,
             transaction_id: formData.transaction_id || null,
+            payment_mode: formData.payment_mode,
             image_url
           }
         ]);
@@ -165,6 +167,7 @@ export default function AddExpense() {
         category: 'Other',
         date: format(new Date(), 'yyyy-MM-dd'),
         transaction_id: '',
+        payment_mode: 'UPI',
         image: null
       });
 
@@ -354,7 +357,7 @@ export default function AddExpense() {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="transaction_id" className="text-sm font-medium text-slate-700">
+              <label htmlFor="transaction_id" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Transaction ID / UTR <span className="text-slate-400 font-normal">(Optional)</span>
                 {formData.transaction_id && <span className="text-xs text-teal-600 ml-2">✓ auto-filled</span>}
               </label>
@@ -363,10 +366,41 @@ export default function AddExpense() {
                 name="transaction_id"
                 type="text"
                 placeholder="e.g. 129083109283"
-                className="input-field font-mono text-sm placeholder:font-sans placeholder:text-base"
+                className="input-field font-mono text-sm placeholder:font-sans placeholder:text-base bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                 value={formData.transaction_id}
                 onChange={handleChange}
               />
+            </div>
+
+            {/* Payment Mode Segmented Control */}
+            <div className="space-y-2 sm:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Payment Mode</label>
+              <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-64">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, payment_mode: 'UPI' }))}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg transition-all ${
+                    formData.payment_mode === 'UPI'
+                      ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <Hash className="h-4 w-4" />
+                  UPI
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, payment_mode: 'Cash' }))}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg transition-all ${
+                    formData.payment_mode === 'Cash'
+                      ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <span className="text-lg leading-none mt-[-2px]">💵</span>
+                  Cash
+                </button>
+              </div>
             </div>
           </div>
 

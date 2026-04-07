@@ -65,7 +65,8 @@ export default function History() {
       amount: selectedExpense.amount,
       category: selectedExpense.category || 'Other',
       date: selectedExpense.date.split('T')[0], // ensures yyyy-MM-dd format for input type="date"
-      transaction_id: selectedExpense.transaction_id || ''
+      transaction_id: selectedExpense.transaction_id || '',
+      payment_mode: selectedExpense.payment_mode || 'UPI'
     });
     setIsEditing(true);
   };
@@ -88,7 +89,8 @@ export default function History() {
           amount: parseFloat(editForm.amount),
           category: editForm.category,
           date: normalizedDate,
-          transaction_id: editForm.transaction_id || null
+          transaction_id: editForm.transaction_id || null,
+          payment_mode: editForm.payment_mode
         })
         .eq('id', selectedExpense.id)
         .eq('user_id', user.id);
@@ -102,7 +104,8 @@ export default function History() {
         amount: parseFloat(editForm.amount),
         category: editForm.category,
         date: normalizedDate,
-        transaction_id: editForm.transaction_id || null
+        transaction_id: editForm.transaction_id || null,
+        payment_mode: editForm.payment_mode
       };
       
       setExpenses(expenses.map(exp => exp.id === selectedExpense.id ? updatedExpense : exp));
@@ -396,6 +399,33 @@ export default function History() {
                     />
                   ) : (
                     <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">{format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}</p>
+                  )}
+                </div>
+
+                {/* Payment Mode */}
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 col-span-2">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Payment Mode</p>
+                  {isEditing ? (
+                    <div className="flex p-1 bg-slate-200 dark:bg-slate-900 rounded-xl w-full sm:w-64">
+                      {['UPI', 'Cash'].map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setEditForm(prev => ({ ...prev, payment_mode: mode }))}
+                          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                            editForm.payment_mode === mode
+                              ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                              : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          {mode === 'Cash' ? '💵 ' : '🔗 '} {mode}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {selectedExpense.payment_mode === 'Cash' ? '💵' : '🔗'} {selectedExpense.payment_mode || 'UPI'}
+                    </span>
                   )}
                 </div>
 
