@@ -38,36 +38,36 @@ export default function BottomNav() {
   }, [activeIndex, location.pathname]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      {/* Glass container */}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden pb-6">
+      {/* Floating Glass Container */}
       <div
-        className="mx-2 mb-2 rounded-2xl border border-white/20 dark:border-white/10 shadow-2xl overflow-hidden"
+        className="mx-4 rounded-[28px] border border-white/20 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] overflow-hidden relative"
         style={{
-          background: 'rgba(255,255,255,0.55)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          background: 'rgba(255, 255, 255, 0.45)', // Lighter for better blur effect
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
         }}
       >
         {/* Dark mode glass overlay */}
         <div
-          className="dark:block hidden absolute inset-0 rounded-2xl"
+          className="dark:block hidden absolute inset-0 rounded-[28px]"
           style={{
-            background: 'rgba(15,23,42,0.60)',
-            backdropFilter: 'blur(24px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+            background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
           }}
         />
 
-        <div ref={navRef} className="relative flex items-center justify-around px-1 py-1">
-          {/* Sliding pill indicator */}
+        <div ref={navRef} className="relative flex items-center justify-around px-2 py-2">
+          {/* Sliding pill indicator - More subtle and floating */}
           <div
-            className="absolute top-0 bottom-0 my-1 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] z-0"
+            className="absolute top-2 bottom-2 rounded-2xl transition-all duration-500 ease-[cubic-bezier(0.2,1,0.3,1)] z-0"
             style={{
               left: pillStyle.left,
               width: pillStyle.width,
               opacity: pillStyle.opacity,
-              background: 'rgba(13,148,136,0.15)',
-              backdropFilter: 'blur(8px)',
+              background: 'rgba(13, 148, 136, 0.15)', // Very subtle teal highlight
+              boxShadow: 'inset 0 0 0 1px rgba(13, 148, 136, 0.1)',
             }}
           />
 
@@ -76,26 +76,23 @@ export default function BottomNav() {
               key={item.path}
               to={item.path}
               end={item.end}
-              className="flex flex-col items-center flex-1 relative z-10"
+              className="flex flex-col items-center flex-1 relative z-10 py-1.5"
               ref={(el) => (itemRefs.current[index] = el)}
             >
               {({ isActive }) =>
                 item.isPrimary ? (
-                  <div className="flex flex-col items-center gap-0.5 -mt-0.5 py-1">
+                  <div className="flex flex-col items-center gap-1">
                     <div
-                      className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-lg transition-all duration-200 ${
+                      className={`h-11 w-11 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                         isActive
-                          ? 'bg-teal-600 shadow-teal-500/40 scale-105'
-                          : 'bg-teal-500 shadow-teal-400/30'
+                          ? 'bg-teal-600 shadow-[0_0_15px_rgba(13,148,136,0.5)] scale-110'
+                          : 'bg-teal-500 shadow-lg scale-100'
                       }`}
-                      style={{
-                        backdropFilter: 'blur(8px)',
-                      }}
                     >
-                      <item.icon className="h-5 w-5 text-white" strokeWidth={2.5} />
+                      <item.icon className="h-6 w-6 text-white" strokeWidth={2.5} />
                     </div>
                     <span
-                      className={`text-[10px] font-semibold transition-colors duration-200 ${
+                      className={`text-[10px] font-bold transition-all duration-300 ${
                         isActive ? 'text-teal-600 dark:text-teal-400' : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
@@ -104,17 +101,17 @@ export default function BottomNav() {
                   </div>
                 ) : (
                   <div
-                    className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl w-full transition-all duration-200 ${
+                    className={`flex flex-col items-center gap-1 px-2 transition-all duration-300 ${
                       isActive
                         ? 'text-teal-600 dark:text-teal-400'
-                        : 'text-slate-400 dark:text-slate-500'
+                        : 'text-slate-500 dark:text-slate-500'
                     }`}
                   >
                     <item.icon
-                      className={`h-5 w-5 transition-all duration-200 ${isActive ? 'scale-110' : 'scale-100'}`}
-                      strokeWidth={isActive ? 2.5 : 1.8}
+                      className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}
+                      strokeWidth={isActive ? 2.5 : 2}
                     />
-                    <span className={`text-[10px] transition-all duration-200 ${isActive ? 'font-bold' : 'font-medium'}`}>
+                    <span className={`text-[10px] tracking-tight transition-all duration-300 ${isActive ? 'font-bold' : 'font-medium'}`}>
                       {item.name}
                     </span>
                   </div>
