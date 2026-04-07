@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText, MessageCircle } from 'lucide-react';
+import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
@@ -12,7 +12,6 @@ export default function More() {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
-  const [isWhatsAppSharing, setIsWhatsAppSharing] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
 
@@ -249,71 +248,6 @@ export default function More() {
     }
   };
 
-  const handleShareWhatsApp = async () => {
-    setIsWhatsAppSharing(true);
-    try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        alert('No expenses found to share.');
-        return;
-      }
-
-      // Build a clean text summary
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thisMonth = data.filter(e => new Date(e.date) >= monthStart);
-      const monthTotal = thisMonth.reduce((s, e) => s + Number(e.amount), 0);
-      const allTotal = data.reduce((s, e) => s + Number(e.amount), 0);
-
-      // Category breakdown for this month
-      const cats = {};
-      thisMonth.forEach(e => {
-        const c = e.category || 'Other';
-        cats[c] = (cats[c] || 0) + Number(e.amount);
-      });
-      const catLines = Object.entries(cats)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([c, a]) => `   • ${c}: ₹${a.toFixed(2)}`)
-        .join('\n');
-
-      // Last 5 transactions
-      const recentLines = data.slice(0, 5)
-        .map(e => `   • ${format(parseISO(e.date), 'dd MMM')} — ${e.name}: ₹${Number(e.amount).toFixed(2)}`)
-        .join('\n');
-
-      const message =
-`📊 *Expense Summary Report*
-_Generated on ${format(now, 'dd MMM yyyy, hh:mm a')}_
-
-💰 *This Month's Total:* ₹${monthTotal.toFixed(2)}
-📁 *All Time Total:* ₹${allTotal.toFixed(2)}
-📝 *Total Transactions:* ${data.length}
-
-📂 *Top Categories (This Month):*
-${catLines || '   No data'}
-
-🕐 *Recent Transactions:*
-${recentLines}
-
-_Sent from Expense Tracker 🚀_`;
-
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    } catch (err) {
-      console.error('Error sharing to WhatsApp:', err);
-      alert('Failed to share to WhatsApp.');
-    } finally {
-      setIsWhatsAppSharing(false);
-    }
-  };
-
   const handleSignOut = async () => {
     if (window.confirm("Are you sure you want to sign out?")) {
       try {
@@ -393,22 +327,6 @@ _Sent from Expense Tracker 🚀_`;
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Export PDF Report</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Beautiful summary with totals & breakdown</p>
-              </div>
-            </div>
-          </button>
-
-          <button 
-            onClick={handleShareWhatsApp}
-            disabled={isWhatsAppSharing}
-            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50"
-          >
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-green-50 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 transition-colors group-hover:bg-green-100 dark:group-hover:bg-green-900/50">
-                {isWhatsAppSharing ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageCircle className="h-5 w-5" />}
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Share on WhatsApp</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send monthly summary to yourself or family</p>
               </div>
             </div>
           </button>
