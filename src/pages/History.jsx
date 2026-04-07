@@ -406,25 +406,33 @@ export default function History() {
                 <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 col-span-2">
                   <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Payment Mode</p>
                   {isEditing ? (
-                    <div className="flex p-1 bg-slate-200 dark:bg-slate-900 rounded-xl w-full sm:w-64">
+                    <div className="relative flex p-1 bg-slate-200 dark:bg-slate-900 rounded-xl w-full sm:w-64 isolate">
+                      {/* Sliding Pill Background */}
+                      <div 
+                        className="absolute inset-y-1 transition-all duration-300 ease-out bg-white dark:bg-slate-700 rounded-lg shadow-sm z-[-1]"
+                        style={{
+                          width: 'calc(50% - 4px)',
+                          left: editForm.payment_mode === 'UPI' ? '4px' : 'calc(50%)',
+                        }}
+                      />
                       {['UPI', 'Cash'].map((mode) => (
                         <button
                           key={mode}
                           type="button"
                           onClick={() => setEditForm(prev => ({ ...prev, payment_mode: mode }))}
-                          className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                          className={`flex-1 py-1.5 text-xs font-bold transition-colors ${
                             editForm.payment_mode === mode
-                              ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                              ? 'text-teal-600 dark:text-teal-400'
                               : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                           }`}
                         >
-                          {mode === 'Cash' ? '💵 ' : '🔗 '} {mode}
+                          {mode}
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                      {selectedExpense.payment_mode === 'Cash' ? '💵' : '🔗'} {selectedExpense.payment_mode || 'UPI'}
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {selectedExpense.payment_mode || 'UPI'}
                     </span>
                   )}
                 </div>

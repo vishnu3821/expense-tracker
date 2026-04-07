@@ -219,8 +219,8 @@ export default function MonthDetail() {
 
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 col-span-2">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Payment Mode</p>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
-                    {selectedExpense.payment_mode === 'Cash' ? '💵' : '🔗'} {selectedExpense.payment_mode || 'UPI'}
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
+                    {selectedExpense.payment_mode || 'UPI'}
                   </span>
                 </div>
 

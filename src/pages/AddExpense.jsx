@@ -375,29 +375,36 @@ export default function AddExpense() {
             {/* Payment Mode Segmented Control */}
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Payment Mode</label>
-              <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-64">
+              <div className="relative flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-64 isolate">
+                {/* Sliding Pill Background */}
+                <div 
+                  className="absolute inset-y-1 transition-all duration-300 ease-out bg-white dark:bg-slate-700 rounded-lg shadow-sm z-[-1]"
+                  style={{
+                    width: 'calc(50% - 4px)',
+                    left: formData.payment_mode === 'UPI' ? '4px' : 'calc(50%)',
+                  }}
+                />
+                
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, payment_mode: 'UPI' }))}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg transition-all ${
+                  className={`flex-1 py-2 text-sm font-bold transition-colors ${
                     formData.payment_mode === 'UPI'
-                      ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                      ? 'text-teal-600 dark:text-teal-400'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                   }`}
                 >
-                  <Hash className="h-4 w-4" />
                   UPI
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, payment_mode: 'Cash' }))}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-bold rounded-lg transition-all ${
+                  className={`flex-1 py-2 text-sm font-bold transition-colors ${
                     formData.payment_mode === 'Cash'
-                      ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm'
+                      ? 'text-teal-600 dark:text-teal-400'
                       : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                   }`}
                 >
-                  <span className="text-lg leading-none mt-[-2px]">💵</span>
                   Cash
                 </button>
               </div>
