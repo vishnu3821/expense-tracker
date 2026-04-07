@@ -40,15 +40,13 @@ export const requestNotificationPermission = async (userId) => {
       return null;
     }
 
-    // Step 3: Register service worker explicitly
+    // Step 3: Use the EXISTING PWA service worker (already registered by vite-plugin-pwa)
     let swRegistration;
     try {
-      swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
-      console.log('[FCM] Service worker registered:', swRegistration);
-      // Wait for it to be ready
-      await navigator.serviceWorker.ready;
+      swRegistration = await navigator.serviceWorker.ready;
+      console.log('[FCM] Using existing PWA service worker:', swRegistration);
     } catch (swErr) {
-      console.error('[FCM] Service worker registration failed:', swErr);
+      console.error('[FCM] Could not get service worker registration:', swErr);
       return null;
     }
 
