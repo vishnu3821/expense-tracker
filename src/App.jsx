@@ -31,7 +31,7 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="more" element={<More />} />
               <Route path="more/year" element={<YearBreakdown />} />
-              <Route path="more/year/:monthKey" element={<MonthDetail />} />
+              <Route path="more/year/:year/:month" element={<MonthDetail />} />
             </Route>
           </Routes>
         </Router>
