@@ -10,6 +10,7 @@ import Profile from './pages/Profile'
 import More from './pages/More'
 import YearBreakdown from './pages/YearBreakdown'
 import MonthDetail from './pages/MonthDetail'
+import { Analytics } from '@vercel/analytics/react'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -30,10 +31,11 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="more" element={<More />} />
               <Route path="more/year" element={<YearBreakdown />} />
-              <Route path="more/year/:year/:month" element={<MonthDetail />} />
+              <Route path="more/year/:monthKey" element={<MonthDetail />} />
             </Route>
           </Routes>
         </Router>
+        <Analytics />
       </ThemeProvider>
     </AuthProvider>
   )
