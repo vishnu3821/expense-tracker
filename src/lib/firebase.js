@@ -19,49 +19,87 @@ export const messaging = getMessaging(app);
 // Request permission and generate token
 export const requestNotificationPermission = async (userId) => {
   try {
-    console.log('Requesting notification permission...');
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      console.log('Notification permission granted.');
+    console.log('[FCM] Requesting notification permission...');
 
-      // You need to configure a VAPID key in Firebase Console (Project Settings -> Cloud Messaging -> Web configuration)
-      // but if not provided, getToken uses the default. It's recommended to generate a Key Pair in the Cloud Messaging tab.
-      // For now we attempt getToken without a explicit vapidKey if not available.
-      const token = await getToken(messaging, {
-        vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
-        serviceWorkerRegistration: await navigator.serviceWorker.register('/firebase-messaging-sw.js'),
-      });
-      
-      if (token) {
-        // Save logic to Supabase
-        const { error } = await supabase
-          .from('user_fcm_tokens')
-          .upsert({ user_id: userId, fcm_token: token }, { onConflict: 'user_id' });
-          
-        if (error) {
-          console.error("Error saving token to Supabase:", error);
-          return null;
-        }
-        
-        return token;
-      } else {
-        console.log('No registration token available. Request permission to generate one.');
-        return null;
-      }
-    } else {
-      console.log('Notification permission denied.');
+    // Step 1: Check browser support
+    if (!('Notification' in window)) {
+      console.error('[FCM] This browser does not support notifications');
       return null;
     }
+    if (!('serviceWorker' in navigator)) {
+      console.error('[FCM] This browser does not support service workers');
+      return null;
+    }
+
+    // Step 2: Request permission
+    const permission = await Notification.requestPermission();
+    console.log('[FCM] Permission result:', permission);
+
+    if (permission !== 'granted') {
+      console.warn('[FCM] Permission not granted:', permission);
+      return null;
+    }
+
+    // Step 3: Register service worker explicitly
+    let swRegistration;
+    try {
+      swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+      console.log('[FCM] Service worker registered:', swRegistration);
+      // Wait for it to be ready
+      await navigator.serviceWorker.ready;
+    } catch (swErr) {
+      console.error('[FCM] Service worker registration failed:', swErr);
+      return null;
+    }
+
+    // Step 4: Get FCM token
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    if (!vapidKey) {
+      console.error('[FCM] VAPID key is missing from environment variables!');
+      return null;
+    }
+    console.log('[FCM] Using VAPID key:', vapidKey.slice(0, 10) + '...');
+
+    let token;
+    try {
+      token = await getToken(messaging, {
+        vapidKey,
+        serviceWorkerRegistration: swRegistration,
+      });
+    } catch (tokenErr) {
+      console.error('[FCM] getToken failed:', tokenErr);
+      return null;
+    }
+
+    if (!token) {
+      console.warn('[FCM] No token returned from getToken()');
+      return null;
+    }
+
+    console.log('[FCM] Token obtained successfully:', token.slice(0, 20) + '...');
+
+    // Step 5: Save token to Supabase
+    const { error } = await supabase
+      .from('user_fcm_tokens')
+      .upsert({ user_id: userId, fcm_token: token }, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('[FCM] Error saving token to Supabase:', error);
+      return null;
+    }
+
+    console.log('[FCM] Token saved to Supabase successfully');
+    return token;
+
   } catch (err) {
-    console.error("Error during permission request:", err);
+    console.error('[FCM] Unexpected error:', err);
     return null;
   }
 };
 
 // Listener for foreground messages
 export const onForegroundMessage = () => {
-    return onMessage(messaging, (payload) => {
-        console.log('Message received in foreground: ', payload);
-        // Note: in your React component you can show a toast here.
-    });
+  return onMessage(messaging, (payload) => {
+    console.log('[FCM] Message received in foreground:', payload);
+  });
 };
