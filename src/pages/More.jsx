@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText } from 'lucide-react';
+import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText, Mail } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
