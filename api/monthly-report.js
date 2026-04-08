@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
           `Rs. ${Number(e.amount).toFixed(2)}`
         ]);
 
-        doc.autoTable({
+        autoTable(doc, {
           startY: 85,
           head: [['Date', 'Description', 'Category', 'Mode', 'Amount']],
           body: tableRows,
