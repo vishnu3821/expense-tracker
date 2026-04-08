@@ -15,6 +15,7 @@ export default function More() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
+  const [isMonthlyReporting, setIsMonthlyReporting] = useState(false);
 
   React.useEffect(() => {
     if (user) checkNotificationStatus();
@@ -35,6 +36,31 @@ export default function More() {
       console.error(err);
     } finally {
       setIsTogglingNotifications(false);
+    }
+  };
+
+  const handleSendMonthlyReport = async () => {
+    setIsMonthlyReporting(true);
+    try {
+      const response = await fetch('/api/monthly-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ SUCCESS: Your monthly PDF report has been generated and sent to your email!');
+      } else {
+        alert('❌ FAILED: ' + (data.error || 'Check your Resend API setup.'));
+      }
+    } catch (err) {
+      console.error('Monthly Report Error:', err);
+      alert('❌ ERROR: Could not trigger report generation.');
+    } finally {
+      setIsMonthlyReporting(false);
     }
   };
 
@@ -463,6 +489,25 @@ export default function More() {
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Send Test Notification</h3>
                   <p className="text-xs text-slate-500 mt-0.5">Verify your setup works instantly</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
+            </button>
+          )}
+
+          {notificationsEnabled && (
+            <button 
+              onClick={handleSendMonthlyReport}
+              disabled={isMonthlyReporting}
+              className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50 border-t border-slate-100 dark:border-slate-800"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 transition-colors group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50">
+                  {isMonthlyReporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Send Monthly PDF Report</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Email last month's PDF summary to yourself</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
