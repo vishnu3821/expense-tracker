@@ -14,6 +14,7 @@ export default function More() {
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
+  const [isTesting, setIsTesting] = useState(false);
 
   React.useEffect(() => {
     if (user) checkNotificationStatus();
@@ -34,6 +35,32 @@ export default function More() {
       console.error(err);
     } finally {
       setIsTogglingNotifications(false);
+    }
+  };
+
+  const handleSendTestNotification = async () => {
+    setIsTesting(true);
+    try {
+      const response = await fetch('/api/send-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ SUCCESS: ' + data.message);
+      } else {
+        alert('❌ FAILED: ' + (data.error || 'Unknown error occurred'));
+      }
+    } catch (err) {
+      console.error('Test Notification Error:', err);
+      alert('❌ ERROR: Could not connect to diagnostic service.');
+    } finally {
+      setIsTesting(false);
     }
   };
 
@@ -422,6 +449,25 @@ export default function More() {
               <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
             </div>
           </button>
+ 
+          {notificationsEnabled && (
+            <button 
+              onClick={handleSendTestNotification}
+              disabled={isTesting}
+              className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50 border-t border-slate-100 dark:border-slate-800"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 transition-colors group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50">
+                  {isTesting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Bell className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Send Test Notification</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Verify your setup works instantly</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
+            </button>
+          )}
 
           <button 
             onClick={toggleDarkMode}
