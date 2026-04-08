@@ -44,21 +44,22 @@ export default async function handler(req, res) {
       }
 
       const todayTotal = expenses.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+      const formattedTotal = todayTotal.toFixed(2);
 
-      if (todayTotal > 0) {
-        try {
-          await sendFCMNotification(
-            fcm_token,
-            'Daily Spending Summary 📊',
-            `You recorded ₹${todayTotal.toFixed(2)} in total expenses today. Tap to review.`,
-            serviceAccount
-          );
-          results.push({ user_id, sent: true, total: todayTotal });
-        } catch (fcmErr) {
-          results.push({ user_id, sent: false, error: fcmErr.message });
-        }
-      } else {
-        results.push({ user_id, sent: false, reason: 'No expenses today' });
+      try {
+        const body = todayTotal > 0 
+          ? `You recorded ₹${formattedTotal} in total expenses today. Tap to review.`
+          : "You stayed on budget and recorded ₹0 in expenses today! 🌟";
+
+        await sendFCMNotification(
+          fcm_token,
+          'Daily Spending Summary 📊',
+          body,
+          serviceAccount
+        );
+        results.push({ user_id, sent: true, total: todayTotal });
+      } catch (fcmErr) {
+        results.push({ user_id, sent: false, error: fcmErr.message });
       }
     }
 

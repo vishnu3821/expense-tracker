@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/daily-summary",
-      "schedule": "0 21 * * *"
+      "schedule": "30 15 * * *"
     }
   ]
 }

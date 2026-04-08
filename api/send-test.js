@@ -15,6 +15,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'user_id is required' });
   }
 
+  const isServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
+
   try {
     const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     if (!serviceAccountRaw) {
@@ -32,8 +34,14 @@ export default async function handler(req, res) {
       .maybeSingle();
 
     if (tokenError) throw tokenError;
+    
     if (!record) {
-      return res.status(404).json({ error: 'No notification token found for this user in the database. Please enable notifications in the app first.' });
+      if (!isServiceKey) {
+        return res.status(500).json({ 
+          error: 'No notification token found. CRITICAL: SUPABASE_SERVICE_ROLE_KEY is missing in Vercel. The backend is using the Anon Key, which is blocked by RLS policies. Please add the Service Role Key to your environment variables.' 
+        });
+      }
+      return res.status(404).json({ error: `No notification token found for user ID: ${user_id}. Please try toggling notifications OFF and then ON again in the app to refresh the token.` });
     }
 
     // 2. Send test notification
