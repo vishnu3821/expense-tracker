@@ -4,7 +4,23 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText, Mail, Wallet, Megaphone } from 'lucide-react';
+import { ChevronRight, Calendar, UserCircle,  Download, 
+  Loader2, 
+  LogOut, 
+  Moon, 
+  Sun, 
+  Bell, 
+  BellOff, 
+  FileText, 
+  Mail, 
+  Wallet, 
+  Megaphone,
+  CheckSquare,
+  Square,
+  Users,
+  Send,
+  X
+} from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
@@ -14,6 +30,11 @@ export default function More() {
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isBroadcasting, setIsBroadcasting] = useState(false);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [customMessage, setCustomMessage] = useState('');
+  const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -39,8 +60,46 @@ export default function More() {
     }
   };
 
+  const openBroadcastDashboard = async () => {
+    setShowBroadcastModal(true);
+    setIsFetchingUsers(true);
+    try {
+      const response = await fetch('/api/announcement');
+      const data = await response.json();
+      if (data.users) {
+        setAllUsers(data.users);
+        setSelectedUserIds(data.users.map(u => u.id)); // Default select all
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    } finally {
+      setIsFetchingUsers(false);
+    }
+  };
+
+  const toggleUserSelection = (userId) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId) 
+        : [...prev, userId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUserIds.length === allUsers.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(allUsers.map(u => u.id));
+    }
+  };
+
   const handleBroadcastAnnouncement = async () => {
-    const confirmMessage = "🚀 This will send a professional update email to ALL registered users. Are you sure you want to broadcast now?";
+    if (selectedUserIds.length === 0) {
+      alert('Please select at least one user.');
+      return;
+    }
+
+    const confirmMessage = `🚀 This will send a professional update email to ${selectedUserIds.length} users. Are you sure you want to broadcast now?`;
     if (!window.confirm(confirmMessage)) return;
 
     setIsBroadcasting(true);
@@ -49,13 +108,19 @@ export default function More() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          selectedUserIds,
+          customMessage
+        })
       });
 
       const data = await response.json();
 
       if (data.success) {
         alert('✅ SUCCESS: ' + data.message);
+        setShowBroadcastModal(false);
+        setCustomMessage('');
       } else {
         alert('❌ FAILED: ' + (data.error || 'Unknown error occurred'));
       }
@@ -538,17 +603,16 @@ export default function More() {
         <div className="card overflow-hidden">
           <div className="p-2 space-y-1">
             <button 
-              onClick={handleBroadcastAnnouncement}
-              disabled={isBroadcasting}
-              className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50"
+              onClick={openBroadcastDashboard}
+              className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
             >
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 transition-colors group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50">
-                  {isBroadcasting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Megaphone className="h-5 w-5" />}
+                  <Megaphone className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Broadcast Announcement</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Mail all users about new features & updates</p>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Broadcast Management</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Select users and send custom announcements</p>
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
@@ -573,6 +637,120 @@ export default function More() {
           </button>
         </div>
       </div>
+      {/* Broadcast Dashboard Modal */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 px-8">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                  <Megaphone className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Broadcast Dashboard</h3>
+                  <p className="text-xs text-slate-500">Reach your users directly</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowBroadcastModal(false)}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <X className="h-6 w-6 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
+              {/* Step 1: Write Message */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px]">1</div>
+                  Custom Announcement Text
+                </div>
+                <textarea
+                  placeholder="Tell your users something exciting... (e.g. Happy Holidays! Checkout the new Savings feature.)"
+                  className="w-full h-32 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition-all resize-none shadow-sm"
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                />
+              </div>
+
+              {/* Step 2: Select Recipients */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                    <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px]">2</div>
+                    Recipients ({selectedUserIds.length})
+                  </div>
+                  <button 
+                    onClick={toggleSelectAll}
+                    className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline px-2 py-1"
+                  >
+                    {selectedUserIds.length === allUsers.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+
+                {isFetchingUsers ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {allUsers.map(u => (
+                      <button
+                        key={u.id}
+                        onClick={() => toggleUserSelection(u.id)}
+                        className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                          selectedUserIds.includes(u.id)
+                            ? 'bg-teal-50 border-teal-200 dark:bg-teal-900/20 dark:border-teal-800'
+                            : 'bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-800'
+                        }`}
+                      >
+                        <div className={`shrink-0 h-5 w-5 rounded flex items-center justify-center transition-colors ${
+                          selectedUserIds.includes(u.id)
+                            ? 'bg-teal-600 text-white'
+                            : 'border-2 border-slate-200 dark:border-slate-700'
+                        }`}>
+                          {selectedUserIds.includes(u.id) && <CheckSquare className="h-3 w-3" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`text-sm font-semibold truncate ${
+                            selectedUserIds.includes(u.id) ? 'text-teal-900 dark:text-teal-100' : 'text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {u.email}
+                          </p>
+                          <p className="text-[10px] text-slate-400 truncate">{u.id.substring(0, 8)}...</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 px-8">
+              <button
+                onClick={handleBroadcastAnnouncement}
+                disabled={isBroadcasting || selectedUserIds.length === 0}
+                className="w-full btn-primary h-14 rounded-2xl flex items-center justify-center gap-3 text-lg shadow-xl shadow-teal-500/20 disabled:opacity-50"
+              >
+                {isBroadcasting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-5 w-5" />
+                    Send Broadcast Now
+                  </>
+                )}
+              </button>
+              <p className="text-center text-[10px] text-slate-400 mt-4">
+                Emails will be sent individually via Resend to ensure high delivery rates.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

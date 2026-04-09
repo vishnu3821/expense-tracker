@@ -8,11 +8,16 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+    // Safety timeout: Ensure loading is set to false after 3 seconds max
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user || null)
       setLoading(false)
+      clearTimeout(timeout);
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -20,7 +25,10 @@ export function AuthProvider({ children }) {
       setUser(session?.user || null)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    }
   }, [])
 
   const value = {
@@ -42,13 +50,16 @@ export function AuthProvider({ children }) {
             <div className="absolute inset-0 rounded-full bg-teal-500/10 blur-3xl" />
             
             <video
-              src="/Logo-animation.mp4"
               autoPlay
               muted
               loop
               playsInline
+              poster="/logo.png"
               className="h-64 w-64 object-contain relative z-20 drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)]"
-            />
+            >
+              <source src="/Logo-animation.mp4" type="video/mp4" />
+              <img src="/logo.png" alt="Logo" className="h-40 w-40" />
+            </video>
           </div>
 
           {/* Minimal Brand Footer at bottom center */}

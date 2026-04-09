@@ -13,7 +13,7 @@ export default defineConfig({
       filename: 'sw.js',
       registerType: 'autoUpdate',
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4}']
       },
       manifest: {
         name: 'Expense Tracker',

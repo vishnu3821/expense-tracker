@@ -8,7 +8,17 @@ const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-  // Security check for manual trigger
+  // GET all users (list)
+  if (req.method === 'GET') {
+    try {
+      const { data, error } = await supabase.auth.admin.listUsers();
+      if (error) throw error;
+      return res.status(200).json({ users: data.users || [] });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -26,7 +36,9 @@ export default async function handler(req, res) {
       throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel environment.');
     }
 
-    console.log('Fetching all users for announcement...');
+    const { selectedUserIds, customMessage } = req.body;
+
+    console.log('Fetching users for broadcast...');
     console.log('Supabase URL:', supabaseUrl ? 'Configured' : 'Missing');
     
     // Fetch all users from Auth (requires Service Role Key)
@@ -38,15 +50,19 @@ export default async function handler(req, res) {
     }
 
     const allUsers = data?.users || [];
-    console.log(`Found ${allUsers.length} total users in Auth.`);
+    
+    // Filter users if list provided
+    const targetUsers = selectedUserIds && selectedUserIds.length > 0
+      ? allUsers.filter(u => selectedUserIds.includes(u.id))
+      : allUsers;
 
-    if (allUsers.length === 0) {
-      return res.status(200).json({ success: true, message: 'No users found in Supabase Auth.', debug: { url: !!supabaseUrl, key: !!supabaseKey } });
+    if (targetUsers.length === 0) {
+      return res.status(200).json({ success: true, message: 'No target users found.', debug: { url: !!supabaseUrl, key: !!supabaseKey } });
     }
 
-    console.log(`Sending announcement to ${allUsers.length} users...`);
+    console.log(`Sending announcement to ${targetUsers.length} users...`);
 
-    const emailTemplate = (userName) => `
+    const emailTemplate = (userName, customNote) => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -76,6 +92,7 @@ export default async function handler(req, res) {
     
     <div class="content">
       <p>Hi ${userName || 'there'},</p>
+      ${customNote ? `<div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 16px; margin-bottom: 24px; border-radius: 0 12px 12px 0; color: #0d9488; font-weight: 500;">${customNote}</div>` : ''}
       <p>We've been working hard to make your financial journey smoother and more insightful. Here are the powerful new features waiting for you in the app:</p>
       
       <div class="feature-card">
@@ -115,7 +132,7 @@ export default async function handler(req, res) {
     const broadcastResults = [];
 
     // Process in small batches or one by one for reliability
-    for (const user of allUsers) {
+    for (const user of targetUsers) {
       if (!user.email) continue;
 
       try {
@@ -129,7 +146,7 @@ export default async function handler(req, res) {
             from: resendFromEmail,
             to: user.email,
             subject: 'New Features: Your Savings & Privacy Mode are Here! 🚀',
-            html: emailTemplate(user.email.split('@')[0]),
+            html: emailTemplate(user.email.split('@')[0], customMessage),
           }),
         });
 
@@ -140,9 +157,14 @@ export default async function handler(req, res) {
       }
     }
 
+    const successCount = broadcastResults.filter(r => r.status === 'success').length;
+    const failureSample = broadcastResults.find(r => r.status !== 'success')?.data?.message || broadcastResults.find(r => r.status !== 'success')?.reason || 'None';
+
     return res.status(200).json({ 
       success: true, 
-      message: `Announcement sent to ${broadcastResults.filter(r => r.status === 'success').length} users.`,
+      message: successCount > 0 
+        ? `Announcement sent to ${successCount} users.` 
+        : `Sent to 0 users. Main Error: ${failureSample}`,
       details: broadcastResults 
     });
 
