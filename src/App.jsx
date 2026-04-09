@@ -11,6 +11,7 @@ import More from './pages/More'
 import YearBreakdown from './pages/YearBreakdown'
 import MonthDetail from './pages/MonthDetail'
 import Savings from './pages/Savings'
+import AdminDashboard from './pages/AdminDashboard'
 import { Analytics } from '@vercel/analytics/react'
 
 function PrivateRoute({ children }) {
@@ -34,6 +35,7 @@ function App() {
               <Route path="more/year" element={<YearBreakdown />} />
               <Route path="more/year/:year/:month" element={<MonthDetail />} />
               <Route path="more/savings" element={<Savings />} />
+              <Route path="more/admin-breakdown" element={<AdminDashboard />} />
             </Route>
           </Routes>
         </Router>

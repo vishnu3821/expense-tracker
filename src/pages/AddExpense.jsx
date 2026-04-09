@@ -497,7 +497,7 @@ export default function AddExpense() {
       {/* ── Animated success toast ── */}
       {successName && (
         <div
-          className="fixed bottom-24 left-0 right-0 z-[70] flex justify-center pointer-events-none px-4"
+          className="fixed bottom-24 left-0 right-0 z-70 flex justify-center pointer-events-none px-4"
           style={{
             animation: 'toastPop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards'
           }}
