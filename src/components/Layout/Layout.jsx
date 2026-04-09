@@ -6,7 +6,7 @@ import BottomNav from './BottomNav';
 
 export default function Layout() {
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar />
@@ -15,7 +15,7 @@ export default function Layout() {
       <div className="flex flex-col flex-1 min-w-0">
         <Topbar />
         {/* Extra bottom padding on mobile so content isn't behind the bottom nav */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-28 md:pb-8">
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:p-8 pb-32 md:pb-8 scroll-smooth overscroll-none">
           <Outlet />
         </main>
       </div>

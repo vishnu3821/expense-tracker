@@ -597,19 +597,40 @@ export default function Savings() {
         </div>
       )}
 
+  // Prevent body scroll when any modal/drawer is open
+  useEffect(() => {
+    if (showModal || showTransferModal || selectedAccountId) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none'; // Further prevent bounce on some devices
+    } else {
+      document.body.style.overflow = 'unset';
+      document.body.style.touchAction = 'unset';
+    }
+    return () => { 
+      document.body.style.overflow = 'unset'; 
+      document.body.style.touchAction = 'unset';
+    };
+  }, [showModal, showTransferModal, selectedAccountId]);
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-8 pb-32 animate-in fade-in duration-500">
+...
       {/* Activity Drawer */}
       {selectedAccountId && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 touch-none">
           <div 
             className="absolute inset-0 cursor-pointer"
             onClick={() => setSelectedAccountId(null)}
           />
-          <div className="bg-white dark:bg-slate-900 w-full max-max-w-2xl rounded-t-[2.5rem] shadow-2xl flex flex-col relative z-20 animate-in slide-in-from-bottom duration-500 max-h-[85vh]">
-            <div className="p-1.5 flex justify-center">
+          <div 
+            className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-t-[3rem] shadow-2xl flex flex-col relative z-20 animate-in slide-in-from-bottom duration-500 h-[85vh] sm:h-auto sm:max-h-[85vh] touch-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="py-3 flex justify-center sticky top-0 bg-inherit z-10">
               <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full" />
             </div>
             
-            <div className="p-8 pb-4 border-b border-slate-50 dark:border-slate-800 flex justify-between items-start">
+            <div className="px-8 pb-4 border-b border-slate-50 dark:border-slate-800 flex justify-between items-start">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-2xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
                   <HistoryIcon className="h-7 w-7" />
