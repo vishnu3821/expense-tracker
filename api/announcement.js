@@ -22,17 +22,29 @@ export default async function handler(req, res) {
       throw new Error('RESEND_API_KEY is not configured.');
     }
 
-    console.log('Fetching all users for announcement...');
-    
-    // Fetch all users from Auth (requires Service Role Key)
-    const { data: { users }, error: userError } = await supabase.auth.admin.listUsers();
-
-    if (userError) throw userError;
-    if (!users || users.length === 0) {
-      return res.status(200).json({ success: true, message: 'No users found.' });
+    if (!supabaseKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel environment.');
     }
 
-    console.log(`Sending announcement to ${users.length} users...`);
+    console.log('Fetching all users for announcement...');
+    console.log('Supabase URL:', supabaseUrl ? 'Configured' : 'Missing');
+    
+    // Fetch all users from Auth (requires Service Role Key)
+    const { data, error: userError } = await supabase.auth.admin.listUsers();
+
+    if (userError) {
+      console.error('Supabase Auth Admin Error:', userError);
+      throw userError;
+    }
+
+    const allUsers = data?.users || [];
+    console.log(`Found ${allUsers.length} total users in Auth.`);
+
+    if (allUsers.length === 0) {
+      return res.status(200).json({ success: true, message: 'No users found in Supabase Auth.', debug: { url: !!supabaseUrl, key: !!supabaseKey } });
+    }
+
+    console.log(`Sending announcement to ${allUsers.length} users...`);
 
     const emailTemplate = (userName) => `
 <!DOCTYPE html>
