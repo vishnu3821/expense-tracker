@@ -40,6 +40,7 @@ export default function AddExpense() {
   const [successName, setSuccessName] = useState(null); // stores item name for toast
   const [error, setError] = useState(null);
   const [scanMessage, setScanMessage] = useState(null);
+  const [accounts, setAccounts] = useState([]);
   const imagePreviewUrl = useRef(null);
 
   const [formData, setFormData] = useState({
@@ -49,6 +50,7 @@ export default function AddExpense() {
     date: format(new Date(), 'yyyy-MM-dd'),
     transaction_id: '',
     payment_mode: 'UPI',
+    savings_account_id: '',
     image: null
   });
 
@@ -75,6 +77,22 @@ export default function AddExpense() {
     }
     checkSharedImage();
   }, []);
+
+  useEffect(() => {
+    if (user) fetchAccounts();
+  }, [user]);
+
+  const fetchAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_savings')
+        .select('id, bank_name, balance')
+        .eq('user_id', user.id);
+      if (!error) setAccounts(data || []);
+    } catch (err) {
+      console.error('Error fetching accounts:', err);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
@@ -155,11 +173,33 @@ export default function AddExpense() {
             date: formData.date,
             transaction_id: formData.transaction_id || null,
             payment_mode: formData.payment_mode,
-            image_url
+            image_url,
+            savings_account_id: formData.savings_account_id || null
           }
         ]);
 
       if (dbError) throw dbError;
+
+      // Deduct balance from the selected account
+      if (formData.savings_account_id) {
+        const selectedAccount = accounts.find(a => a.id === formData.savings_account_id);
+        if (selectedAccount) {
+          const newBalance = Number(selectedAccount.balance) - parseFloat(formData.amount);
+          const { error: updateError } = await supabase
+            .from('user_savings')
+            .update({ balance: newBalance })
+            .eq('id', formData.savings_account_id);
+          
+          if (updateError) {
+            console.error('Failed to deduct balance:', updateError);
+            // We don't throw here to avoid failing the whole expense add, 
+            // but we could notify the user.
+          } else {
+            // refresh accounts locally
+            fetchAccounts();
+          }
+        }
+      }
 
       setFormData({
         name: '',
@@ -168,6 +208,7 @@ export default function AddExpense() {
         date: format(new Date(), 'yyyy-MM-dd'),
         transaction_id: '',
         payment_mode: 'UPI',
+        savings_account_id: '',
         image: null
       });
 
@@ -370,6 +411,29 @@ export default function AddExpense() {
                 value={formData.transaction_id}
                 onChange={handleChange}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="savings_account_id" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Paid From (Account)
+              </label>
+              <select
+                id="savings_account_id"
+                name="savings_account_id"
+                className="input-field py-[0.6rem]"
+                value={formData.savings_account_id}
+                onChange={handleChange}
+              >
+                <option value="">Select Account (Optional)</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.bank_name} (₹{Number(acc.balance).toLocaleString()})
+                  </option>
+                ))}
+              </select>
+              {accounts.length === 0 && (
+                <p className="text-[10px] text-slate-500">No accounts found. Add one in 'More' to use auto-deduction.</p>
+              )}
             </div>
 
             {/* Payment Mode Segmented Control */}
