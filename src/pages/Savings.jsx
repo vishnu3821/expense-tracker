@@ -269,7 +269,7 @@ export default function Savings() {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto pb-20">
+    <div className="max-w-4xl mx-auto space-y-8 pb-32 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -611,10 +611,6 @@ export default function Savings() {
         </div>
       )}
 
-
-  return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-32 animate-in fade-in duration-500">
-...
       {/* Activity Drawer */}
       {selectedAccountId && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 touch-none">
