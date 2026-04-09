@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText, Mail, Wallet } from 'lucide-react';
+import { ChevronRight, Calendar, UserCircle, Download, Loader2, LogOut, Moon, Sun, Bell, BellOff, FileText, Mail, Wallet, Megaphone } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
@@ -13,6 +13,7 @@ export default function More() {
   const [isExporting, setIsExporting] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [isBroadcasting, setIsBroadcasting] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -35,6 +36,34 @@ export default function More() {
       console.error(err);
     } finally {
       setIsTogglingNotifications(false);
+    }
+  };
+
+  const handleBroadcastAnnouncement = async () => {
+    const confirmMessage = "🚀 This will send a professional update email to ALL registered users. Are you sure you want to broadcast now?";
+    if (!window.confirm(confirmMessage)) return;
+
+    setIsBroadcasting(true);
+    try {
+      const response = await fetch('/api/announcement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ SUCCESS: ' + data.message);
+      } else {
+        alert('❌ FAILED: ' + (data.error || 'Unknown error occurred'));
+      }
+    } catch (err) {
+      console.error('Broadcast Error:', err);
+      alert('❌ ERROR: Could not connect to announcement service.');
+    } finally {
+      setIsBroadcasting(false);
     }
   };
 
@@ -504,6 +533,29 @@ export default function More() {
           </button>
         </div>
       </div>
+
+      {user?.email === 'p.vishnuprabhakar@gmail.com' && (
+        <div className="card overflow-hidden">
+          <div className="p-2 space-y-1">
+            <button 
+              onClick={handleBroadcastAnnouncement}
+              disabled={isBroadcasting}
+              className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50"
+            >
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 transition-colors group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50">
+                  {isBroadcasting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Megaphone className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Broadcast Announcement</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Mail all users about new features & updates</p>
+                </div>
+              </div>
+              <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="card overflow-hidden">
         <div className="p-2">
