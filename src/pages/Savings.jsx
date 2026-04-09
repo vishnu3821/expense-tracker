@@ -44,6 +44,12 @@ export default function Savings() {
   const [transferAmount, setTransferAmount] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   
+  // Activity Feed state
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [accountActivity, setAccountActivity] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
+  
   // Form state
   const [bankName, setBankName] = useState('');
   const [balance, setBalance] = useState('');
@@ -64,11 +70,7 @@ export default function Savings() {
   }, [showModal, showTransferModal, selectedAccountId]);
   const [accountType, setAccountType] = useState('bank');
 
-  // Activity Feed state
-  const [selectedAccountId, setSelectedAccountId] = useState(null);
-  const [accountActivity, setAccountActivity] = useState([]);
-  const [loadingActivity, setLoadingActivity] = useState(false);
-  const [copiedId, setCopiedId] = useState(null);
+
 
   useEffect(() => {
     if (user) fetchSavings();
