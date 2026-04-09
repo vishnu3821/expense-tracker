@@ -37,14 +37,17 @@ export function AuthProvider({ children }) {
         
         <div className="relative flex flex-col items-center">
           {/* Main Logo with High-Impact Animation */}
-          <div className="relative z-10 logo-animated p-10">
+          <div className="relative z-10 p-10">
             {/* The Outer Glow Ring */}
-            <div className="absolute inset-0 rounded-full bg-teal-500/10 blur-3xl logo-glow" />
+            <div className="absolute inset-0 rounded-full bg-teal-500/10 blur-3xl" />
             
-            <img 
-              src="/logo.png" 
-              alt="Expense Tracker" 
-              className="h-40 w-40 object-contain relative z-20 drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)]"
+            <video
+              src="/Logo-animation.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="h-64 w-64 object-contain relative z-20 drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)]"
             />
           </div>
 

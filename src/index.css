@@ -25,27 +25,6 @@
   }
 }
 
-@keyframes logo-float {
-  0% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-10px) rotate(2deg); }
-  66% { transform: translateY(5px) rotate(-2deg); }
-  100% { transform: translateY(0px) rotate(0deg); }
-}
-
-@keyframes glow-pulse {
-  0% { box-shadow: 0 0 20px rgba(20, 184, 166, 0.2); }
-  50% { box-shadow: 0 0 50px rgba(20, 184, 166, 0.5); }
-  100% { box-shadow: 0 0 20px rgba(20, 184, 166, 0.2); }
-}
-
-.logo-animated {
-  animation: logo-float 4s ease-in-out infinite;
-}
-
-.logo-glow {
-  animation: glow-pulse 3s ease-in-out infinite;
-}
-
 @keyframes loading-bar {
   0% { transform: scaleX(0); opacity: 0.1; }
   50% { transform: scaleX(1); opacity: 1; }
