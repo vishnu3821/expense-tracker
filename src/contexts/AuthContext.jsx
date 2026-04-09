@@ -31,36 +31,35 @@ export function AuthProvider({ children }) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 z-[9999] overflow-hidden">
-        {/* Decorative background elements for a premium feel */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-teal-500/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 rounded-full blur-[120px]" />
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-[9999] overflow-hidden">
+        {/* Dynamic Background */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.08)_0%,transparent_70%)] animate-pulse" />
         
         <div className="relative flex flex-col items-center">
-          {/* Animated Logo Container */}
-          <div className="relative z-10 animate-in zoom-in-50 duration-1000 slide-in-from-bottom-10">
-            <div className="relative p-8">
-              {/* Dynamic Aura */}
-              <div className="absolute inset-0 bg-teal-500/10 blur-2xl rounded-full logo-pulse" />
-              <img 
-                src="/logo.png" 
-                alt="Expense Tracker" 
-                className="h-32 w-32 object-contain relative z-20 drop-shadow-2xl"
-              />
-            </div>
+          {/* Main Logo with High-Impact Animation */}
+          <div className="relative z-10 logo-animated p-10">
+            {/* The Outer Glow Ring */}
+            <div className="absolute inset-0 rounded-full bg-teal-500/10 blur-3xl logo-glow" />
+            
+            <img 
+              src="/logo.png" 
+              alt="Expense Tracker" 
+              className="h-40 w-40 object-contain relative z-20 drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)]"
+            />
           </div>
 
-          {/* Minimal Brand Footer */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
-            <span className="text-xs font-semibold tracking-[0.3em] text-slate-400 uppercase">Expense Tracker</span>
-            <div className="h-[2px] w-8 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div className="h-full bg-teal-500 animate-[loading-bar_2s_infinite]" style={{ width: '100%', transformOrigin: 'left' }} />
+          {/* Minimal Brand Footer at bottom center */}
+          <div className="fixed bottom-16 left-0 right-0 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-[1500ms]">
+            <h2 className="text-sm font-bold tracking-[0.4em] text-slate-400 uppercase">Expense Tracker</h2>
+            <div className="h-[3px] w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-teal-500 animate-[loading-bar_2.5s_infinite]" style={{ width: '100%', transformOrigin: 'left' }} />
             </div>
           </div>
         </div>
       </div>
     );
   }
+
 
 
   return (
