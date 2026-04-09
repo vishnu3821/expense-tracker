@@ -47,6 +47,21 @@ export default function Savings() {
   // Form state
   const [bankName, setBankName] = useState('');
   const [balance, setBalance] = useState('');
+
+  // Prevent body scroll when any modal/drawer is open
+  useEffect(() => {
+    if (showModal || showTransferModal || selectedAccountId) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = 'unset';
+      document.body.style.touchAction = 'unset';
+    }
+    return () => { 
+      document.body.style.overflow = 'unset'; 
+      document.body.style.touchAction = 'unset';
+    };
+  }, [showModal, showTransferModal, selectedAccountId]);
   const [accountType, setAccountType] = useState('bank');
 
   // Activity Feed state
@@ -596,20 +611,6 @@ export default function Savings() {
         </div>
       )}
 
-  // Prevent body scroll when any modal/drawer is open
-  useEffect(() => {
-    if (showModal || showTransferModal || selectedAccountId) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none'; // Further prevent bounce on some devices
-    } else {
-      document.body.style.overflow = 'unset';
-      document.body.style.touchAction = 'unset';
-    }
-    return () => { 
-      document.body.style.overflow = 'unset'; 
-      document.body.style.touchAction = 'unset';
-    };
-  }, [showModal, showTransferModal, selectedAccountId]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-32 animate-in fade-in duration-500">
