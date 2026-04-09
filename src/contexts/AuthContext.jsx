@@ -8,6 +8,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  useEffect(() => {
     // Safety timeout: Ensure loading is set to false after 3 seconds max
     const timeout = setTimeout(() => {
       setLoading(false);
