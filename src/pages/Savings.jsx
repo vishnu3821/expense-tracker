@@ -8,7 +8,6 @@ import {
   Edit2, 
   Loader2, 
   ChevronLeft, 
-  ArrowUpRight,
   TrendingUp,
   CreditCard,
   X,
