@@ -115,7 +115,7 @@ export default async function handler(req, res) {
     const broadcastResults = [];
 
     // Process in small batches or one by one for reliability
-    for (const user of users) {
+    for (const user of allUsers) {
       if (!user.email) continue;
 
       try {
