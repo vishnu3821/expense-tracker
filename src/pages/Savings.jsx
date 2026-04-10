@@ -188,7 +188,7 @@ export default function Savings() {
       // 📝 Generate Metadata early
       const txnId = `TRF-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
       const now = new Date();
-      const today = now.toISOString().split('T')[0];
+      const timestamp = now.toISOString();
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
       await new Promise(r => setTimeout(r, 800));
@@ -219,7 +219,7 @@ export default function Savings() {
           name: `Transfer to ${dest.bank_name}`,
           amount: amount,
           category: 'Transfer',
-          date: today,
+          date: timestamp,
           transaction_id: txnId,
           payment_mode: 'Cash',
           savings_account_id: fromAccount
@@ -229,7 +229,7 @@ export default function Savings() {
           name: `Transfer from ${source.bank_name}`,
           amount: amount,
           category: 'Transfer',
-          date: today,
+          date: timestamp,
           transaction_id: txnId,
           payment_mode: 'Cash',
           savings_account_id: toAccount
@@ -756,6 +756,10 @@ export default function Savings() {
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                 {new Date(txn.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • {txn.category}
                               </p>
+                              <div className="mt-2 flex items-center gap-1.5 text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Eye className="h-3 w-3" />
+                                View Receipt
+                              </div>
                             </div>
                           </div>
                           <div className="text-right">
@@ -905,6 +909,16 @@ export default function Savings() {
             {/* Design Elements */}
             <div className="absolute top-0 left-0 w-full h-32 bg-linear-to-b from-teal-500/10 to-transparent pointer-events-none" />
             
+            <button 
+              onClick={() => {
+                setTransferStatus('idle');
+                setReceiptData(null);
+              }}
+              className="absolute top-6 right-6 z-20 p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
             <div className="p-8 pb-4 text-center">
               <div className="inline-flex h-20 w-20 rounded-full bg-emerald-500 items-center justify-center shadow-xl shadow-emerald-500/20 mb-6 group">
                 <CheckCircle2 className="h-10 w-10 text-white animate-in zoom-in-50 duration-500" />
