@@ -1,10 +1,15 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Topbar() {
   const { user, signOut } = useAuth();
+
+  const handleRefresh = () => {
+    // Perform a hard refresh to ensure the latest code/assets are loaded
+    window.location.reload();
+  };
 
   return (
     <header className="h-16 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 transition-colors duration-300">
@@ -15,16 +20,25 @@ export default function Topbar() {
         </Link>
       </div>
       
-      <div className="flex items-center gap-3">
-        <div className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block truncate max-w-[150px]">
           {user?.email}
         </div>
-        <div className="h-9 w-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-700 dark:text-teal-400 font-semibold border border-teal-200 dark:border-teal-800/50 shadow-sm uppercase select-none">
+
+        <button
+          onClick={handleRefresh}
+          className="p-2 text-slate-400 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-all active:rotate-180 duration-500"
+          title="Refresh App"
+        >
+          <RefreshCw className="h-5 w-5" />
+        </button>
+
+        <div className="h-9 w-9 shrink-0 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-700 dark:text-teal-400 font-semibold border border-teal-200 dark:border-teal-800/50 shadow-sm uppercase select-none">
           {user?.email?.[0] || 'U'}
         </div>
         <button
           onClick={signOut}
-          className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors ml-1"
+          className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
           title="Logout"
         >
           <LogOut className="h-5 w-5" />
