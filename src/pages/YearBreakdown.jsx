@@ -103,7 +103,7 @@ export default function YearBreakdown() {
       ) : (
         <>
           {/* Main Hero Card */}
-          <div className="rounded-[20px] bg-gradient-to-br from-indigo-500 to-indigo-700 p-6 text-white relative overflow-hidden shadow-lg">
+          <div className="rounded-[20px] bg-linear-to-br from-indigo-500 to-indigo-700 p-6 text-white relative overflow-hidden shadow-lg">
             <div className="absolute -top-6 -right-6 h-32 w-32 rounded-full bg-white/10 blur-xl" />
             <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl" />
             <p className="text-indigo-100 text-sm font-semibold uppercase tracking-widest mb-1 relative z-10">Total Expenditure</p>

@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-[9999] overflow-hidden">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-9999 overflow-hidden">
         {/* Dynamic Background */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] bg-[radial-gradient(circle_at_center,rgba(20,184,166,0.08)_0%,transparent_70%)] animate-pulse" />
         
@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
           </div>
 
           {/* Minimal Brand Footer at bottom center */}
-          <div className="fixed bottom-16 left-0 right-0 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-[1500ms]">
+          <div className="fixed bottom-16 left-0 right-0 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1500">
             <h2 className="text-sm font-bold tracking-[0.4em] text-slate-400 uppercase">Expense Tracker</h2>
             <div className="h-[3px] w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-teal-500 animate-[loading-bar_2.5s_infinite]" style={{ width: '100%', transformOrigin: 'left' }} />

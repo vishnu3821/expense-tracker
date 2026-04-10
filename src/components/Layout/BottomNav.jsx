@@ -20,7 +20,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-transparent pointer-events-none">
-      <div className="mx-4 mb-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 shadow-2xl px-1.5 py-1.5 pointer-events-auto max-w-sm mx-auto">
+      <div className="mb-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 shadow-2xl px-1.5 py-1.5 pointer-events-auto max-w-sm mx-auto">
         <div className="relative flex items-center justify-around isolate">
           {/* Sliding Indicator Pill */}
           <div 

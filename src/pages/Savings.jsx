@@ -24,7 +24,12 @@ import {
   Check,
   History as HistoryIcon,
   ArrowDownLeft,
-  ArrowUpRight as ArrowUpRightIcon
+  ArrowUpRight as ArrowUpRightIcon,
+  Clock,
+  ArrowDown,
+  Share2,
+  CheckCircle2,
+  ArrowRightCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -43,6 +48,8 @@ export default function Savings() {
   const [toAccount, setToAccount] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
+  const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success'
+  const [receiptData, setReceiptData] = useState(null);
   
   // Activity Feed state
   const [selectedAccountId, setSelectedAccountId] = useState(null);
@@ -56,7 +63,7 @@ export default function Savings() {
 
   // Prevent body scroll when any modal/drawer is open
   useEffect(() => {
-    if (showModal || showTransferModal || selectedAccountId) {
+    if (showModal || showTransferModal || selectedAccountId || transferStatus !== 'idle') {
       document.body.style.overflow = 'hidden';
       document.body.style.touchAction = 'none';
     } else {
@@ -67,7 +74,7 @@ export default function Savings() {
       document.body.style.overflow = 'unset'; 
       document.body.style.touchAction = 'unset';
     };
-  }, [showModal, showTransferModal, selectedAccountId]);
+  }, [showModal, showTransferModal, selectedAccountId, transferStatus]);
   const [accountType, setAccountType] = useState('bank');
 
 
@@ -141,18 +148,24 @@ export default function Savings() {
     e.preventDefault();
     if (!fromAccount || !toAccount || !transferAmount || fromAccount === toAccount) return;
 
-    setIsTransferring(true);
+    const amount = parseFloat(transferAmount);
+    const source = accounts.find(a => a.id === fromAccount);
+    const dest = accounts.find(a => a.id === toAccount);
+
+    if (source.balance < amount) {
+      alert('Insufficient balance in source account!');
+      return;
+    }
+
+    setTransferStatus('processing');
     try {
-      const amount = parseFloat(transferAmount);
-      const source = accounts.find(a => a.id === fromAccount);
-      const dest = accounts.find(a => a.id === toAccount);
+      // 📝 Generate Metadata early
+      const txnId = `TRF-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
+      const now = new Date();
+      const today = now.toISOString().split('T')[0];
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      if (source.balance < amount) {
-        alert('Insufficient balance in source account!');
-        return;
-      }
-
-      // Perform updates
+      // Perform updates in DB
       const { error: error1 } = await supabase
         .from('user_savings')
         .update({ balance: source.balance - amount })
@@ -165,11 +178,8 @@ export default function Savings() {
 
       if (error1 || error2) throw new Error('Transfer failed');
 
-      // 📝 Log Transfer Transactions for the "Paper Trail"
-      const txnId = `TRF-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
-      const today = new Date().toISOString().split('T')[0];
-
-      const { error: insertError } = await supabase.from('expenses').insert([
+      // Log transactions
+      await supabase.from('expenses').insert([
         {
           user_id: user.id,
           name: `Transfer to ${dest.bank_name}`,
@@ -192,22 +202,27 @@ export default function Savings() {
         }
       ]);
 
-      if (insertError) {
-        console.error('Logging Error:', insertError);
-        // We don't throw here to ensure balance updates aren't rolled back 
-        // in the UI, but we log the issue.
-      }
+      // 🎭 Theatrical Delay for the animation (2 seconds)
+      await new Promise(r => setTimeout(r, 2200));
 
-      setFromAccount('');
-      setToAccount('');
-      setTransferAmount('');
+      setReceiptData({
+        from: source.bank_name,
+        fromType: source.type,
+        to: dest.bank_name,
+        toType: dest.type,
+        amount,
+        txnId,
+        date: now.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }),
+        time: timeStr
+      });
+
+      setTransferStatus('success');
       setShowTransferModal(false);
       fetchSavings();
     } catch (err) {
       console.error('Transfer Error:', err);
+      setTransferStatus('idle');
       alert('Transfer failed. Please try again.');
-    } finally {
-      setIsTransferring(false);
     }
   };
 
@@ -719,6 +734,121 @@ export default function Savings() {
                 className="w-full py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
               >
                 Close Activity
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🎭 Transfer Animation Overlay */}
+      {transferStatus === 'processing' && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-500">
+          <div className="text-center space-y-8 max-w-xs w-full px-6">
+            <div className="flex justify-between items-center relative py-12">
+              {/* Source Icon */}
+              <div className="relative z-10 h-20 w-20 rounded-3xl bg-white/10 border border-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm animate-pulse">
+                <div className="absolute inset-0 rounded-3xl bg-teal-500/20 animate-ping" />
+                <Landmark className="h-10 w-10 text-teal-400" />
+              </div>
+
+              {/* Digital Bridge Animation */}
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full px-12 overflow-hidden">
+                <div className="h-1 w-full bg-white/5 rounded-full relative">
+                  <div className="absolute top-0 h-full w-12 bg-linear-to-r from-transparent via-teal-400 to-transparent animate-money-flow" />
+                  <div className="absolute top-0 h-full w-12 bg-linear-to-r from-transparent via-teal-400 to-transparent animate-money-flow [animation-delay:0.5s]" />
+                </div>
+              </div>
+
+              {/* Destination Icon */}
+              <div className="relative z-10 h-20 w-20 rounded-3xl bg-white/10 border border-white/20 flex items-center justify-center shadow-2xl backdrop-blur-sm">
+                <Banknote className="h-10 w-10 text-white" />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-2xl font-bold text-white tracking-tight animate-pulse">Moving Funds</h3>
+              <p className="text-slate-400 text-sm font-medium tracking-wide">Securing connection to ledger...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📜 Pro Success Receipt */}
+      {transferStatus === 'success' && receiptData && (
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-500">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-receipt-pop relative">
+            {/* Design Elements */}
+            <div className="absolute top-0 left-0 w-full h-32 bg-linear-to-b from-teal-500/10 to-transparent pointer-events-none" />
+            
+            <div className="p-8 pb-4 text-center">
+              <div className="inline-flex h-20 w-20 rounded-full bg-emerald-500 items-center justify-center shadow-xl shadow-emerald-500/20 mb-6 group">
+                <CheckCircle2 className="h-10 w-10 text-white animate-in zoom-in-50 duration-500" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Transfer Sent</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-[0.2em] mt-2">Digital Receipt</p>
+            </div>
+
+            <div className="px-8 py-6">
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-3xl p-6 border border-slate-100 dark:border-slate-800 space-y-6">
+                <div className="text-center border-b border-slate-100 dark:border-slate-800 pb-4">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Amount</p>
+                  <p className="text-4xl font-black text-slate-900 dark:text-white">₹{receiptData.amount.toLocaleString()}</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">From Account</p>
+                      <p className="font-bold text-slate-900 dark:text-slate-200">{receiptData.from}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">To Destination</p>
+                      <p className="font-bold text-slate-900 dark:text-slate-200">{receiptData.to}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Ref ID</p>
+                      <p className="text-[11px] font-mono font-bold text-slate-700 dark:text-slate-300">{receiptData.txnId}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Timestamp</p>
+                      <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        {receiptData.date}
+                        <span className="block text-[9px] opacity-60">{receiptData.time}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="flex items-center justify-center gap-2 py-2 px-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-emerald-100 dark:border-emerald-800/50">
+                  <ShieldCheck className="h-3 w-3" />
+                  Transaction Verified & Logged
+                </div>
+              </div>
+            </div>
+
+            <div className="p-8 pt-0 grid grid-cols-5 gap-3">
+              <button 
+                className="col-span-1 h-14 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                title="Share Receipt"
+              >
+                <Share2 className="h-5 w-5" />
+              </button>
+              <button 
+                onClick={() => {
+                  setTransferStatus('idle');
+                  setReceiptData(null);
+                  setFromAccount('');
+                  setToAccount('');
+                  setTransferAmount('');
+                }}
+                className="col-span-4 h-14 bg-teal-600 hover:bg-teal-700 text-white text-lg font-bold rounded-2xl shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98]"
+              >
+                Done
               </button>
             </div>
           </div>

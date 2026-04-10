@@ -217,7 +217,7 @@ export default function History() {
           <button
             onClick={exportCSV}
             disabled={filteredExpenses.length === 0}
-            className="btn-primary whitespace-nowrap !bg-white dark:!bg-slate-900 !text-slate-700 dark:!text-slate-300 !border !border-slate-200 dark:!border-slate-700 hover:!bg-slate-50 dark:hover:!bg-slate-800 flex items-center gap-2 w-full sm:w-auto"
+            className="btn-primary whitespace-nowrap bg-white! dark:bg-slate-900! text-slate-700! dark:text-slate-300! border! border-slate-200! dark:border-slate-700! hover:bg-slate-50! dark:hover:bg-slate-800! flex items-center gap-2 w-full sm:w-auto"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -284,7 +284,7 @@ export default function History() {
 
       {/* Modal for viewing / editing details */}
       {selectedExpense && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-6 pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-6 pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div 
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer transition-opacity duration-300"
             onClick={() => {
@@ -292,12 +292,12 @@ export default function History() {
             }}
           />
           <div 
-            className="relative w-full sm:w-[32rem] bg-white dark:bg-slate-900 sm:rounded-3xl rounded-t-[2rem] shadow-2xl flex flex-col transform transition-all duration-300 translate-y-0 pb-safe sm:pb-0 max-h-[90vh] sm:max-h-[85vh]"
+            className="relative w-full sm:w-lg bg-white dark:bg-slate-900 sm:rounded-3xl rounded-t-4xl shadow-2xl flex flex-col transform transition-all duration-300 translate-y-0 pb-safe sm:pb-0 max-h-[90vh] sm:max-h-[85vh]"
             onClick={e => e.stopPropagation()}
           >
             <div className="absolute left-1/2 top-4 -translate-x-1/2 w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full sm:hidden" />
             
-            <div className="flex items-center justify-between p-5 pt-8 sm:pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10 rounded-t-[2rem]">
+            <div className="flex items-center justify-between p-5 pt-8 sm:pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10 rounded-t-4xl">
               <div className="flex items-center gap-2">
                 {isEditing && (
                   <button
@@ -325,7 +325,7 @@ export default function History() {
             <div className="overflow-y-auto flex-1 px-5 pb-2 space-y-4">
 
               {/* Amount hero card */}
-              <div className="rounded-2xl bg-gradient-to-br from-teal-500 to-teal-700 p-5 text-white relative overflow-hidden">
+              <div className="rounded-2xl bg-linear-to-br from-teal-500 to-teal-700 p-5 text-white relative overflow-hidden">
                 <div className="absolute -top-4 -right-4 h-20 w-20 rounded-full bg-white/10" />
                 <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-white/10" />
                 <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-1">Amount Paid</p>

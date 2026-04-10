@@ -170,17 +170,17 @@ export default function MonthDetail() {
 
       {/* Transaction Modal Base styles from history slightly adapted */}
       {selectedExpense && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-100 flex items-end sm:items-center justify-center">
           <div 
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer transition-opacity duration-300"
             onClick={() => setSelectedExpense(null)}
           />
           <div 
-            className="relative w-full sm:w-[32rem] bg-white dark:bg-slate-900 sm:rounded-3xl rounded-t-[2rem] shadow-2xl flex flex-col transform transition-all duration-300 translate-y-0 pb-safe sm:pb-0 max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom"
+            className="relative w-full sm:w-lg bg-white dark:bg-slate-900 sm:rounded-3xl rounded-t-4xl shadow-2xl flex flex-col transform transition-all duration-300 translate-y-0 pb-safe sm:pb-0 max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom"
           >
             <div className="absolute left-1/2 top-4 -translate-x-1/2 w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full sm:hidden" />
             
-            <div className="flex items-center justify-between p-5 pt-8 sm:pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10 rounded-t-[2rem]">
+            <div className="flex items-center justify-between p-5 pt-8 sm:pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10 rounded-t-4xl">
               <div>
                 <h3 className="font-bold text-lg text-slate-900 dark:text-white">Transaction Details</h3>
               </div>
@@ -193,7 +193,7 @@ export default function MonthDetail() {
             </div>
 
             <div className="overflow-y-auto flex-1 px-5 py-6 space-y-5">
-              <div className="rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 p-5 text-white shadow-xl relative overflow-hidden">
+              <div className="rounded-2xl bg-linear-to-br from-slate-800 to-slate-900 p-5 text-white shadow-xl relative overflow-hidden">
                  <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-1 relative z-10">Amount</p>
                  <p className="text-4xl font-extrabold tracking-tight relative z-10">₹{Number(selectedExpense.amount).toFixed(2)}</p>
                  <div className="absolute -bottom-6 -right-6 h-24 w-24 rounded-full bg-white/5" />

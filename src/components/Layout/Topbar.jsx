@@ -7,7 +7,7 @@ export default function Topbar() {
   const { user, signOut } = useAuth();
 
   return (
-    <header className="h-16 flex-shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 transition-colors duration-300">
+    <header className="h-16 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 md:px-8 transition-colors duration-300">
       <div className="flex items-center gap-4">
         {/* Logo shown on mobile since there's no sidebar */}
         <Link to="/" className="md:hidden flex items-center overflow-hidden h-8">

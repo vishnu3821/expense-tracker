@@ -6,7 +6,7 @@ import BottomNav from './BottomNav';
 
 export default function Layout() {
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-dvh w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       {/* Desktop sidebar — hidden on mobile */}
       <div className="hidden md:block">
         <Sidebar />
