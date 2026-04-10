@@ -95,9 +95,11 @@ export default function History() {
     
     setIsSaving(true);
     try {
-      // Normalize date to ISO format representing start of day in UTC roughly
-      let [year, month, day] = editForm.date.split("-");
-      const normalizedDate = new Date(Date.UTC(year, month - 1, day)).toISOString();
+      // Create a full timestamp by combining selected date with current time to avoid 05:30 AM bug
+      const d = new Date(editForm.date);
+      const now = new Date();
+      d.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+      const normalizedDate = d.toISOString();
 
       const { error } = await supabase
         .from('expenses')
@@ -253,7 +255,12 @@ export default function History() {
               </div>
               {/* Expense Cards for this day */}
               <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-                {dayExpenses.map((expense) => (
+                {dayExpenses.map((expense) => {
+                  const txnDate = new Date(expense.date);
+                  const timeStr = txnDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const isLegacyDateOnly = txnDate.getUTCHours() === 0 && txnDate.getUTCMinutes() === 0 && txnDate.getUTCSeconds() === 0;
+                  
+                  return (
                   <div
                     key={expense.id}
                     className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
@@ -265,7 +272,10 @@ export default function History() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{expense.name}</p>
-                        <span className="inline-block mt-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded">{expense.category || 'Other'}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="inline-block mt-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded">{expense.category || 'Other'}</span>
+                          {!isLegacyDateOnly && <span className="text-[10px] text-slate-400 mt-0.5">{timeStr}</span>}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0 ml-3">
