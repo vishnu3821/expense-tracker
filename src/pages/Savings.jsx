@@ -32,6 +32,7 @@ import {
   ArrowRightCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import PinModal from '../components/PinModal';
 
 export default function Savings() {
   const { user } = useAuth();
@@ -53,6 +54,12 @@ export default function Savings() {
   const [currentOp, setCurrentOp] = useState('transfer'); // 'transfer' | 'update'
   const [receiptData, setReceiptData] = useState(null);
   
+  // PIN state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinMode, setPinMode] = useState('verify'); // 'verify' | 'setup'
+  const [pendingTransfer, setPendingTransfer] = useState(null);
+  const [hasPin, setHasPin] = useState(false);
+
   // Activity Feed state
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [accountActivity, setAccountActivity] = useState([]);
@@ -82,8 +89,27 @@ export default function Savings() {
 
 
   useEffect(() => {
-    if (user) fetchSavings();
+    if (user) {
+      fetchSavings();
+      checkPinStatus();
+    }
   }, [user]);
+
+  const checkPinStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('transaction_pin')
+        .eq('id', user.id)
+        .single();
+      
+      if (data?.transaction_pin) {
+        setHasPin(true);
+      }
+    } catch (err) {
+      console.error('Error checking PIN status:', err);
+    }
+  };
 
   const fetchSavings = async () => {
     try {
@@ -166,9 +192,18 @@ export default function Savings() {
   };
 
   const handleTransfer = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!fromAccount || !toAccount || !transferAmount || fromAccount === toAccount) return;
 
+    // Check for PIN if set
+    if (hasPin && pinMode !== 'completed') {
+      setPinMode('verify');
+      setShowPinModal(true);
+      setPendingTransfer(true);
+      return;
+    }
+    
+    setPinMode('verify'); // Reset for next time
     setCurrentOp('transfer');
     setTransferStatus('processing');
     setTransferStep(1); // Step 1: Initiating
@@ -577,20 +612,34 @@ export default function Savings() {
                 />
               </div>
               
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary w-full h-12 flex items-center justify-center gap-2 mt-4"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    <Plus className="h-5 w-5" />
-                    {editingId ? 'Update Account' : 'Save Account'}
-                  </>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary w-full h-12 flex items-center justify-center gap-2 mt-4"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="h-5 w-5" />
+                      {editingId ? 'Update Account' : 'Save Account'}
+                    </>
+                  )}
+                </button>
+
+                {!editingId && !hasPin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPinMode('setup');
+                      setShowPinModal(true);
+                    }}
+                    className="w-full h-12 rounded-2xl border-2 border-dashed border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400 font-bold text-sm flex items-center justify-center gap-2 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all mt-2"
+                  >
+                    <ShieldCheck className="h-5 w-5" />
+                    Set Security UPI PIN (Optional)
+                  </button>
                 )}
-              </button>
             </form>
           </div>
         </div>
@@ -1000,6 +1049,21 @@ export default function Savings() {
           </div>
         </div>
       )}
+      {/* Pin Modal */}
+      <PinModal 
+        isOpen={showPinModal}
+        mode={pinMode}
+        onClose={() => setShowPinModal(false)}
+        onSuccess={() => {
+          if (pinMode === 'setup') {
+            setHasPin(true);
+            alert('Transaction PIN set successfully!');
+          } else if (pinMode === 'verify') {
+            setPinMode('completed'); // Flag to allow handleTransfer to proceed
+            setTimeout(() => handleTransfer(), 100);
+          }
+        }}
+      />
     </div>
   );
 }

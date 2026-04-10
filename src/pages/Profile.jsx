@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, User, Lock, Mail } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck } from 'lucide-react';
+import PinModal from '../components/PinModal';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -15,11 +16,35 @@ export default function Profile() {
     confirmPassword: ''
   });
 
+  const [hasPin, setHasPin] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinMode, setPinMode] = useState('setup'); // 'setup' | 'reset' | 'verify'
+
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }));
+  };
+
+  React.useEffect(() => {
+    if (user) checkPinStatus();
+  }, [user]);
+
+  const checkPinStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('transaction_pin')
+        .eq('id', user.id)
+        .single();
+      
+      if (data?.transaction_pin) {
+        setHasPin(true);
+      }
+    } catch (err) {
+      console.error('Error checking PIN status:', err);
+    }
   };
 
   const handleUpdatePassword = async (e) => {
@@ -168,6 +193,76 @@ export default function Profile() {
           </div>
         </form>
       </div>
+
+      {/* Transaction Security Card */}
+      <div className="card overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
+            <ShieldCheck className="h-5 w-5 text-teal-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900 leading-tight">Transaction Security</h3>
+            <p className="text-xs text-slate-500">Enable or change your 4-digit transaction PIN.</p>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${hasPin ? 'bg-teal-500 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                <Lock className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900">4-Digit UPI-style PIN</p>
+                <p className="text-xs text-slate-500">{hasPin ? 'Secureely set and protection active' : 'Not setup yet'}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {hasPin ? (
+                <>
+                  <button 
+                    onClick={() => { setPinMode('verify'); setShowPinModal(true); }}
+                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold text-slate-600 border border-slate-200 rounded-xl hover:bg-white transition-colors"
+                  >
+                    Change
+                  </button>
+                  <button 
+                    onClick={() => { setPinMode('reset'); setShowPinModal(true); }}
+                    className="flex-1 sm:flex-none px-4 py-2 text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl hover:bg-red-100 transition-colors"
+                  >
+                    Forgot?
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => { setPinMode('setup'); setShowPinModal(true); }}
+                  className="w-full sm:w-auto btn-primary px-8"
+                >
+                  Setup PIN
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <PinModal 
+        isOpen={showPinModal}
+        mode={pinMode}
+        onClose={() => setShowPinModal(false)}
+        onSuccess={() => {
+          if (pinMode === 'verify') {
+             // If verified, allow change
+             setPinMode('setup');
+             setShowPinModal(true);
+          } else {
+            setHasPin(true);
+            setSuccess(true);
+            checkPinStatus();
+            setTimeout(() => setSuccess(false), 3000);
+          }
+        }}
+      />
     </div>
   );
 }
