@@ -270,6 +270,7 @@ export default function Savings() {
         .select('*')
         .eq('savings_account_id', accountId)
         .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
@@ -297,17 +298,13 @@ export default function Savings() {
     const txnDate = new Date(txn.date);
     const timeStr = txnDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    // 🔥 Robust Fix: Detect if the record is legacy (Date-only in DB parses to UTC midnight)
-    // If it's exactly 00:00:00 UTC, we don't show the time to avoid the "05:30 AM" confusion.
-    const isLegacyDateOnly = txnDate.getUTCHours() === 0 && txnDate.getUTCMinutes() === 0 && txnDate.getUTCSeconds() === 0;
-
     setReceiptData({
       from,
       to,
       amount: Number(txn.amount),
       txnId: txn.transaction_id || 'N/A',
       date: txnDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }),
-      time: isLegacyDateOnly ? null : timeStr
+      time: timeStr
     });
   };
 
@@ -963,7 +960,7 @@ export default function Savings() {
                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Timestamp</p>
                       <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
                         {receiptData.date}
-                        {receiptData.time && <span className="block text-[9px] opacity-60">{receiptData.time}</span>}
+                        <span className="block text-[9px] opacity-60">{receiptData.time}</span>
                       </p>
                     </div>
                   </div>
