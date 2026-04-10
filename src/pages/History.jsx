@@ -7,6 +7,7 @@ import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search,
 export default function History() {
   const { user } = useAuth();
   const [expenses, setExpenses] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,8 +39,24 @@ export default function History() {
   };
 
   useEffect(() => {
-    if (user) fetchExpenses();
+    if (user) {
+      fetchExpenses();
+      fetchAccounts();
+    }
   }, [user]);
+
+  const fetchAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('user_savings')
+        .select('*')
+        .eq('user_id', user.id);
+      if (error) throw error;
+      setAccounts(data || []);
+    } catch (err) {
+      console.error('Error fetching accounts:', err);
+    }
+  };
 
   const fetchExpenses = async () => {
     try {
@@ -454,6 +471,23 @@ export default function History() {
                         {selectedExpense.transaction_id}
                       </p>
                     )}
+                  </div>
+                )}
+
+                {/* Debited From Information */}
+                {!isEditing && selectedExpense.savings_account_id && (
+                  <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4 col-span-2 border border-slate-100 dark:border-slate-800/50">
+                    <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                      <ExternalLink className="h-3 w-3" /> Debited From
+                    </p>
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-7 w-7 rounded-lg bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                        <Save className="h-4 w-4" />
+                      </div>
+                      <p className="text-slate-900 dark:text-white font-bold text-sm">
+                        {accounts.find(a => a.id === selectedExpense.savings_account_id)?.bank_name || 'Linked Account'}
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
