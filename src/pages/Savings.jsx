@@ -223,7 +223,7 @@ export default function Savings() {
       const txnId = `TRF-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
       const now = new Date();
       const timestamp = now.toISOString();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
       await new Promise(r => setTimeout(r, 800));
       setTransferStep(2); // Step 2: Debiting
@@ -334,7 +334,7 @@ export default function Savings() {
     const txnDate = new Date(txn.date);
     // Use created_at for time to avoid the "05:30 AM" issue caused by date-only database columns
     const realTimeSource = txn.created_at ? new Date(txn.created_at) : txnDate;
-    const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
     
     setReceiptData({
       from,
@@ -809,7 +809,7 @@ export default function Savings() {
                             <div>
                               <p className="font-bold text-slate-900 dark:text-white capitalize leading-tight">{txn.name}</p>
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                                {new Date(txn.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • {(txn.created_at ? new Date(txn.created_at) : new Date(txn.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {txn.category}
+                                {new Date(txn.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} • {(txn.created_at ? new Date(txn.created_at) : new Date(txn.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} • {txn.category}
                               </p>
                               <div className="mt-2 flex items-center gap-1.5 text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Eye className="h-3 w-3" />

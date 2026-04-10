@@ -258,7 +258,7 @@ export default function History() {
                 {dayExpenses.map((expense) => {
                   // Use created_at for the most accurate transaction time
                   const realTimeSource = expense.created_at ? new Date(expense.created_at) : new Date(expense.date);
-                  const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
                   
                   return (
                   <div
@@ -433,7 +433,7 @@ export default function History() {
                 <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4">
                   <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Time</p>
                   <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">
-                    {(selectedExpense.created_at ? new Date(selectedExpense.created_at) : new Date(selectedExpense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {(selectedExpense.created_at ? new Date(selectedExpense.created_at) : new Date(selectedExpense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                   </p>
                 </div>
 
