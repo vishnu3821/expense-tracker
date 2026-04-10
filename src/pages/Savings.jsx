@@ -711,7 +711,7 @@ export default function Savings() {
                             <p className={`text-lg font-bold ${isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                               {isIncome ? '+' : '-'}₹{Number(txn.amount).toLocaleString()}
                             </p>
-                            <p className={`text-[10px] font-bold uppercase tracking-[0.1em] mt-0.5 ${isIncome ? 'text-emerald-600/70' : 'text-red-500/70'}`}>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isIncome ? 'text-emerald-600/70' : 'text-red-500/70'}`}>
                               {isIncome ? 'Credited' : 'Debited'}
                             </p>
                           </div>
