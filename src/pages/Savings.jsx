@@ -281,6 +281,30 @@ export default function Savings() {
     }
   };
 
+  const handleViewReceipt = (txn) => {
+    const currentAccount = accounts.find(a => a.id === selectedAccountId)?.bank_name || 'Account';
+    let from = currentAccount;
+    let to = txn.name;
+
+    // Smart label parsing for professional receipts
+    if (txn.name.startsWith('Transfer to ')) {
+      to = txn.name.replace('Transfer to ', '');
+    } else if (txn.name.startsWith('Transfer from ')) {
+      from = txn.name.replace('Transfer from ', '');
+      to = currentAccount;
+    }
+
+    const txnDate = new Date(txn.date);
+    setReceiptData({
+      from,
+      to,
+      amount: Number(txn.amount),
+      txnId: txn.transaction_id || 'N/A',
+      date: txnDate.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }),
+      time: txnDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+  };
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopiedId(text);
@@ -714,7 +738,11 @@ export default function Savings() {
                     const isIncome = isTransfer && txn.name.toLowerCase().includes('from');
                     
                     return (
-                      <div key={txn.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-100 dark:hover:border-teal-900/50 transition-all group">
+                    <div
+                      key={txn.id}
+                      onClick={() => handleViewReceipt(txn)}
+                      className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-100 dark:hover:border-teal-900/50 transition-all group cursor-pointer active:scale-[0.98]"
+                    >
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-3">
                             <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
@@ -871,7 +899,7 @@ export default function Savings() {
       )}
 
       {/* 📜 Pro Success Receipt */}
-      {transferStatus === 'success' && receiptData && (
+      {receiptData && (
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-500">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-receipt-pop relative">
             {/* Design Elements */}
@@ -881,7 +909,9 @@ export default function Savings() {
               <div className="inline-flex h-20 w-20 rounded-full bg-emerald-500 items-center justify-center shadow-xl shadow-emerald-500/20 mb-6 group">
                 <CheckCircle2 className="h-10 w-10 text-white animate-in zoom-in-50 duration-500" />
               </div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Transfer Sent</h3>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+                {transferStatus === 'success' ? 'Transfer Sent' : 'Transaction Receipt'}
+              </h3>
               <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-[0.2em] mt-2">Digital Receipt</p>
             </div>
 
