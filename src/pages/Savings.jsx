@@ -50,6 +50,7 @@ export default function Savings() {
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success'
   const [transferStep, setTransferStep] = useState(0); // 0-4
+  const [currentOp, setCurrentOp] = useState('transfer'); // 'transfer' | 'update'
   const [receiptData, setReceiptData] = useState(null);
   
   // Activity Feed state
@@ -107,7 +108,14 @@ export default function Savings() {
     if (!bankName || !balance) return;
 
     setIsSubmitting(true);
+    setCurrentOp('update');
+    setTransferStatus('processing');
+    setTransferStep(1); // Step 1: Initializing
+
     try {
+      await new Promise(r => setTimeout(r, 800));
+      setTransferStep(2); // Step 2: Validating
+      
       if (editingId) {
         // Update
         const { error } = await supabase
@@ -132,14 +140,26 @@ export default function Savings() {
         if (error) throw error;
       }
 
+      await new Promise(r => setTimeout(r, 800));
+      setTransferStep(3); // Step 3: Syncing
+      fetchSavings();
+
+      await new Promise(r => setTimeout(r, 800));
+      setTransferStep(4); // Step 4: Finalizing
+      await new Promise(r => setTimeout(r, 600));
+
       setBankName('');
       setBalance('');
       setAccountType('bank');
       setEditingId(null);
       setShowModal(false);
-      fetchSavings();
+      
+      // We don't show receipt for manual updates, just close and reset
+      setTransferStatus('idle');
+      setTransferStep(0);
     } catch (err) {
       console.error('Error saving account:', err);
+      setTransferStatus('idle');
     } finally {
       setIsSubmitting(false);
     }
@@ -149,6 +169,9 @@ export default function Savings() {
     e.preventDefault();
     if (!fromAccount || !toAccount || !transferAmount || fromAccount === toAccount) return;
 
+    setCurrentOp('transfer');
+    setTransferStatus('processing');
+    setTransferStep(1); // Step 1: Initiating
     const amount = parseFloat(transferAmount);
     const source = accounts.find(a => a.id === fromAccount);
     const dest = accounts.find(a => a.id === toAccount);
@@ -784,54 +807,62 @@ export default function Savings() {
 
             <div className="space-y-4 text-left bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10">
               <div className="flex items-center gap-3">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 2 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 2 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep >= 2 ? (
                     <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className="h-1.5 w-1.5 rounded-full bg-white/20 animate-pulse" />
                   )}
                 </div>
-                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 1 ? 'text-white' : 'text-slate-500'}`}>
-                  Deducting ₹{transferAmount} from {accounts.find(a => a.id === fromAccount)?.bank_name}...
+                <p className={`text-sm font-semibold transition-colors duration-300 ${transferStep >= 1 ? 'text-white' : 'text-slate-500'}`}>
+                  {currentOp === 'transfer' 
+                    ? `Deducting ₹${transferAmount} from ${accounts.find(a => a.id === fromAccount)?.bank_name}...`
+                    : 'Verifying account credentials...'}
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 3 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 3 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep >= 3 ? (
                     <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className={`h-1.5 w-1.5 rounded-full bg-white/20 ${transferStep === 2 ? 'animate-pulse' : ''}`} />
                   )}
                 </div>
-                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 2 ? 'text-white' : 'text-slate-500'}`}>
-                  Transferring via Digital Bridge...
+                <p className={`text-sm font-semibold transition-colors duration-300 ${transferStep >= 2 ? 'text-white' : 'text-slate-500'}`}>
+                  {currentOp === 'transfer'
+                    ? 'Transferring via Digital Bridge...'
+                    : 'Syncing manual balance data...'}
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep >= 4 ? (
                     <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className={`h-1.5 w-1.5 rounded-full bg-white/20 ${transferStep === 3 ? 'animate-pulse' : ''}`} />
                   )}
                 </div>
-                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 3 ? 'text-white' : 'text-slate-500'}`}>
-                  Adding ₹{transferAmount} to {accounts.find(a => a.id === toAccount)?.bank_name}...
+                <p className={`text-sm font-semibold transition-colors duration-300 ${transferStep >= 3 ? 'text-white' : 'text-slate-500'}`}>
+                  {currentOp === 'transfer'
+                    ? `Adding ₹${transferAmount} to ${accounts.find(a => a.id === toAccount)?.bank_name}...`
+                    : 'Validating ledger consistency...'}
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep === 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep === 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep === 4 ? (
                     <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
                   )}
                 </div>
-                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 4 ? 'text-white' : 'text-slate-500'}`}>
-                  Finalizing Ledger Update...
+                <p className={`text-sm font-semibold transition-colors duration-300 ${transferStep >= 4 ? 'text-white' : 'text-slate-500'}`}>
+                  {currentOp === 'transfer'
+                    ? 'Finalizing Ledger Update...'
+                    : 'Cloud synchronization complete.'}
                 </p>
               </div>
             </div>
