@@ -62,15 +62,18 @@ export default function Dashboard() {
         const amount = Number(expense.amount);
         const dateKey = format(expenseDate, 'yyyy-MM-dd');
 
-        if (expenseDate >= today) todayTotal += amount;
-        if (expenseDate >= monthStart) monthTotal += amount;
-        if (expenseDate >= yearStart) yearTotal += amount;
+        // 🔥 CRITICAL: Exclude internal transfers from actual spending totals
+        if (expense.category !== 'Transfer') {
+          if (expenseDate >= today) todayTotal += amount;
+          if (expenseDate >= monthStart) monthTotal += amount;
+          if (expenseDate >= yearStart) yearTotal += amount;
 
-        // Group by month for trend chart
-        const monthKey = format(expenseDate, 'MMM yyyy');
-        monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
+          // Group by month for trend chart
+          const monthKey = format(expenseDate, 'MMM yyyy');
+          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
+        }
 
-        // Group by day for calendar
+        // Group by day for calendar (always show activity regardless of category)
         dailyMap[dateKey] = (dailyMap[dateKey] || 0) + amount;
       });
 
