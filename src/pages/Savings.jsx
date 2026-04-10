@@ -784,37 +784,53 @@ export default function Savings() {
 
             <div className="space-y-4 text-left bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10">
               <div className="flex items-center gap-3">
-                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep >= 2 ? 'bg-teal-500' : 'bg-white/10'}`}>
-                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep >= 2 ? 'opacity-100' : 'opacity-20'}`} />
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 2 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                  {transferStep >= 2 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                  ) : (
+                    <div className="h-1.5 w-1.5 rounded-full bg-white/20 animate-pulse" />
+                  )}
                 </div>
-                <p className={`text-xs font-bold transition-colors ${transferStep >= 1 ? 'text-white' : 'text-slate-500'}`}>
+                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 1 ? 'text-white' : 'text-slate-500'}`}>
                   Deducting ₹{transferAmount} from {accounts.find(a => a.id === fromAccount)?.bank_name}...
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep >= 3 ? 'bg-teal-500' : 'bg-white/10'}`}>
-                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep >= 3 ? 'opacity-100' : 'opacity-20'}`} />
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 3 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                  {transferStep >= 3 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                  ) : (
+                    <div className={`h-1.5 w-1.5 rounded-full bg-white/20 ${transferStep === 2 ? 'animate-pulse' : ''}`} />
+                  )}
                 </div>
-                <p className={`text-xs font-bold transition-colors ${transferStep >= 2 ? 'text-white' : 'text-slate-500'}`}>
+                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 2 ? 'text-white' : 'text-slate-500'}`}>
                   Transferring via Digital Bridge...
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep >= 4 ? 'bg-teal-500' : 'bg-white/10'}`}>
-                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep >= 4 ? 'opacity-100' : 'opacity-20'}`} />
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                  {transferStep >= 4 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                  ) : (
+                    <div className={`h-1.5 w-1.5 rounded-full bg-white/20 ${transferStep === 3 ? 'animate-pulse' : ''}`} />
+                  )}
                 </div>
-                <p className={`text-xs font-bold transition-colors ${transferStep >= 3 ? 'text-white' : 'text-slate-500'}`}>
+                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 3 ? 'text-white' : 'text-slate-500'}`}>
                   Adding ₹{transferAmount} to {accounts.find(a => a.id === toAccount)?.bank_name}...
                 </p>
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep === 4 ? 'bg-teal-500' : 'bg-white/10'}`}>
-                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep === 4 ? 'opacity-100' : 'opacity-20'}`} />
+                <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-all duration-500 ${transferStep === 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
+                  {transferStep === 4 ? (
+                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                  ) : (
+                    <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                  )}
                 </div>
-                <p className={`text-xs font-bold transition-colors ${transferStep >= 4 ? 'text-white' : 'text-slate-500'}`}>
+                <p className={`text-xs font-bold transition-colors duration-300 ${transferStep >= 4 ? 'text-white' : 'text-slate-500'}`}>
                   Finalizing Ledger Update...
                 </p>
               </div>
