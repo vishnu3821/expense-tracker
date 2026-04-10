@@ -42,7 +42,8 @@ export default function Dashboard() {
         .from('expenses')
         .select('*')
         .eq('user_id', user.id)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -295,7 +296,9 @@ export default function Dashboard() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{expense.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{format(parseISO(expense.date), 'MMM dd, yyyy')}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {format(parseISO(expense.date), 'MMM dd, yyyy')} • {(expense.created_at ? new Date(expense.created_at) : parseISO(expense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
                   </div>
                   <div className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">

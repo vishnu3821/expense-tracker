@@ -256,9 +256,9 @@ export default function History() {
               {/* Expense Cards for this day */}
               <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
                 {dayExpenses.map((expense) => {
-                  const txnDate = new Date(expense.date);
-                  const timeStr = txnDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  const isLegacyDateOnly = txnDate.getUTCHours() === 0 && txnDate.getUTCMinutes() === 0 && txnDate.getUTCSeconds() === 0;
+                  // Use created_at for the most accurate transaction time
+                  const realTimeSource = expense.created_at ? new Date(expense.created_at) : new Date(expense.date);
+                  const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                   
                   return (
                   <div
@@ -274,7 +274,7 @@ export default function History() {
                         <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{expense.name}</p>
                         <div className="flex items-center gap-2">
                           <span className="inline-block mt-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded">{expense.category || 'Other'}</span>
-                          {!isLegacyDateOnly && <span className="text-[10px] text-slate-400 mt-0.5">{timeStr}</span>}
+                          <span className="text-[10px] text-slate-400 mt-0.5">{timeStr}</span>
                         </div>
                       </div>
                     </div>
@@ -428,6 +428,13 @@ export default function History() {
                   ) : (
                     <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">{format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}</p>
                   )}
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Time</p>
+                  <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">
+                    {(selectedExpense.created_at ? new Date(selectedExpense.created_at) : new Date(selectedExpense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </p>
                 </div>
 
                 {/* Payment Mode */}
