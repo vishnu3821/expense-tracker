@@ -170,7 +170,13 @@ export default function AddExpense() {
             name: formData.name,
             amount: parseFloat(formData.amount),
             category: formData.category,
-            date: formData.date,
+            // Create a full timestamp by combining selected date with current time
+            date: (() => {
+              const d = new Date(formData.date);
+              const now = new Date();
+              d.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+              return d.toISOString();
+            })(),
             transaction_id: formData.transaction_id || null,
             payment_mode: formData.payment_mode,
             image_url,
