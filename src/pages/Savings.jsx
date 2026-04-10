@@ -49,6 +49,7 @@ export default function Savings() {
   const [transferAmount, setTransferAmount] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success'
+  const [transferStep, setTransferStep] = useState(0); // 0-4
   const [receiptData, setReceiptData] = useState(null);
   
   // Activity Feed state
@@ -158,6 +159,8 @@ export default function Savings() {
     }
 
     setTransferStatus('processing');
+    setTransferStep(1); // Step 1: Initiating
+
     try {
       // 📝 Generate Metadata early
       const txnId = `TRF-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
@@ -165,18 +168,26 @@ export default function Savings() {
       const today = now.toISOString().split('T')[0];
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+      await new Promise(r => setTimeout(r, 800));
+      setTransferStep(2); // Step 2: Debiting
+
       // Perform updates in DB
       const { error: error1 } = await supabase
         .from('user_savings')
         .update({ balance: source.balance - amount })
         .eq('id', fromAccount);
 
+      if (error1) throw error1;
+
+      await new Promise(r => setTimeout(r, 800));
+      setTransferStep(3); // Step 3: Transferring
+
       const { error: error2 } = await supabase
         .from('user_savings')
         .update({ balance: dest.balance + amount })
         .eq('id', toAccount);
 
-      if (error1 || error2) throw new Error('Transfer failed');
+      if (error2) throw error2;
 
       // Log transactions
       await supabase.from('expenses').insert([
@@ -202,8 +213,9 @@ export default function Savings() {
         }
       ]);
 
-      // 🎭 Theatrical Delay for the animation (2 seconds)
-      await new Promise(r => setTimeout(r, 2200));
+      await new Promise(r => setTimeout(r, 800));
+      setTransferStep(4); // Step 4: Finalizing
+      await new Promise(r => setTimeout(r, 600));
 
       setReceiptData({
         from: source.bank_name,
@@ -770,9 +782,42 @@ export default function Savings() {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-2xl font-bold text-white tracking-tight animate-pulse">Moving Funds</h3>
-              <p className="text-slate-400 text-sm font-medium tracking-wide">Securing connection to ledger...</p>
+            <div className="space-y-4 text-left bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep >= 2 ? 'bg-teal-500' : 'bg-white/10'}`}>
+                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep >= 2 ? 'opacity-100' : 'opacity-20'}`} />
+                </div>
+                <p className={`text-xs font-bold transition-colors ${transferStep >= 1 ? 'text-white' : 'text-slate-500'}`}>
+                  Deducting ₹{transferAmount} from {accounts.find(a => a.id === fromAccount)?.bank_name}...
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep >= 3 ? 'bg-teal-500' : 'bg-white/10'}`}>
+                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep >= 3 ? 'opacity-100' : 'opacity-20'}`} />
+                </div>
+                <p className={`text-xs font-bold transition-colors ${transferStep >= 2 ? 'text-white' : 'text-slate-500'}`}>
+                  Transferring via Digital Bridge...
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep >= 4 ? 'bg-teal-500' : 'bg-white/10'}`}>
+                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep >= 4 ? 'opacity-100' : 'opacity-20'}`} />
+                </div>
+                <p className={`text-xs font-bold transition-colors ${transferStep >= 3 ? 'text-white' : 'text-slate-500'}`}>
+                  Adding ₹{transferAmount} to {accounts.find(a => a.id === toAccount)?.bank_name}...
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className={`h-5 w-5 rounded-full flex items-center justify-center transition-all ${transferStep === 4 ? 'bg-teal-500' : 'bg-white/10'}`}>
+                  <CheckCircle2 className={`h-3 w-3 text-white transition-opacity ${transferStep === 4 ? 'opacity-100' : 'opacity-20'}`} />
+                </div>
+                <p className={`text-xs font-bold transition-colors ${transferStep >= 4 ? 'text-white' : 'text-slate-500'}`}>
+                  Finalizing Ledger Update...
+                </p>
+              </div>
             </div>
           </div>
         </div>
