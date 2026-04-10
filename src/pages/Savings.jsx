@@ -191,19 +191,18 @@ export default function Savings() {
     }
   };
 
-  const handleTransfer = async (e) => {
+  const handleTransfer = async (e, isVerified = false) => {
     if (e) e.preventDefault();
-    if (!fromAccount || !toAccount || !transferAmount || fromAccount === toAccount) return;
+    if (isTransferring || !fromAccount || !toAccount || !transferAmount || fromAccount === toAccount) return;
 
     // Check for PIN if set
-    if (hasPin && pinMode !== 'completed') {
+    if (hasPin && !isVerified) {
       setPinMode('verify');
       setShowPinModal(true);
-      setPendingTransfer(true);
       return;
     }
     
-    setPinMode('verify'); // Reset for next time
+    setIsTransferring(true);
     setCurrentOp('transfer');
     setTransferStatus('processing');
     setTransferStep(1); // Step 1: Initiating
@@ -293,6 +292,8 @@ export default function Savings() {
       console.error('Transfer Error:', err);
       setTransferStatus('idle');
       alert('Transfer failed. Please try again.');
+    } finally {
+      setIsTransferring(false);
     }
   };
 
@@ -1057,10 +1058,11 @@ export default function Savings() {
         onSuccess={() => {
           if (pinMode === 'setup') {
             setHasPin(true);
+            setShowPinModal(false);
             alert('Transaction PIN set successfully!');
           } else if (pinMode === 'verify') {
-            setPinMode('completed'); // Flag to allow handleTransfer to proceed
-            setTimeout(() => handleTransfer(), 100);
+            setShowPinModal(false); // Close first
+            handleTransfer(null, true); // Then proceed with verification flag
           }
         }}
       />
