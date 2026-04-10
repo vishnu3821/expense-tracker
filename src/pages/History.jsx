@@ -289,8 +289,8 @@ export default function History() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))
