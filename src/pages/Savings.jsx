@@ -212,6 +212,8 @@ export default function Savings() {
 
     if (source.balance < amount) {
       alert('Insufficient balance in source account!');
+      setIsTransferring(false);
+      setTransferStatus('idle');
       return;
     }
 

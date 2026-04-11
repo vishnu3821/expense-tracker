@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X, Sparkles, Hash } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X, Sparkles, Hash, Landmark, ReceiptText, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
 import { get, del } from 'idb-keyval';
 
 import { createWorker } from 'tesseract.js';
@@ -42,6 +42,11 @@ export default function AddExpense() {
   const [scanMessage, setScanMessage] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const imagePreviewUrl = useRef(null);
+
+  // Animation State
+  const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
+  const [transferStep, setTransferStep] = useState(0);
+  const [receiptData, setReceiptData] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -141,28 +146,33 @@ export default function AddExpense() {
     const savedName = formData.name; // capture before reset
 
     try {
-      let image_url = null;
+      // Start Animation
+      if (formData.savings_account_id) {
+        setTransferStatus('processing');
+        setTransferStep(1); // Initiating
+        await new Promise(r => setTimeout(r, 800));
+        setTransferStep(2); // Deducting
+      }
 
+      let image_url = null;
       if (formData.image) {
+        // ... (image upload logic remained same)
         const fileNameOriginal = formData.image.name || 'shared_receipt.png';
         const fileExt = fileNameOriginal.split('.').pop() || 'png';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
         const filePath = `${user.id}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('receipts')
-          .upload(filePath, formData.image);
-
+        const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, formData.image);
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('receipts')
-          .getPublicUrl(filePath);
-
+        const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(filePath);
         image_url = publicUrl;
       }
 
-      const { error: dbError } = await supabase
+      if (formData.savings_account_id) {
+        setTransferStep(3); // Syncing with ledger
+        await new Promise(r => setTimeout(r, 600));
+      }
+
+      const { data: newExpense, error: dbError } = await supabase
         .from('expenses')
         .insert([
           {
@@ -170,7 +180,6 @@ export default function AddExpense() {
             name: formData.name,
             amount: parseFloat(formData.amount),
             category: formData.category,
-            // Create a full timestamp by combining selected date with current time
             date: (() => {
               const d = new Date(formData.date);
               const now = new Date();
@@ -182,9 +191,11 @@ export default function AddExpense() {
             image_url,
             savings_account_id: formData.savings_account_id || null
           }
-        ]);
+        ]).select().single();
 
       if (dbError) throw dbError;
+
+      setSuccessName(savedName);
 
       // Deduct balance from the selected account
       if (formData.savings_account_id) {
@@ -198,13 +209,14 @@ export default function AddExpense() {
           
           if (updateError) {
             console.error('Failed to deduct balance:', updateError);
-            // We don't throw here to avoid failing the whole expense add, 
-            // but we could notify the user.
           } else {
-            // refresh accounts locally
             fetchAccounts();
           }
         }
+        
+        setTransferStep(4); // Finalizing
+        await new Promise(r => setTimeout(r, 800));
+        setTransferStatus('success');
       }
 
       setFormData({
@@ -222,12 +234,11 @@ export default function AddExpense() {
       if (fileInput) fileInput.value = '';
       setScanMessage(null);
 
-      setSuccessName(savedName);
       setTimeout(() => setSuccessName(null), 4000);
-
     } catch (err) {
       console.error(err);
       setError(err.message || 'An error occurred while adding the expense.');
+      setTransferStatus('error');
     } finally {
       setLoading(false);
     }
@@ -533,6 +544,111 @@ export default function AddExpense() {
           100% { opacity: 1; transform: translateY(0px) scale(1); }
         }
       `}</style>
+      
+      {/* 🎭 Transfer Animation Overlay */}
+      {(transferStatus !== 'idle') && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
+            
+            {/* Animation Core */}
+            <div className="p-8 pb-4 flex flex-col items-center">
+              <div className="relative flex items-center justify-between w-64 mx-auto h-32 mb-8">
+                {/* Digital Bridge */}
+                <div className="absolute top-1/2 left-8 right-8 h-px bg-slate-100 dark:bg-slate-800 -translate-y-1/2 overflow-hidden">
+                   {transferStatus === 'processing' && (
+                     <div className="absolute inset-0 bg-teal-500 animate-money-flow" />
+                   )}
+                </div>
+
+                {/* Account Source */}
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                   <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${transferStep >= 2 ? 'ring-4 ring-teal-500/20 scale-110 shadow-lg' : 'shadow-sm'}`}>
+                      <Landmark className={`h-8 w-8 ${transferStep >= 2 ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400'}`} />
+                   </div>
+                   <div className="absolute -bottom-6 flex flex-col items-center w-32">
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center truncate w-full">
+                       {accounts.find(a => a.id === formData.savings_account_id)?.bank_name || 'Bank'}
+                     </span>
+                   </div>
+                </div>
+
+                {/* Expense Destination */}
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                   <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-50 dark:bg-teal-900/30' : 'shadow-sm'}`}>
+                      {transferStatus === 'success' ? (
+                        <CheckCircle2 className="h-8 w-8 text-teal-600 animate-in zoom-in" />
+                      ) : (
+                        <ReceiptText className={`h-8 w-8 ${transferStep >= 3 ? 'text-teal-600 dark:text-teal-400 animate-pulse' : 'text-slate-400'}`} />
+                      )}
+                   </div>
+                   <div className="absolute -bottom-6 flex flex-col items-center w-24">
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expense</span>
+                   </div>
+                </div>
+              </div>
+
+              {/* Status Text & Progress */}
+              <div className="w-full space-y-4">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
+                   {transferStatus === 'processing' ? (
+                     <div className="animate-in fade-in slide-in-from-bottom-2">
+                        <Loader2 className="h-5 w-5 text-teal-600 animate-spin mx-auto mb-2" />
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                          {transferStep === 1 && "Initiating Transaction..."}
+                          {transferStep === 2 && `Deducting ₹${parseFloat(formData.amount).toLocaleString()} from ${accounts.find(a=>a.id === formData.savings_account_id)?.bank_name}...`}
+                          {transferStep === 3 && "Syncing with Ledger..."}
+                          {transferStep === 4 && "Finalizing Expense..."}
+                        </p>
+                     </div>
+                   ) : transferStatus === 'success' ? (
+                     <div className="animate-in zoom-in duration-300">
+                        <div className="h-10 w-10 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-teal-500/30">
+                          <ShieldCheck className="h-6 w-6 text-white" />
+                        </div>
+                         <p className="text-sm font-bold text-slate-900 dark:text-white">Expense Recorded Successfully</p>
+                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium px-6 leading-relaxed">
+                            Added <span className="text-teal-600 dark:text-teal-400 font-black">"{successName}"</span> and updated bank balance.
+                         </p>
+                     </div>
+                   ) : (
+                     <div className="animate-in fade-in">
+                        <X className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                        <p className="text-sm font-bold text-slate-900 dark:text-white italic">Something went wrong</p>
+                        <p className="text-xs text-slate-500 mt-1">{error || "Please try again"}</p>
+                     </div>
+                   )}
+                </div>
+
+                {transferStatus === 'success' && (
+                  <button 
+                    onClick={() => setTransferStatus('idle')}
+                    className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-[1.25rem] shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98]"
+                  >
+                    Done
+                  </button>
+                )}
+                
+                {transferStatus === 'error' && (
+                  <button 
+                    onClick={() => setTransferStatus('idle')}
+                    className="w-full h-14 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold rounded-[1.25rem] shadow-sm transition-all"
+                  >
+                    Close & Retry
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border-t border-slate-100 dark:border-slate-800">
+               <div className="flex items-center gap-2">
+                 <ShieldCheck className="h-3 w-3 text-slate-400" />
+                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Secure Ledger Protocol 2.0</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

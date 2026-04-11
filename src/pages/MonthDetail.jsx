@@ -152,7 +152,7 @@ export default function MonthDetail() {
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{expense.name}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {format(parseISO(expense.date), 'MMM dd')} • {expense.category || 'Other'}
+                          {format(parseISO(expense.date), 'MMM dd')} • {(expense.created_at ? new Date(expense.created_at) : parseISO(expense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} • {expense.category || 'Other'}
                         </p>
                       </div>
                     </div>
@@ -213,8 +213,13 @@ export default function MonthDetail() {
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date</p>
-                  <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">{format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Date & Time</p>
+                  <p className="text-slate-900 dark:text-slate-200 font-semibold text-sm">
+                    {format(parseISO(selectedExpense.date), 'MMM dd, yyyy')}
+                    <span className="block text-[10px] opacity-60 mt-0.5">
+                      {(selectedExpense.created_at ? new Date(selectedExpense.created_at) : parseISO(selectedExpense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </span>
+                  </p>
                 </div>
 
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 col-span-2">
