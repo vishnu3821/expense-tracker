@@ -28,7 +28,7 @@ import {
   Clock,
   ArrowDown,
   Share2,
-  CheckCircle2,
+  CheckCircle,
   ArrowRightCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -898,7 +898,7 @@ export default function Savings() {
               <div className="flex items-center gap-3">
                 <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 2 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep >= 2 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                    <CheckCircle className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className="h-1.5 w-1.5 rounded-full bg-white/20 animate-pulse" />
                   )}
@@ -913,7 +913,7 @@ export default function Savings() {
               <div className="flex items-center gap-3">
                 <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 3 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep >= 3 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                    <CheckCircle className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className={`h-1.5 w-1.5 rounded-full bg-white/20 ${transferStep === 2 ? 'animate-pulse' : ''}`} />
                   )}
@@ -928,7 +928,7 @@ export default function Savings() {
               <div className="flex items-center gap-3">
                 <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep >= 4 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                    <CheckCircle className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className={`h-1.5 w-1.5 rounded-full bg-white/20 ${transferStep === 3 ? 'animate-pulse' : ''}`} />
                   )}
@@ -943,7 +943,7 @@ export default function Savings() {
               <div className="flex items-center gap-3">
                 <div className={`h-6 w-6 shrink-0 aspect-square rounded-full flex items-center justify-center transition-all duration-500 ${transferStep === 4 ? 'bg-teal-500 shadow-lg shadow-teal-500/20' : 'bg-white/10'}`}>
                   {transferStep === 4 ? (
-                    <CheckCircle2 className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
+                    <CheckCircle className="h-4 w-4 text-white animate-in zoom-in-50 duration-300" />
                   ) : (
                     <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
                   )}
@@ -978,7 +978,7 @@ export default function Savings() {
 
             <div className="p-8 pb-4 text-center">
               <div className="inline-flex h-20 w-20 rounded-full bg-emerald-500 items-center justify-center shadow-xl shadow-emerald-500/20 mb-6 group">
-                <CheckCircle2 className="h-10 w-10 text-white animate-in zoom-in-50 duration-500" />
+                <CheckCircle className="h-10 w-10 text-white animate-in zoom-in-50 duration-500" />
               </div>
               <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 {transferStatus === 'success' ? 'Transfer Sent' : 'Transaction Receipt'}

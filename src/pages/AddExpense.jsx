@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { Loader2, UploadCloud, CheckCircle2, AlertCircle, X, Sparkles, Hash, Landmark, ReceiptText, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
+import { Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, ReceiptText, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
 import { get, del } from 'idb-keyval';
 
 import { createWorker } from 'tesseract.js';
@@ -46,7 +46,6 @@ export default function AddExpense() {
   // Animation State
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
   const [transferStep, setTransferStep] = useState(0);
-  const [receiptData, setReceiptData] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -156,7 +155,6 @@ export default function AddExpense() {
 
       let image_url = null;
       if (formData.image) {
-        // ... (image upload logic remained same)
         const fileNameOriginal = formData.image.name || 'shared_receipt.png';
         const fileExt = fileNameOriginal.split('.').pop() || 'png';
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -313,7 +311,7 @@ export default function AddExpense() {
                     scanMessage.type === 'warn' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
                     'bg-red-50 text-red-700 border border-red-200'
                   }`}>
-                    {scanMessage.type === 'success' && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                    {scanMessage.type === 'success' && <CheckCircle className="h-4 w-4 shrink-0" />}
                     {scanMessage.type !== 'success' && <AlertCircle className="h-4 w-4 shrink-0" />}
                     {scanMessage.text}
                   </div>
@@ -384,7 +382,7 @@ export default function AddExpense() {
               <select
                 id="category"
                 name="category"
-                className="input-field py-[0.6rem]" // Slight padding tweak for uniform height with inputs
+                className="input-field py-[0.6rem]"
                 value={formData.category}
                 onChange={handleChange}
                 required
@@ -453,11 +451,9 @@ export default function AddExpense() {
               )}
             </div>
 
-            {/* Payment Mode Segmented Control */}
             <div className="space-y-2 sm:col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Payment Mode</label>
               <div className="relative flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-64 isolate">
-                {/* Sliding Pill Background */}
                 <div 
                   className="absolute inset-y-1 transition-all duration-300 ease-out bg-white dark:bg-slate-700 rounded-lg shadow-sm z-[-1]"
                   style={{
@@ -465,7 +461,6 @@ export default function AddExpense() {
                     left: formData.payment_mode === 'UPI' ? '4px' : 'calc(50%)',
                   }}
                 />
-                
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, payment_mode: 'UPI' }))}
@@ -511,7 +506,6 @@ export default function AddExpense() {
         </form>
       </div>
 
-      {/* ── Animated success toast ── */}
       {successName && (
         <div
           className="fixed bottom-24 left-0 right-0 z-70 flex justify-center pointer-events-none px-4"
@@ -521,7 +515,7 @@ export default function AddExpense() {
         >
           <div className="flex items-center gap-3 bg-slate-900 text-white px-4 py-3.5 rounded-2xl shadow-2xl overflow-hidden w-full max-w-sm pointer-events-auto relative">
             <div className="h-8 w-8 rounded-full bg-teal-500 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-5 w-5 text-white" />
+              <CheckCircle className="h-5 w-5 text-white" />
             </div>
             <div className="min-w-0 flex-1 pr-6">
               <p className="text-xs text-slate-400 leading-none mb-1">Added successfully</p>
@@ -545,22 +539,17 @@ export default function AddExpense() {
         }
       `}</style>
       
-      {/* 🎭 Transfer Animation Overlay */}
       {(transferStatus !== 'idle') && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
-            
-            {/* Animation Core */}
             <div className="p-8 pb-4 flex flex-col items-center">
               <div className="relative flex items-center justify-between w-64 mx-auto h-32 mb-8">
-                {/* Digital Bridge */}
                 <div className="absolute top-1/2 left-8 right-8 h-px bg-slate-100 dark:bg-slate-800 -translate-y-1/2 overflow-hidden">
                    {transferStatus === 'processing' && (
                      <div className="absolute inset-0 bg-teal-500 animate-money-flow" />
                    )}
                 </div>
 
-                {/* Account Source */}
                 <div className="relative z-10 flex flex-col items-center gap-2">
                    <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${transferStep >= 2 ? 'ring-4 ring-teal-500/20 scale-110 shadow-lg' : 'shadow-sm'}`}>
                       <Landmark className={`h-8 w-8 ${transferStep >= 2 ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400'}`} />
@@ -572,22 +561,20 @@ export default function AddExpense() {
                    </div>
                 </div>
 
-                {/* Expense Destination */}
                 <div className="relative z-10 flex flex-col items-center gap-2">
                    <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-50 dark:bg-teal-900/30' : 'shadow-sm'}`}>
                       {transferStatus === 'success' ? (
-                        <CheckCircle2 className="h-8 w-8 text-teal-600 animate-in zoom-in" />
+                        <CheckCircle className="h-8 w-8 text-teal-600 animate-in zoom-in" />
                       ) : (
                         <ReceiptText className={`h-8 w-8 ${transferStep >= 3 ? 'text-teal-600 dark:text-teal-400 animate-pulse' : 'text-slate-400'}`} />
                       )}
-                   </div>
-                   <div className="absolute -bottom-6 flex flex-col items-center w-24">
-                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expense</span>
+                      <div className="absolute -bottom-6 flex flex-col items-center w-24">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expense</span>
+                      </div>
                    </div>
                 </div>
               </div>
 
-              {/* Status Text & Progress */}
               <div className="w-full space-y-4">
                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
                    {transferStatus === 'processing' ? (
@@ -639,7 +626,6 @@ export default function AddExpense() {
               </div>
             </div>
 
-            {/* Footer */}
             <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border-t border-slate-100 dark:border-slate-800">
                <div className="flex items-center gap-2">
                  <ShieldCheck className="h-3 w-3 text-slate-400" />

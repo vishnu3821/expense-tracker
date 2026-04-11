@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { format, parseISO } from 'date-fns';
-import { ChevronRight, Calendar, UserCircle,  Download, 
+import { ChevronRight, Calendar, UserCircle, Download, 
   Loader2, 
   LogOut, 
   Moon, 
@@ -15,11 +15,15 @@ import { ChevronRight, Calendar, UserCircle,  Download,
   Mail, 
   Wallet, 
   Megaphone,
+  CheckCircle,
+  X,
+  Send,
+  Shield,
+  Search,
+  ArrowLeft,
   CheckSquare,
   Square,
-  Users,
-  Send,
-  X
+  Users
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -37,6 +41,9 @@ export default function More() {
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
+  const [broadcastStatus, setBroadcastStatus] = useState('idle'); // idle, processing, success, error
+  const [broadcastStep, setBroadcastStep] = useState(0);
+  const [broadcastResult, setBroadcastResult] = useState(null);
 
   React.useEffect(() => {
     if (user) checkNotificationStatus();
@@ -64,14 +71,47 @@ export default function More() {
     setShowBroadcastModal(true);
     setIsFetchingUsers(true);
     try {
-      const response = await fetch('/api/announcement');
-      const data = await response.json();
-      if (data.users) {
-        setAllUsers(data.users);
-        setSelectedUserIds(data.users.map(u => u.id)); // Default select all
+      // 🕵️ Aggressive User Discovery (Multi-Source)
+      const userMap = {};
+
+      // Source 1: The Secure Admin View (Best source for emails)
+      const { data: viewData } = await supabase.from('admin_user_emails').select('*');
+      if (viewData) {
+        viewData.forEach(v => {
+          userMap[v.id] = { id: v.id, email: v.email };
+        });
+      }
+
+      // Source 2: The Expenses Table (Discovery via usage)
+      const { data: usageData } = await supabase.from('expenses').select('user_id');
+      if (usageData) {
+        usageData.forEach(exp => {
+          if (!userMap[exp.user_id]) {
+            userMap[exp.user_id] = { id: exp.user_id, email: 'User (Found via Expense)' };
+          }
+        });
+      }
+
+      // Source 3: Yourself
+      if (user && !userMap[user.id]) {
+        userMap[user.id] = { id: user.id, email: user.email + ' (You)' };
+      }
+
+      const discoveryResults = Object.values(userMap);
+      if (discoveryResults.length > 0) {
+        setAllUsers(discoveryResults);
+        setSelectedUserIds(discoveryResults.map(u => u.id));
+      } else {
+        // Source 4: Final API fallback
+        const response = await fetch('/api/announcement');
+        const apiData = await response.json();
+        if (apiData.users && apiData.users.length > 0) {
+          setAllUsers(apiData.users);
+          setSelectedUserIds(apiData.users.map(u => u.id));
+        }
       }
     } catch (err) {
-      console.error('Error fetching users:', err);
+      console.error('Aggressive Discovery Error:', err);
     } finally {
       setIsFetchingUsers(false);
     }
@@ -103,7 +143,16 @@ export default function More() {
     if (!window.confirm(confirmMessage)) return;
 
     setIsBroadcasting(true);
+    setBroadcastStatus('processing');
+    setBroadcastStep(1);
+
     try {
+      // Animation Sequence
+      await new Promise(r => setTimeout(r, 800));
+      setBroadcastStep(2);
+      await new Promise(r => setTimeout(r, 1200));
+      setBroadcastStep(3);
+
       const response = await fetch('/api/announcement', {
         method: 'POST',
         headers: {
@@ -118,15 +167,20 @@ export default function More() {
       const data = await response.json();
 
       if (data.success) {
-        alert('✅ SUCCESS: ' + data.message);
-        setShowBroadcastModal(false);
+        setBroadcastStep(4);
+        setBroadcastResult(data);
+        setBroadcastStatus('success');
         setCustomMessage('');
       } else {
-        alert('❌ FAILED: ' + (data.error || 'Unknown error occurred'));
+        setBroadcastStatus('error');
+        setBroadcastResult({ error: data.error || 'Batch delivery failed' });
       }
     } catch (err) {
       console.error('Broadcast Error:', err);
-      alert('❌ ERROR: Could not connect to announcement service.');
+      setBroadcastStatus('error');
+      setBroadcastResult({ 
+        error: 'CONNECTION ERROR: Could not reach the broadcast server. Locally, you MUST run "vercel dev" (not npm run dev) to enable the API.' 
+      });
     } finally {
       setIsBroadcasting(false);
     }
@@ -152,7 +206,7 @@ export default function More() {
       }
     } catch (err) {
       console.error('Test Notification Error:', err);
-      alert('❌ ERROR: Could not connect to diagnostic service.');
+      alert('❌ CONNECTION ERROR: Could not reach diagnostic server.\n\nNOTE: You MUST run "vercel dev" (not npm run dev) to test notifications locally.');
     } finally {
       setIsTesting(false);
     }
@@ -763,6 +817,113 @@ export default function More() {
               <p className="text-center text-[10px] text-slate-400 mt-4">
                 Emails will be sent individually via Resend to ensure high delivery rates.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 🎭 Broadcast Animation Overlay */}
+      {(broadcastStatus !== 'idle') && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
+            
+            {/* Animation Core */}
+            <div className="p-8 pb-4 flex flex-col items-center">
+              <div className="relative flex items-center justify-between w-64 mx-auto h-32 mb-8">
+                {/* Digital Bridge */}
+                <div className="absolute top-1/2 left-8 right-8 h-px bg-slate-100 dark:bg-slate-800 -translate-y-1/2 overflow-hidden">
+                   {broadcastStatus === 'processing' && (
+                     <div className="absolute inset-0 bg-teal-500 animate-money-flow" />
+                   )}
+                </div>
+
+                {/* Source: Admin/Megaphone */}
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                   <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${broadcastStep >= 2 ? 'ring-4 ring-teal-500/20 scale-110 shadow-lg' : 'shadow-sm'}`}>
+                      <Megaphone className={`h-8 w-8 ${broadcastStep >= 2 ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400'}`} />
+                   </div>
+                   <div className="absolute -bottom-6 flex flex-col items-center w-32">
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Admin</span>
+                   </div>
+                </div>
+
+                {/* Destination: Users */}
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                   <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${broadcastStep >= 4 ? 'bg-teal-50 dark:bg-teal-900/30' : 'shadow-sm'}`}>
+                      {broadcastStatus === 'success' ? (
+                        <CheckCircle className="h-8 w-8 text-teal-600 animate-in zoom-in" />
+                      ) : (
+                        <Users className={`h-8 w-8 ${broadcastStep >= 3 ? 'text-teal-600 dark:text-teal-400 animate-pulse' : 'text-slate-400'}`} />
+                      )}
+                   </div>
+                   <div className="absolute -bottom-6 flex flex-col items-center w-24">
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Users</span>
+                   </div>
+                </div>
+              </div>
+
+              {/* Status Text & Progress */}
+              <div className="w-full space-y-4">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
+                   {broadcastStatus === 'processing' ? (
+                     <div className="animate-in fade-in slide-in-from-bottom-2">
+                        <Loader2 className="h-5 w-5 text-teal-600 animate-spin mx-auto mb-2" />
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                          {broadcastStep === 1 && "Initiating Broadcast..."}
+                          {broadcastStep === 2 && `Preparing message for ${selectedUserIds.length} users...`}
+                          {broadcastStep === 3 && "Broadcasting via Resend Batch..."}
+                        </p>
+                     </div>
+                   ) : broadcastStatus === 'success' ? (
+                     <div className="animate-in zoom-in duration-300">
+                        <div className="h-10 w-10 bg-teal-100 dark:bg-teal-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <Send className="h-5 w-5 text-teal-600" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Sent to all users!</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 px-2">
+                          {broadcastResult?.message || `Successfully sent to ${selectedUserIds.length} users.`}
+                        </p>
+                     </div>
+                   ) : (
+                     <div className="animate-in shake duration-300">
+                        <div className="h-10 w-10 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+                          <X className="h-5 w-5 text-rose-600" />
+                        </div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Broadcast Failed</p>
+                        <p className="text-[10px] text-rose-500 font-medium px-2 truncate">
+                          {broadcastResult?.error || 'Unknown error occurred'}
+                        </p>
+                     </div>
+                   )}
+                </div>
+
+                {broadcastStatus === 'success' ? (
+                  <button 
+                    onClick={() => {
+                      setBroadcastStatus('idle');
+                      setShowBroadcastModal(false);
+                      setBroadcastResult(null);
+                    }}
+                    className="w-full h-14 bg-teal-600 text-white font-bold rounded-2xl shadow-xl shadow-teal-500/20 hover:bg-teal-700 transition-all active:scale-95"
+                  >
+                    Great!
+                  </button>
+                ) : broadcastStatus === 'error' && (
+                  <button 
+                    onClick={() => setBroadcastStatus('idle')}
+                    className="w-full h-14 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold rounded-2xl shadow-sm transition-all"
+                  >
+                    Close & Retry
+                  </button>
+                ) }
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border-t border-slate-100 dark:border-slate-800">
+               <div className="flex items-center gap-2">
+                 <Shield className="h-3 w-3 text-slate-400" />
+                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Secure Ledger Protocol 2.0</p>
+               </div>
             </div>
           </div>
         </div>

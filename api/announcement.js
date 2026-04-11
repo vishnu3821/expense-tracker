@@ -1,21 +1,52 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const resendApiKey = process.env.RESEND_API_KEY;
-const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export default async function handler(req, res) {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
   // GET all users (list)
   if (req.method === 'GET') {
     try {
-      const { data, error } = await supabase.auth.admin.listUsers();
-      if (error) throw error;
-      return res.status(200).json({ users: data.users || [] });
+      if (!supabaseUrl || !supabaseKey) {
+        return res.status(200).json({ users: [], error: 'Configuration missing (URL/Key).' });
+      }
+      
+      const supabase = createClient(supabaseUrl, supabaseKey);
+      
+      // Attempt 1: Auth Admin API (Best for emails)
+      try {
+        const { data, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+        if (!error && data?.users) {
+          return res.status(200).json({ users: data.users });
+        }
+      } catch (e) {
+        console.warn('Admin API failed, trying view...');
+      }
+
+      // Attempt 2: Profiles table (Standard for most Supabase apps)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name');
+      
+      if (!profileError && profileData?.length > 0) {
+        return res.status(200).json({ users: profileData });
+      }
+
+      // Attempt 3: Database View (Legacy fallback)
+      const { data: viewData, error: viewError } = await supabase
+        .from('admin_user_emails')
+        .select('*');
+      
+      if (viewError && !profileData) {
+        throw new Error(`User retrieval failed: ${viewError.message}`);
+      }
+      
+      return res.status(200).json({ users: viewData || [] });
     } catch (err) {
-      return res.status(500).json({ error: err.message });
+      console.error('GET announcement error:', err);
+      return res.status(200).json({ users: [], error: err.message });
     }
   }
 
@@ -23,46 +54,39 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Optional: Add a secret key check here if you want to prevent unauthorized broadcasts
-  // const { secret } = req.body;
-  // if (secret !== process.env.BROADCAST_SECRET) return res.status(401).end();
-
   try {
-    if (!resendApiKey) {
-      throw new Error('RESEND_API_KEY is not configured.');
-    }
+    if (!resendApiKey) throw new Error('RESEND_API_KEY is not configured.');
+    if (!supabaseUrl || !supabaseKey) throw new Error('SUPABASE configuration is incomplete.');
 
-    if (!supabaseKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel environment.');
-    }
-
+    const supabase = createClient(supabaseUrl, supabaseKey);
     const { selectedUserIds, customMessage } = req.body;
-
-    console.log('Fetching users for broadcast...');
-    console.log('Supabase URL:', supabaseUrl ? 'Configured' : 'Missing');
     
-    // Fetch all users from Auth (requires Service Role Key)
-    const { data, error: userError } = await supabase.auth.admin.listUsers();
-
-    if (userError) {
-      console.error('Supabase Auth Admin Error:', userError);
-      throw userError;
+    // Fetch users for matching (same robust logic)
+    let allUsers = [];
+    const { data: authData } = await supabase.auth.admin.listUsers({ perPage: 1000 }).catch(() => ({ data: null }));
+    if (authData?.users) {
+      allUsers = authData.users;
+    } else {
+      const { data: viewData } = await supabase.from('admin_user_emails').select('*');
+      allUsers = viewData || [];
     }
 
-    const allUsers = data?.users || [];
-    
-    // Filter users if list provided
     const targetUsers = selectedUserIds && selectedUserIds.length > 0
       ? allUsers.filter(u => selectedUserIds.includes(u.id))
       : allUsers;
 
     if (targetUsers.length === 0) {
-      return res.status(200).json({ success: true, message: 'No target users found.', debug: { url: !!supabaseUrl, key: !!supabaseKey } });
+      return res.status(200).json({ success: true, message: 'No target users matched.' });
     }
 
-    console.log(`Sending announcement to ${targetUsers.length} users...`);
-
-    const emailTemplate = (userName, customNote) => `
+    // 🏆 Cleanest Template Logic (No nested backticks to avoid OXC parser issues)
+    const getEmailHtml = (userEmail, customNote) => {
+      const userName = userEmail.split('@')[0];
+      const customNoteHtml = customNote 
+        ? '<div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 16px; margin-bottom: 24px; border-radius: 0 12px 12px 0; color: #0d9488; font-weight: 500;">' + customNote + '</div>'
+        : '';
+      
+      return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -89,83 +113,62 @@ export default async function handler(req, res) {
       <div class="hero-text">Big Updates are Here! 🚀</div>
       <p>Master your finances with the all-new Expense Tracker.</p>
     </div>
-    
     <div class="content">
-      <p>Hi ${userName || 'there'},</p>
-      ${customNote ? `<div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 16px; margin-bottom: 24px; border-radius: 0 12px 12px 0; color: #0d9488; font-weight: 500;">${customNote}</div>` : ''}
+      <p>Hi ${userName},</p>
+      ${customNoteHtml}
       <p>We've been working hard to make your financial journey smoother and more insightful. Here are the powerful new features waiting for you in the app:</p>
-      
       <div class="feature-card">
         <div class="feature-title">💰 Your Savings Module <span class="badge">New</span></div>
-        <div class="feature-desc">Track your manual bank balances across all your accounts. See your total wealth in one glance, no real-time linking required.</div>
+        <div class="feature-desc">Track manual bank balances. See total wealth in one glance.</div>
       </div>
-      
       <div class="feature-card">
         <div class="feature-title">💸 Auto-Balance Deduction <span class="badge">New</span></div>
-        <div class="feature-desc">When you log an expense, simply select which bank account you paid from. The app will automatically subtract the amount from your balance!</div>
+        <div class="feature-desc">Auto-subtract amount from bank balance when logging expenses.</div>
       </div>
-      
       <div class="feature-card">
         <div class="feature-title">🕵️ Privacy Mode <span class="badge">New</span></div>
-        <div class="feature-desc">Using the app in a public place? One tap on the "Eye" icon in Savings hides all your sensitive balances instantly.</div>
+        <div class="feature-desc">Hide sensitive balances with one tap.</div>
       </div>
-
-      <div class="feature-card">
-        <div class="feature-title">📊 Automated PDF Reports</div>
-        <div class="feature-desc">Get professional monthly summaries sent straight to your email on the 1st of every month automatically.</div>
-      </div>
-      
       <div style="text-align: center;">
         <a href="https://expensemonitor.tech" class="btn">Explore New Features</a>
       </div>
     </div>
-    
     <div class="footer">
       <p>&copy; 2026 Expense Tracker. All rights reserved.</p>
-      <p>You received this email because you registered for Expense Tracker.</p>
     </div>
   </div>
 </body>
-</html>
-    `;
+</html>`;
+    };
 
-    const broadcastResults = [];
+    const batchData = targetUsers
+      .filter(u => u.email)
+      .slice(0, 100)
+      .map(user => ({
+        from: resendFromEmail,
+        to: user.email,
+        subject: 'New Features: Savings & Privacy Mode are Here! 🚀',
+        html: getEmailHtml(user.email, customMessage),
+      }));
 
-    // Process in small batches or one by one for reliability
-    for (const user of targetUsers) {
-      if (!user.email) continue;
+    if (batchData.length === 0) throw new Error('No valid user emails to send to.');
 
-      try {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: resendFromEmail,
-            to: user.email,
-            subject: 'New Features: Your Savings & Privacy Mode are Here! 🚀',
-            html: emailTemplate(user.email.split('@')[0], customMessage),
-          }),
-        });
+    const response = await fetch('https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(batchData),
+    });
 
-        const data = await response.json();
-        broadcastResults.push({ email: user.email, status: response.ok ? 'success' : 'failed', data });
-      } catch (err) {
-        broadcastResults.push({ email: user.email, status: 'error', reason: err.message });
-      }
-    }
-
-    const successCount = broadcastResults.filter(r => r.status === 'success').length;
-    const failureSample = broadcastResults.find(r => r.status !== 'success')?.data?.message || broadcastResults.find(r => r.status !== 'success')?.reason || 'None';
+    const resultData = await response.json();
+    if (!response.ok) throw new Error(resultData.message || 'Batch send failed');
 
     return res.status(200).json({ 
       success: true, 
-      message: successCount > 0 
-        ? `Announcement sent to ${successCount} users.` 
-        : `Sent to 0 users. Main Error: ${failureSample}`,
-      details: broadcastResults 
+      message: `Announcement successfully queued for ${batchData.length} users.`,
+      debug: { totalFound: targetUsers.length, batchSize: batchData.length }
     });
 
   } catch (err) {

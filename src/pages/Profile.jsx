@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle2, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck } from 'lucide-react';
 import PinModal from '../components/PinModal';
 
 export default function Profile() {
@@ -124,7 +124,7 @@ export default function Profile() {
         <form onSubmit={handleUpdatePassword} className="p-6 space-y-6">
           {success && (
             <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 flex items-center gap-3 text-teal-800">
-              <CheckCircle2 className="h-5 w-5 text-teal-600" />
+              <CheckCircle className="h-5 w-5 text-teal-600" />
               <p className="text-sm font-medium">Password successfully updated!</p>
             </div>
           )}
