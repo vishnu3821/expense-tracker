@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { get, set } from 'idb-keyval';
+
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function Dashboard() {
@@ -38,14 +40,30 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false })
-        .order('created_at', { ascending: false });
+      let data;
+      if (!navigator.onLine) {
+        // Offline: Serve from cache
+        const cached = await get('dashboard_cache');
+        if (cached) {
+          data = cached;
+        } else {
+          throw new Error('No offline data available');
+        }
+      } else {
+        // Online: Fetch from Supabase
+        const { data: serverData, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+          .order('created_at', { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
+        data = serverData;
+        
+        // Save to cache for offline use
+        await set('dashboard_cache', data);
+      }
 
       const now = new Date();
       const today = startOfDay(now);
@@ -221,32 +239,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        {/* Expense Trends Chart */}
-        <div className="card p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Expense Trends</h3>
-          <div className="h-72 w-full">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-10} tickFormatter={(value) => `₹${value}`} />
-                  <RechartsTooltip
-                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value) => [`₹${value}`, 'Total']}
-                    cursor={{ stroke: '#e2e8f0', strokeWidth: 2 }}
-                  />
-                  <Line type="monotone" dataKey="total" stroke="#0d9488" strokeWidth={3} dot={{ r: 4, fill: '#0d9488', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 0, fill: '#0f766e' }} />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                No expense data available for trends
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Expense Calendar */}
         <div className="card p-6">
           <div className="flex items-center justify-between mb-5">

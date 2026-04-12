@@ -47,6 +47,20 @@ export default function AddExpense() {
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
   const [transferStep, setTransferStep] = useState(0);
 
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
@@ -289,13 +303,18 @@ export default function AddExpense() {
                 <button
                   type="button"
                   onClick={handleScanImage}
-                  disabled={scanning}
+                  disabled={scanning || !isOnline}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-100 hover:border-teal-400 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {scanning ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Analyzing screenshot...
+                    </>
+                  ) : !isOnline ? (
+                    <>
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      Offline: AI Scan Unavailable
                     </>
                   ) : (
                     <>
@@ -490,14 +509,16 @@ export default function AddExpense() {
           <div className="pt-4 border-t border-slate-100 flex justify-end">
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary"
+              disabled={loading || !isOnline}
+              className={`btn-primary ${!isOnline ? 'opacity-70 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : ''}`}
             >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Saving...
                 </>
+              ) : !isOnline ? (
+                'Connect to internet to save'
               ) : (
                 'Save Expense'
               )}
