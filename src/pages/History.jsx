@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search, Edit3, Save } from 'lucide-react';
-import { get, set } from 'idb-keyval';
 
 
 export default function History() {
@@ -49,19 +48,12 @@ export default function History() {
 
   const fetchAccounts = async () => {
     try {
-      if (!navigator.onLine) {
-        const cached = await get('accounts_cache');
-        if (cached) setAccounts(cached);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('user_savings')
         .select('*')
         .eq('user_id', user.id);
       if (error) throw error;
       setAccounts(data || []);
-      await set('accounts_cache', data || []);
     } catch (err) {
       console.error('Error fetching accounts:', err);
     }
@@ -69,22 +61,15 @@ export default function History() {
 
   const fetchExpenses = async () => {
     try {
-      if (!navigator.onLine) {
-        const cached = await get('expenses_history_cache');
-        if (cached) setExpenses(cached);
-        else throw new Error('No offline data');
-      } else {
-        const { data, error } = await supabase
-          .from('expenses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setExpenses(data);
-        await set('expenses_history_cache', data);
-      }
+      if (error) throw error;
+      setExpenses(data);
     } catch (error) {
       console.error('Error fetching expenses:', error);
     } finally {

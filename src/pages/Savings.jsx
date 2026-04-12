@@ -32,7 +32,6 @@ import {
   ArrowRightCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { get, set } from 'idb-keyval';
 
 
 export default function Savings() {
@@ -80,18 +79,6 @@ export default function Savings() {
     };
   }, [showModal, showTransferModal, selectedAccountId, transferStatus]);
   const [accountType, setAccountType] = useState('bank');
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   useEffect(() => {
     if (user) {
@@ -102,11 +89,6 @@ export default function Savings() {
   const fetchSavings = async () => {
     try {
       setLoading(true);
-      if (!navigator.onLine) {
-        const cached = await get('savings_accounts_cache');
-        if (cached) setAccounts(cached);
-        return;
-      }
       const { data, error } = await supabase
         .from('user_savings')
         .select('*')
@@ -604,13 +586,11 @@ export default function Savings() {
               
                 <button
                   type="submit"
-                  disabled={isSubmitting || !isOnline}
-                  className={`btn-primary w-full h-12 flex items-center justify-center gap-2 mt-4 ${!isOnline ? 'opacity-70 cursor-not-allowed bg-slate-400 hover:bg-slate-400' : ''}`}
+                  disabled={isSubmitting}
+                  className="btn-primary w-full h-12 flex items-center justify-center gap-2 mt-4"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : !isOnline ? (
-                    'Offline: Cannot Save'
                   ) : (
                     <>
                       <Plus className="h-5 w-5" />
@@ -702,16 +682,11 @@ export default function Savings() {
               
               <button
                 type="submit"
-                disabled={isTransferring || !fromAccount || !toAccount || fromAccount === toAccount || !isOnline}
+                disabled={isTransferring || !fromAccount || !toAccount || fromAccount === toAccount}
                 className="w-full h-16 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 text-white rounded-2xl flex items-center justify-center gap-3 text-lg font-bold shadow-xl shadow-teal-500/20 transition-all hover:-translate-y-1 active:scale-[0.98] disabled:transform-none"
               >
                 {isTransferring ? (
                   <Loader2 className="h-6 w-6 animate-spin" />
-                ) : !isOnline ? (
-                  <>
-                    <X className="h-6 w-6" />
-                    Offline: Transfer Disabled
-                  </>
                 ) : (
                   <>
                     <ShieldCheck className="h-6 w-6" />

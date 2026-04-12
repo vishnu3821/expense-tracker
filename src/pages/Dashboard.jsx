@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { get, set } from 'idb-keyval';
 
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -40,30 +39,14 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      let data;
-      if (!navigator.onLine) {
-        // Offline: Serve from cache
-        const cached = await get('dashboard_cache');
-        if (cached) {
-          data = cached;
-        } else {
-          throw new Error('No offline data available');
-        }
-      } else {
-        // Online: Fetch from Supabase
-        const { data: serverData, error } = await supabase
-          .from('expenses')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: false })
-          .order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        data = serverData;
-        
-        // Save to cache for offline use
-        await set('dashboard_cache', data);
-      }
+      if (error) throw error;
 
       const now = new Date();
       const today = startOfDay(now);
