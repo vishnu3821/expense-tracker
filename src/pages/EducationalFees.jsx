@@ -20,7 +20,8 @@ import {
   X,
   AlertCircle,
   TrendingUp,
-  Receipt
+  Receipt,
+  ClipboardPaste
 } from 'lucide-react';
 import AddEducationRecord from '../components/Education/AddEducationRecord';
 import BulkUploadEducation from '../components/Education/BulkUploadEducation';
