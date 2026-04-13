@@ -1,23 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Upload, X, ShieldCheck, FileText, Image as ImageIcon, Camera, Building2, Calendar, CreditCard, ChevronDown } from 'lucide-react';
+import { Loader2, X, ShieldCheck, FileText, Camera } from 'lucide-react';
 
 export default function AddEducationRecord({ 
   onClose, 
   onSuccess,
-  prefilledYear = '',
-  prefilledSemester = '',
-  prefilledCategory = ''
+  prefilledYear,
+  prefilledSemester,
+  prefilledCategory 
 }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
   const [formData, setFormData] = useState({
-    year: prefilledYear || new Date().getFullYear().toString(),
-    semester: prefilledSemester || '',
-    category: prefilledCategory || '',
     date: new Date().toISOString().split('T')[0],
     receipt_no: '',
     order_number: '',
@@ -31,10 +28,6 @@ export default function AddEducationRecord({
 
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
-
-  // Default suggestions
-  const commonCategories = ['Semester Fee', 'Hostel Fee', 'Mess Fee', 'Exam Fee', 'Library Penalty'];
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -66,6 +59,13 @@ export default function AddEducationRecord({
     setLoading(true);
     setError(null);
 
+    // Hard verification that the folder hierarchy context is pure
+    if (!prefilledYear || !prefilledSemester || !prefilledCategory) {
+       setError("System Error: Component lost navigation context. Cannot attach record without Folder structure.");
+       setLoading(false);
+       return;
+    }
+
     try {
       let image_url = null;
 
@@ -92,9 +92,9 @@ export default function AddEducationRecord({
         .from('education_fees')
         .insert({
           user_id: user.id,
-          year: formData.year.toString(),
-          semester: formData.semester,
-          category: formData.category,
+          year: prefilledYear,
+          semester: prefilledSemester,
+          category: prefilledCategory,
           date: formData.date,
           receipt_no: formData.receipt_no || null,
           order_number: formData.order_number || null,
@@ -129,7 +129,7 @@ export default function AddEducationRecord({
             </div>
             <div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add Record</h2>
-              <p className="text-xs text-slate-500">Capture your academic payment</p>
+              <p className="text-xs text-slate-500">Into: {prefilledYear} &gt; {prefilledSemester} &gt; {prefilledCategory}</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
@@ -148,72 +148,6 @@ export default function AddEducationRecord({
 
           <form id="edu-fee-form" onSubmit={handleSubmit} className="space-y-6">
             
-            {/* Folder Location Group */}
-            <div className="space-y-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Folder Location</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Academic Year *</label>
-                  <input
-                    type="text"
-                    name="year"
-                    required
-                    placeholder="e.g. 2026"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all"
-                    value={formData.year}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Semester *</label>
-                  <input
-                    type="text"
-                    name="semester"
-                    required
-                    placeholder="e.g. Sem 1"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all"
-                    value={formData.semester}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 relative">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Category *</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="category"
-                    required
-                    placeholder="e.g. Semester Fee"
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-4 pr-10 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all"
-                    value={formData.category}
-                    onChange={handleChange}
-                    onFocus={() => setShowCategoryDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowCategoryDropdown(false), 200)}
-                  />
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-                </div>
-                {showCategoryDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden">
-                    {commonCategories.map(cat => (
-                      <div 
-                        key={cat}
-                        className="px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
-                        onMouseDown={() => {
-                          setFormData(prev => ({ ...prev, category: cat }));
-                          setShowCategoryDropdown(false);
-                        }}
-                      >
-                        {cat}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Core Info */}
             <div className="space-y-4">
                <div className="space-y-1.5">
@@ -244,7 +178,7 @@ export default function AddEducationRecord({
             </div>
 
             {/* Optional Metadata Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-4">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Receipt / Ref Number</label>
                 <input
@@ -348,7 +282,7 @@ export default function AddEducationRecord({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
           <button
             form="edu-fee-form"
             type="submit"
@@ -360,7 +294,7 @@ export default function AddEducationRecord({
             ) : (
               <>
                 <ShieldCheck className="h-6 w-6" />
-                Save Securely
+                Save to {prefilledCategory}
               </>
             )}
           </button>
