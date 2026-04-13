@@ -571,17 +571,28 @@ export default function EducationalFees() {
                            <FileText className="h-6 w-6" />
                          </div>
                        )}
-                       <div>
-                         <h4 className="text-lg font-black text-slate-900 dark:text-white">₹{parseFloat(record.amount).toLocaleString()}</h4>
-                         <p className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 font-bold uppercase tracking-wider">
-                           <Calendar className="h-3 w-3" />
-                           {format(parseISO(record.date), 'dd MMM yyyy')}
-                         </p>
-                       </div>
-                     </div>
-                     <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-300 group-hover:text-emerald-500 transition-colors">
-                        <ChevronRight className="h-5 w-5" />
-                     </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-4">
+                           <div className="min-w-0 flex-1">
+                              <h4 className="text-base font-bold text-slate-900 dark:text-white truncate">
+                                 {record.amount_info || record.receipt_no || 'Fee Record'}
+                              </h4>
+                              <p className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                 <Calendar className="h-3 w-3" />
+                                 {format(parseISO(record.date), 'dd MMM yyyy')}
+                                 {record.receipt_no && record.amount_info && (
+                                    <span className="opacity-40 ml-1"># {record.receipt_no}</span>
+                                 )}
+                              </p>
+                           </div>
+                           <div className="text-right shrink-0">
+                              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{parseFloat(record.amount).toLocaleString()}</p>
+                           </div>
+                        </div>
+                      </div>
+                      <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-300 group-hover:text-emerald-500 transition-colors ml-2">
+                         <ChevronRight className="h-4 w-4" />
+                      </div>
                    </div>
                  </div>
                ))
