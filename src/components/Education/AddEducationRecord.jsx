@@ -7,7 +7,6 @@ export default function AddEducationRecord({
   onClose, 
   onSuccess,
   prefilledYear,
-  prefilledYear,
   prefilledSemester,
   prefilledCategory,
   recordToEdit = null
