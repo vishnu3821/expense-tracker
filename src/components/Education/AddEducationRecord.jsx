@@ -27,6 +27,7 @@ export default function AddEducationRecord({
   });
 
   const [imagePreview, setImagePreview] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -40,9 +41,13 @@ export default function AddEducationRecord({
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files?.[0];
+  const processFile = (file) => {
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file');
+      return;
+    }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       setError('Image must be less than 5MB');
@@ -52,6 +57,27 @@ export default function AddEducationRecord({
     setFormData(prev => ({ ...prev, image: file }));
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
+    setError(null);
+  };
+
+  const handleImageChange = (e) => {
+    processFile(e.target.files?.[0]);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    processFile(e.dataTransfer.files?.[0]);
   };
 
   const handleSubmit = async (e) => {
@@ -242,16 +268,26 @@ export default function AddEducationRecord({
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Receipt Snapshot</label>
               
               {!imagePreview ? (
-                <button
-                  type="button"
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center gap-2 transition-colors group"
+                  className={`w-full h-32 rounded-2xl border-2 border-dashed cursor-pointer flex flex-col items-center justify-center gap-2 transition-all group ${
+                    isDragging 
+                      ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20' 
+                      : 'border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600 bg-slate-50 dark:bg-slate-800/50'
+                  }`}
                 >
-                  <div className="h-10 w-10 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-400 group-hover:text-emerald-500 group-hover:scale-110 transition-all">
+                  <div className={`h-10 w-10 rounded-full shadow-sm flex items-center justify-center transition-all ${
+                    isDragging ? 'bg-emerald-100 dark:bg-emerald-800 text-emerald-600 scale-110' : 'bg-white dark:bg-slate-800 text-slate-400 group-hover:text-emerald-500 group-hover:scale-110'
+                  }`}>
                     <Camera className="h-5 w-5" />
                   </div>
-                  <span className="text-sm text-slate-500 font-medium">Tap to upload receipt copy</span>
-                </button>
+                  <span className={`text-sm font-medium ${isDragging ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
+                    {isDragging ? 'Drop receipt here' : 'Tap or drag receipt here'}
+                  </span>
+                </div>
               ) : (
                 <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 group bg-black/5">
                   <img src={imagePreview} alt="Receipt preview" className="w-full max-h-48 object-contain" />
