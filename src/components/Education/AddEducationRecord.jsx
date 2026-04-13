@@ -23,8 +23,23 @@ export default function AddEducationRecord({
     gateway_reference_no: '',
     amount: '',
     amount_info: '',
-    image: null
+    image: null,
+    manualDate: formatDisplayDate(new Date().toISOString().split('T')[0])
   });
+
+  function formatDisplayDate(isoDate) {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function parseDisplayDate(displayDate) {
+    const parts = displayDate.split('/');
+    if (parts.length !== 3) return null;
+    const [d, m, y] = parts;
+    if (y.length !== 4 || m.length !== 2 || d.length !== 2) return null;
+    return `${y}-${m}-${d}`;
+  }
 
   const [imagePreview, setImagePreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -38,6 +53,24 @@ export default function AddEducationRecord({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'manualDate') {
+      // Simple mask for DD/MM/YYYY
+      let v = value.replace(/\D/g, '').slice(0, 8);
+      if (v.length >= 5) {
+        v = `${v.slice(0, 2)}/${v.slice(2, 4)}/${v.slice(4)}`;
+      } else if (v.length >= 3) {
+        v = `${v.slice(0, 2)}/${v.slice(2)}`;
+      }
+      
+      setFormData(prev => ({ 
+        ...prev, 
+        manualDate: v,
+        date: v.length === 10 ? parseDisplayDate(v) : prev.date
+      }));
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -92,6 +125,13 @@ export default function AddEducationRecord({
        return;
     }
 
+    const isoDate = parseDisplayDate(formData.manualDate);
+    if (!isoDate) {
+      setError("Please enter a valid date in DD/MM/YYYY format.");
+      setLoading(false);
+      return;
+    }
+
     try {
       let image_url = null;
 
@@ -121,7 +161,7 @@ export default function AddEducationRecord({
           year: prefilledYear,
           semester: prefilledSemester,
           category: prefilledCategory,
-          date: formData.date,
+          date: isoDate,
           receipt_no: formData.receipt_no || null,
           order_number: formData.order_number || null,
           payment_gateway: formData.payment_gateway || null,
@@ -193,11 +233,12 @@ export default function AddEducationRecord({
                <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Date of Payment *</label>
                 <input
-                  type="date"
-                  name="date"
+                  type="text"
+                  name="manualDate"
                   required
+                  placeholder="DD/MM/YYYY"
                   className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all"
-                  value={formData.date}
+                  value={formData.manualDate}
                   onChange={handleChange}
                 />
               </div>

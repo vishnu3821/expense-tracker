@@ -17,7 +17,10 @@ import {
   Trash2,
   Edit2,
   ImageIcon,
-  X
+  X,
+  AlertCircle,
+  TrendingUp,
+  Receipt
 } from 'lucide-react';
 import AddEducationRecord from '../components/Education/AddEducationRecord';
 
@@ -38,13 +41,20 @@ export default function EducationalFees() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
 
-  // Custom Tailwind Dialog State replacing window.prompt
+  // Custom UI Prompt State
   const [promptConfig, setPromptConfig] = useState(null);
   const [promptValue, setPromptValue] = useState('');
+
+  // Custom UI Confirmation State
+  const [confirmConfig, setConfirmConfig] = useState(null);
 
   const openPrompt = (title, placeholder, initialValue, onConfirm) => {
     setPromptValue(initialValue || '');
     setPromptConfig({ title, placeholder, onConfirm });
+  };
+
+  const openConfirm = (title, message, onConfirm, isDangerous = false) => {
+    setConfirmConfig({ title, message, onConfirm, isDangerous });
   };
 
   useEffect(() => {
@@ -67,6 +77,10 @@ export default function EducationalFees() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateTotal = (filterFn) => {
+    return fees.filter(filterFn).reduce((sum, f) => sum + parseFloat(f.amount), 0);
   };
 
   const getDerivedYears = () => {
@@ -98,7 +112,7 @@ export default function EducationalFees() {
   };
 
   const handleAddSemester = () => {
-    openPrompt("Add Semester", "e.g. Sem 1", "", (val) => {
+    openPrompt("Add Semester", "e.g. Semester 1", "", (val) => {
       const cleanSem = val.trim();
       setCreatedPaths(prev => [...prev, `${selectedYear}/${cleanSem}`]);
       setSelectedSemester(cleanSem);
@@ -107,7 +121,7 @@ export default function EducationalFees() {
   };
 
   const handleAddFolder = () => {
-    openPrompt("Add Folder Category", "e.g. Hostel Fee", "", (val) => {
+    openPrompt("Add Category Folder", "e.g. Tuition Fee", "", (val) => {
       const cleanFolder = val.trim();
       setCreatedPaths(prev => [...prev, `${selectedYear}/${selectedSemester}/${cleanFolder}`]);
     });
@@ -115,12 +129,10 @@ export default function EducationalFees() {
 
   const handleRenameFolder = async (e, oldFolderName) => {
     e.stopPropagation();
-    
     openPrompt("Rename Folder", "Enter new name", oldFolderName, async (val) => {
       const cleanName = val.trim();
       if (!cleanName || cleanName === oldFolderName) return;
 
-      // 1. Update transient states
       setCreatedPaths(prev => prev.map(p => {
         if (p === `${selectedYear}/${selectedSemester}/${oldFolderName}`) {
           return `${selectedYear}/${selectedSemester}/${cleanName}`;
@@ -128,7 +140,6 @@ export default function EducationalFees() {
         return p;
       }));
 
-      // 2. Update all records in DB
       setLoading(true);
       try {
         const { error } = await supabase.from('education_fees').update({ category: cleanName })
@@ -140,7 +151,6 @@ export default function EducationalFees() {
         fetchFees();
       } catch (err) {
         console.error("Error renaming folder", err);
-        alert("Failed to rename folder. Check console.");
         setLoading(false);
       }
     });
@@ -148,39 +158,47 @@ export default function EducationalFees() {
 
   const handleDeleteFolder = async (e, folderName) => {
     e.stopPropagation();
-    if (!window.confirm(`Delete folder "${folderName}" and ALL receipts inside it permanently?`)) return;
-
-    setCreatedPaths(prev => prev.filter(p => !p.startsWith(`${selectedYear}/${selectedSemester}/${folderName}`)));
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('education_fees').delete()
-        .eq('user_id', user.id)
-        .eq('year', selectedYear)
-        .eq('semester', selectedSemester)
-        .eq('category', folderName);
-      if (error) throw error;
-      fetchFees();
-    } catch (err) {
-      console.error("Error deleting folder", err);
-      alert("Failed to delete folder.");
-      setLoading(false);
-    }
+    openConfirm(
+      "Delete Folder?",
+      `This will permanently delete the folder "${folderName}" and all receipts inside it. This cannot be undone.`,
+      async () => {
+        setCreatedPaths(prev => prev.filter(p => !p.startsWith(`${selectedYear}/${selectedSemester}/${folderName}`)));
+        setLoading(true);
+        try {
+          const { error } = await supabase.from('education_fees').delete()
+            .eq('user_id', user.id)
+            .eq('year', selectedYear)
+            .eq('semester', selectedSemester)
+            .eq('category', folderName);
+          if (error) throw error;
+          fetchFees();
+        } catch (err) {
+          console.error("Error deleting folder", err);
+          setLoading(false);
+        }
+      },
+      true
+    );
   };
 
   const handleDeleteRecord = async (id) => {
-    if (!window.confirm("Delete this receipt? This action cannot be undone.")) return;
-    try {
-      setLoading(true);
-      const { error } = await supabase.from('education_fees').delete().eq('id', id);
-      if (error) throw error;
-      await fetchFees();
-      setSelectedRecord(null);
-    } catch (err) {
-      console.error('Error deleting record:', err);
-      alert('Failed to delete record');
-      setLoading(false);
-    }
+    openConfirm(
+      "Delete Receipt?",
+      "Are you sure you want to remove this academic record? You will lose the receipt snapshot.",
+      async () => {
+        try {
+          setLoading(true);
+          const { error } = await supabase.from('education_fees').delete().eq('id', id);
+          if (error) throw error;
+          await fetchFees();
+          setSelectedRecord(null);
+        } catch (err) {
+          console.error('Error deleting record:', err);
+          setLoading(false);
+        }
+      },
+      true
+    );
   };
 
   const goBack = () => {
@@ -197,140 +215,69 @@ export default function EducationalFees() {
     }
   };
 
-  // Rendering Levels
   const renderContent = () => {
     if (loading && fees.length === 0) {
       return (
-        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[40vh] gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
+          <p className="text-slate-500 font-medium animate-pulse">Loading Academic Files...</p>
         </div>
       );
     }
 
     if (viewLevel === 'years') {
       const years = getDerivedYears();
+      const totalOverall = calculateTotal(() => true);
+      
       return (
-        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+          {/* Summary Card */}
+          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 text-white shadow-xl shadow-emerald-500/20">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Total Academic Paid</p>
+                <h2 className="text-3xl font-black">₹{totalOverall.toLocaleString()}</h2>
+              </div>
+              <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Academic Years</h2>
-            <button onClick={handleAddYear} className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold rounded-xl flex items-center gap-2 transition-colors">
+            <button onClick={handleAddYear} className="h-10 px-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm border border-slate-100 dark:border-slate-700">
               <Plus className="h-4 w-4" /> Add Year
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {years.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-slate-500 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-700">
-                <Calendar className="h-10 w-10 mx-auto mb-3 text-slate-400" />
-                <p>No years created yet.</p>
+              <div className="col-span-full text-center py-12 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800">
+                <Folder className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                <p className="text-slate-500 font-medium">No records found. Start with a year.</p>
               </div>
             ) : (
-              years.map(year => (
-                <button
-                  key={year}
-                  onClick={() => { setSelectedYear(year); setViewLevel('semesters'); }}
-                  className="card flex items-center justify-between p-6 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-emerald-500/10 hover:shadow-xl transition-all group text-left cursor-pointer active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 transition-colors shadow-inner">
-                      <Calendar className="h-7 w-7" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-900 dark:text-white">Year {year}</h3>
-                      <p className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-wider">Expand Semesters</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-6 w-6 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (viewLevel === 'semesters') {
-      const semesters = getDerivedSemesters(selectedYear);
-      return (
-        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-          <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-emerald-600" /> {selectedYear} Semesters
-            </h2>
-            <button onClick={handleAddSemester} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-md">
-              <Plus className="h-4 w-4" /> Add
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {semesters.length === 0 ? (
-               <div className="col-span-full text-center py-10 text-slate-400">No semesters added.</div>
-            ) : (
-               semesters.map(sem => (
-                 <button
-                   key={sem}
-                   onClick={() => { setSelectedSemester(sem); setViewLevel('folders'); }}
-                   className="card flex items-center justify-between p-6 hover:border-teal-300 dark:hover:border-teal-700 transition-all group text-left cursor-pointer active:scale-[0.98]"
-                 >
-                   <div className="flex items-center gap-4">
-                     <div className="h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 transition-colors">
-                       <Layers className="h-6 w-6" />
-                     </div>
-                     <div>
-                       <h3 className="text-lg font-bold text-slate-900 dark:text-white">{sem}</h3>
-                       <p className="text-xs text-slate-500 font-medium">View Folders</p>
-                     </div>
-                   </div>
-                   <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-teal-500 transition-colors" />
-                 </button>
-               ))
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    if (viewLevel === 'folders') {
-      const folders = getDerivedFolders(selectedYear, selectedSemester);
-      return (
-        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-           <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-800 p-4 rounded-2xl">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <Layers className="h-5 w-5 text-emerald-600" /> Categories / Folders
-            </h2>
-            <button onClick={handleAddFolder} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center gap-1.5 transition-colors shadow-md">
-              <Plus className="h-4 w-4" /> Folder
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {folders.length === 0 ? (
-               <div className="col-span-full text-center py-10 text-slate-400">Empty directory. Add a folder.</div>
-            ) : (
-              folders.map(folder => {
-                const count = fees.filter(f => f.year === selectedYear && f.semester === selectedSemester && f.category === folder).length;
+              years.map(year => {
+                const yearTotal = calculateTotal(f => f.year === year);
                 return (
-                  <div key={folder} className="card relative group hover:border-emerald-300 dark:hover:border-emerald-700 transition-all cursor-pointer active:scale-[0.98]">
-                    <div onClick={() => { setSelectedFolder(folder); setViewLevel('records'); }} className="p-6 pr-16 h-full flex flex-col justify-center">
-                      <div className="flex items-center gap-4">
-                        <FolderOpen className="h-10 w-10 text-amber-500 fill-amber-100 dark:fill-amber-900/30 shrink-0" />
-                        <div>
-                          <h3 className="text-lg font-bold text-slate-900 dark:text-white line-clamp-1">{folder}</h3>
-                          <p className="text-xs text-slate-500 font-medium">{count} Receipt{count !== 1 ? 's' : ''}</p>
-                        </div>
+                  <button
+                    key={year}
+                    onClick={() => { setSelectedYear(year); setViewLevel('semesters'); }}
+                    className="group bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 text-left relative overflow-hidden active:scale-[0.98]"
+                  >
+                    <div className="absolute top-0 right-0 h-24 w-24 -mr-8 -mt-8 bg-emerald-500/5 rounded-full group-hover:bg-emerald-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                      <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                        <Calendar className="h-7 w-7" />
                       </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-black text-slate-900 dark:text-white">{year}</h3>
+                        <p className="text-xs text-slate-500 font-bold mt-0.5">₹{yearTotal.toLocaleString()} total</p>
+                      </div>
+                      <ChevronRight className="h-6 w-6 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                     </div>
-
-                    {/* Action Bar overlay absolute for editing */}
-                    <div className="absolute right-2 top-0 bottom-0 py-2 flex flex-col items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={(e) => handleRenameFolder(e, folder)} className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button onClick={(e) => handleDeleteFolder(e, folder)} className="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg text-red-600 shadow-sm border border-red-100 dark:border-red-800">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+                  </button>
                 )
               })
             )}
@@ -339,51 +286,163 @@ export default function EducationalFees() {
       );
     }
 
+    if (viewLevel === 'semesters') {
+      const semesters = getDerivedSemesters(selectedYear);
+      const totalYear = calculateTotal(f => f.year === selectedYear);
+      
+      return (
+        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl p-5 shadow-sm">
+             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Academic Year {selectedYear}</p>
+             <div className="flex justify-between items-end">
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Annual Total</h2>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{totalYear.toLocaleString()}</span>
+             </div>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Semesters</h2>
+            <button onClick={handleAddSemester} className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+              <Plus className="h-4 w-4" /> Add
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {semesters.map(sem => {
+              const semTotal = calculateTotal(f => f.year === selectedYear && f.semester === sem);
+              return (
+                <button
+                  key={sem}
+                  onClick={() => { setSelectedSemester(sem); setViewLevel('folders'); }}
+                  className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 hover:shadow-xl transition-all group text-left active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 group-hover:rotate-12 transition-transform">
+                      <Layers className="h-6 w-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{sem}</h3>
+                      <p className="text-xs text-slate-500 font-bold">₹{semTotal.toLocaleString()}</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-teal-500 transition-colors" />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (viewLevel === 'folders') {
+      const folders = getDerivedFolders(selectedYear, selectedSemester);
+      const semTotal = calculateTotal(f => f.year === selectedYear && f.semester === selectedSemester);
+      
+      return (
+        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+          <div className="bg-slate-900 dark:bg-black rounded-3xl p-6 text-white shadow-2xl overflow-hidden relative">
+             <div className="absolute bottom-0 right-0 h-32 w-32 -mb-16 -mr-16 bg-white/5 rounded-full" />
+             <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">{selectedYear} &bull; {selectedSemester}</p>
+             <div className="flex justify-between items-end relative z-10">
+                <h2 className="text-2xl font-black">Semester Fees</h2>
+                <span className="text-2xl font-black text-emerald-400">₹{semTotal.toLocaleString()}</span>
+             </div>
+          </div>
+
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Categories</h2>
+            <button onClick={handleAddFolder} className="h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-lg shadow-emerald-500/20 active:scale-95">
+              <Plus className="h-4 w-4" /> Folder
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {folders.map(folder => {
+              const folderTotal = calculateTotal(f => f.year === selectedYear && f.semester === selectedSemester && f.category === folder);
+              const count = fees.filter(f => f.year === selectedYear && f.semester === selectedSemester && f.category === folder).length;
+              
+              return (
+                <div key={folder} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 relative group hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-500/30 transition-all duration-300 overflow-hidden active:scale-[0.98]">
+                  <div onClick={() => { setSelectedFolder(folder); setViewLevel('records'); }} className="p-6 pr-16 h-full flex items-center gap-4 cursor-pointer">
+                    <FolderOpen className="h-12 w-12 text-amber-500 fill-amber-100 dark:fill-amber-900/30 shrink-0 group-hover:scale-110 transition-transform" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{folder}</h3>
+                      <p className="text-xs text-slate-500 font-bold">₹{folderTotal.toLocaleString()} &bull; {count} items</p>
+                    </div>
+                  </div>
+
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => handleRenameFolder(e, folder)} className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-700">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={(e) => handleDeleteFolder(e, folder)} className="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl text-red-600 shadow-sm border border-red-100 dark:border-red-900">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      );
+    }
+
     if (viewLevel === 'records') {
       const records = fees.filter(f => f.year === selectedYear && f.semester === selectedSemester && f.category === selectedFolder);
+      const folderTotal = calculateTotal(f => f.year === selectedYear && f.semester === selectedSemester && f.category === selectedFolder);
+      
       return (
-        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-          <div className="flex items-center justify-between border-dashed border-b-2 border-slate-200 dark:border-slate-700 pb-4 mb-6">
-            <div className="flex items-center gap-3">
-               <FolderOpen className="h-8 w-8 text-amber-500 fill-amber-100 dark:fill-amber-900/30 shrink-0" />
-               <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
+        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center gap-4">
+               <div className="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
+                  <FolderOpen className="h-6 w-6 text-amber-500 fill-amber-100 dark:fill-amber-900/30" />
+               </div>
+               <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
+                  <p className="text-xs text-slate-500 font-bold">Total: ₹{folderTotal.toLocaleString()}</p>
+               </div>
             </div>
-            {/* The ADD RECORD BUTTON IS EXCLUSIVELY MOVED HERE */}
             <button 
               onClick={() => setIsAddModalOpen(true)}
-              className="h-10 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+              className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-sm"
             >
-              <Plus className="h-5 w-5" /> Add Record
+              <Plus className="h-5 w-5" /> Add New
             </button>
           </div>
 
           <div className="space-y-3">
              {records.length === 0 ? (
-               <div className="text-center py-10 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-slate-400">
-                 <FileText className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                 This folder is currently empty.
+               <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400">
+                 <Receipt className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                 <p className="font-medium">No receipts in this folder.</p>
                </div>
              ) : (
                records.map(record => (
-                 <div key={record.id} className="card p-4 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all cursor-pointer shadow-sm hover:shadow-md" onClick={() => setSelectedRecord(record)}>
+                 <div key={record.id} className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer shadow-sm active:scale-[0.99]" onClick={() => setSelectedRecord(record)}>
                    <div className="flex items-center justify-between">
                      <div className="flex items-center gap-4">
                        {record.image_url ? (
-                         <img src={record.image_url} alt="Receipt" className="h-12 w-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700" />
+                         <div className="relative group">
+                            <img src={record.image_url} alt="Receipt" className="h-14 w-14 rounded-2xl object-cover border-2 border-slate-50 dark:border-slate-800 shadow-sm" />
+                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors rounded-2xl" />
+                         </div>
                        ) : (
-                         <div className="h-12 w-12 shrink-0 rounded-xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-400 border border-slate-200 dark:border-slate-700">
-                           <FileText className="h-5 w-5" />
+                         <div className="h-14 w-14 shrink-0 rounded-2xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-400 border border-slate-200 dark:border-slate-700">
+                           <FileText className="h-6 w-6" />
                          </div>
                        )}
                        <div>
-                         <h4 className="text-base font-bold text-slate-900 dark:text-white">Amount ₹{record.amount}</h4>
-                         <p className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 font-medium">
+                         <h4 className="text-lg font-black text-slate-900 dark:text-white">₹{parseFloat(record.amount).toLocaleString()}</h4>
+                         <p className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-500 font-bold uppercase tracking-wider">
                            <Calendar className="h-3 w-3" />
                            {format(parseISO(record.date), 'dd MMM yyyy')}
                          </p>
                        </div>
                      </div>
-                     <ChevronRight className="h-5 w-5 text-slate-300" />
+                     <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-300 group-hover:text-emerald-500 transition-colors">
+                        <ChevronRight className="h-5 w-5" />
+                     </div>
                    </div>
                  </div>
                ))
@@ -402,47 +461,48 @@ export default function EducationalFees() {
           {viewLevel !== 'years' ? (
             <button 
               onClick={goBack}
-              className="h-11 w-11 flex justify-center items-center rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-90 text-slate-700 dark:text-slate-300"
+              className="h-12 w-12 flex justify-center items-center rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:-translate-x-1 transition-all text-slate-700 dark:text-slate-300 active:scale-90"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           ) : (
-            <Link to="/more" className="h-11 w-11 flex justify-center items-center rounded-full bg-slate-100 dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-90 text-slate-700 dark:text-slate-300">
+            <Link to="/more" className="h-12 w-12 flex justify-center items-center rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:-translate-x-1 transition-all text-slate-700 dark:text-slate-300 active:scale-90">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           )}
 
           <div>
-             <h1 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-               Educational Fees
+             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+               Academic Fees
              </h1>
+             <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest pl-0.5">Education Safe</p>
           </div>
         </div>
       </div>
 
       {/* OS Style Breadcrumbs Log */}
       {viewLevel !== 'years' && (
-        <div className="flex items-center gap-1 px-4 py-2 bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold uppercase tracking-wider overflow-x-auto whitespace-nowrap hide-scrollbar">
-          <button className="px-2 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors focus:ring-2 ring-emerald-500 outline-none" onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); }}>
-             Root
+        <div className="flex items-center gap-1 px-4 py-3 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-wider overflow-x-auto whitespace-nowrap hide-scrollbar">
+          <button className="px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors" onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); }}>
+             ROOT
           </button>
           
           {selectedYear && (
              <>
                <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className={`px-2 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:ring-2 ring-emerald-500 outline-none ${viewLevel === 'semesters' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('semesters'); setSelectedSemester(null); setSelectedFolder(null); }}>{selectedYear}</button>
+               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'semesters' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('semesters'); setSelectedSemester(null); setSelectedFolder(null); }}>{selectedYear}</button>
              </>
           )}
           {selectedSemester && (
              <>
                <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className={`px-2 py-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:ring-2 ring-emerald-500 outline-none ${viewLevel === 'folders' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('folders'); setSelectedFolder(null); }}>{selectedSemester}</button>
+               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'folders' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('folders'); setSelectedFolder(null); }}>{selectedSemester}</button>
              </>
           )}
           {selectedFolder && (
              <>
                <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className="px-2 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 focus:ring-2 ring-emerald-500 outline-none">{selectedFolder}</button>
+               <button className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 ring-1 ring-emerald-500/20">{selectedFolder}</button>
              </>
           )}
         </div>
@@ -468,18 +528,13 @@ export default function EducationalFees() {
 
       {/* Custom Tailwind Input Prompt Modal */}
       {promptConfig && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-200 dark:ring-slate-800">
+            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">
                 {promptConfig.title}
               </h3>
-              <button 
-                onClick={() => setPromptConfig(null)}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors hidden"
-              >
-                <X className="h-5 w-5 text-slate-400" />
-              </button>
+              <button onClick={() => setPromptConfig(null)} className="h-8 w-8 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-600 border border-slate-100 dark:border-slate-700"><X size={16} /></button>
             </div>
             
             <form onSubmit={(e) => {
@@ -488,31 +543,34 @@ export default function EducationalFees() {
                  promptConfig.onConfirm(promptValue);
                  setPromptConfig(null);
               }
-            }} className="p-5 space-y-4">
-              <input
-                type="text"
-                autoFocus
-                placeholder={promptConfig.placeholder}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-emerald-200 dark:border-emerald-900/50 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all shadow-sm"
-                value={promptValue}
-                onChange={(e) => setPromptValue(e.target.value)}
-                required
-              />
+            }} className="p-6 space-y-6">
+              <div className="space-y-2">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Input Value</label>
+                 <input
+                  type="text"
+                  autoFocus
+                  placeholder={promptConfig.placeholder}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl px-5 py-4 text-base font-bold focus:border-emerald-500 dark:text-white outline-none transition-all shadow-inner"
+                  value={promptValue}
+                  onChange={(e) => setPromptValue(e.target.value)}
+                  required
+                />
+              </div>
               
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-4">
                 <button
                   type="button"
                   onClick={() => setPromptConfig(null)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-95"
+                  className="flex-1 h-14 rounded-2xl border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-black hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!promptValue.trim()}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold shadow-lg shadow-emerald-500/20 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:active:scale-100"
+                  className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black shadow-xl shadow-emerald-500/20 transition-all active:scale-95"
                 >
-                  Save
+                  Confirm
                 </button>
               </div>
             </form>
@@ -520,84 +578,121 @@ export default function EducationalFees() {
         </div>
       )}
 
+      {/* Custom Tailwind CONFIRMATION Modal */}
+      {confirmConfig && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-2 border-red-500/10">
+            <div className={`p-6 flex flex-col items-center text-center ${confirmConfig.isDangerous ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-slate-50/50 dark:bg-slate-800/50'}`}>
+              <div className={`h-16 w-16 rounded-3xl flex items-center justify-center mb-4 ${confirmConfig.isDangerous ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'bg-emerald-100 text-emerald-600'}`}>
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{confirmConfig.title}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium px-4 leading-relaxed">{confirmConfig.message}</p>
+            </div>
+            
+            <div className="p-6 flex gap-4">
+              <button
+                onClick={() => setConfirmConfig(null)}
+                className="flex-1 h-14 rounded-2xl border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-black hover:bg-slate-50 dark:hover:bg-slate-800 transition-all active:scale-95"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={() => {
+                  confirmConfig.onConfirm();
+                  setConfirmConfig(null);
+                }}
+                className={`flex-1 h-14 rounded-2xl font-black text-white shadow-xl transition-all active:scale-95 ${confirmConfig.isDangerous ? 'bg-red-500 hover:bg-red-600 shadow-red-500/20' : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'}`}
+              >
+                Yes, Do it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Record Inspection Modal */}
       {selectedRecord && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <FileText className="h-5 w-5 text-emerald-500" />
-                Receipt Inspection
+          <div className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-3">
+                <Receipt className="h-6 w-6 text-emerald-500" />
+                Receipt Audit
               </h3>
-              <button onClick={() => setSelectedRecord(null)} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors">
-                <X className="h-5 w-5 text-slate-500" />
+              <button onClick={() => setSelectedRecord(null)} className="h-10 w-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-900 transition-colors border border-slate-100 dark:border-slate-700">
+                <X size={20} />
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {/* Receipt Image */}
               {selectedRecord.image_url ? (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-950 flex items-center justify-center min-h-[200px] shadow-inner">
-                  <img src={selectedRecord.image_url} alt="Receipt snapshot" className="w-full h-auto object-contain max-h-[40vh]" />
+                <div className="group relative rounded-[32px] border-4 border-slate-50 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-black shadow-2xl">
+                  <img src={selectedRecord.image_url} alt="Receipt snapshot" className="w-full h-auto object-contain max-h-[45vh] group-hover:scale-105 transition-transform duration-700" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                 </div>
               ) : (
-                 <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center h-32 text-slate-400">
-                  <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
-                  <p className="text-sm font-medium">No image attached to this record.</p>
+                <div className="rounded-[32px] border-4 border-dashed border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center h-48 text-slate-400">
+                  <ImageIcon className="h-12 w-12 mb-3 opacity-20" />
+                  <p className="text-sm font-bold uppercase tracking-widest opacity-40">No Snapshot attached</p>
                 </div>
               )}
 
               {/* Secure Metdata Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-8 px-2">
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Amount Paid</p>
-                  <p className="text-xl text-slate-900 dark:text-white font-black">₹{selectedRecord.amount}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
+                  <p className="text-4xl text-slate-900 dark:text-emerald-400 font-black">₹{parseFloat(selectedRecord.amount).toLocaleString()}</p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date</p>
-                  <p className="text-base text-slate-800 dark:text-slate-200 font-bold">{format(parseISO(selectedRecord.date), 'dd MMM yyyy')}</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>
+                  <p className="text-xl text-slate-800 dark:text-slate-200 font-black">{format(parseISO(selectedRecord.date), 'dd MMM yyyy')}</p>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-inner">
                 {selectedRecord.receipt_no && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Receipt ID</p>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{selectedRecord.receipt_no}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receipt ID</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 font-bold">{selectedRecord.receipt_no}</p>
                   </div>
                 )}
                 {selectedRecord.order_number && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Order No</p>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{selectedRecord.order_number}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Order Reference</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 font-bold">{selectedRecord.order_number}</p>
                   </div>
                 )}
                 {selectedRecord.payment_gateway && (
                   <div className="space-y-1">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gateway Terminal</p>
-                    <p className="text-sm text-slate-800 dark:text-slate-200 font-medium">{selectedRecord.payment_gateway}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gateway</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300 font-bold">{selectedRecord.payment_gateway}</p>
                   </div>
                 )}
                 {selectedRecord.bank_reference_no && (
-                  <div className="space-y-1 text-wrap break-all">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bank Trace Number (UTR)</p>
-                    <p className="text-sm font-mono text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-md inline-block">{selectedRecord.bank_reference_no}</p>
+                  <div className="space-y-1 col-span-2">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank UTR / Trace</p>
+                    <p className="text-xs font-mono text-emerald-800 dark:text-emerald-300 bg-emerald-100/50 dark:bg-emerald-900/40 px-3 py-2 rounded-xl border border-emerald-500/10 break-all">{selectedRecord.bank_reference_no}</p>
                   </div>
                 )}
               </div>
               
               {selectedRecord.amount_info && (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Remarks</p>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{selectedRecord.amount_info}</p>
+                <div className="p-6 rounded-[32px] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Audit Remarks</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed italic">"{selectedRecord.amount_info}"</p>
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
+            <div className="p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end items-center gap-4">
               <button 
                 onClick={() => handleDeleteRecord(selectedRecord.id)}
-                className="px-5 py-2.5 flex items-center gap-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors font-bold text-sm border border-transparent hover:border-red-200 dark:hover:border-red-800"
+                className="group h-14 px-8 flex items-center gap-2 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all font-black text-sm border-2 border-red-500/10 active:scale-95"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete Record
+                Permanently Delete
               </button>
             </div>
           </div>
