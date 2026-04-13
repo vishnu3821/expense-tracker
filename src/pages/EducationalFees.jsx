@@ -38,6 +38,15 @@ export default function EducationalFees() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
 
+  // Custom Tailwind Dialog State replacing window.prompt
+  const [promptConfig, setPromptConfig] = useState(null);
+  const [promptValue, setPromptValue] = useState('');
+
+  const openPrompt = (title, placeholder, initialValue, onConfirm) => {
+    setPromptValue(initialValue || '');
+    setPromptConfig({ title, placeholder, onConfirm });
+  };
+
   useEffect(() => {
     if (user) fetchFees();
   }, [user]);
@@ -80,63 +89,61 @@ export default function EducationalFees() {
   };
 
   const handleAddYear = () => {
-    const year = window.prompt("Enter Academic Year (e.g. 2026):");
-    if (year && year.trim()) {
-      const cleanYear = year.trim();
+    openPrompt("Add Academic Year", "e.g. 2026", "", (val) => {
+      const cleanYear = val.trim();
       setCreatedPaths(prev => [...prev, cleanYear]);
       setSelectedYear(cleanYear);
       setViewLevel('semesters');
-    }
+    });
   };
 
   const handleAddSemester = () => {
-    const sem = window.prompt("Enter Semester name:");
-    if (sem && sem.trim()) {
-      const cleanSem = sem.trim();
+    openPrompt("Add Semester", "e.g. Sem 1", "", (val) => {
+      const cleanSem = val.trim();
       setCreatedPaths(prev => [...prev, `${selectedYear}/${cleanSem}`]);
       setSelectedSemester(cleanSem);
       setViewLevel('folders');
-    }
+    });
   };
 
   const handleAddFolder = () => {
-    const folder = window.prompt("Enter Folder Category name (e.g. Hostel Fee):");
-    if (folder && folder.trim()) {
-      const cleanFolder = folder.trim();
+    openPrompt("Add Folder Category", "e.g. Hostel Fee", "", (val) => {
+      const cleanFolder = val.trim();
       setCreatedPaths(prev => [...prev, `${selectedYear}/${selectedSemester}/${cleanFolder}`]);
-    }
+    });
   };
 
   const handleRenameFolder = async (e, oldFolderName) => {
     e.stopPropagation();
-    const newName = window.prompt("Enter new folder name:", oldFolderName);
-    if (!newName || !newName.trim() || newName.trim() === oldFolderName) return;
+    
+    openPrompt("Rename Folder", "Enter new name", oldFolderName, async (val) => {
+      const cleanName = val.trim();
+      if (!cleanName || cleanName === oldFolderName) return;
 
-    const cleanName = newName.trim();
+      // 1. Update transient states
+      setCreatedPaths(prev => prev.map(p => {
+        if (p === `${selectedYear}/${selectedSemester}/${oldFolderName}`) {
+          return `${selectedYear}/${selectedSemester}/${cleanName}`;
+        }
+        return p;
+      }));
 
-    // 1. Update transient states
-    setCreatedPaths(prev => prev.map(p => {
-      if (p === `${selectedYear}/${selectedSemester}/${oldFolderName}`) {
-        return `${selectedYear}/${selectedSemester}/${cleanName}`;
+      // 2. Update all records in DB
+      setLoading(true);
+      try {
+        const { error } = await supabase.from('education_fees').update({ category: cleanName })
+          .eq('user_id', user.id)
+          .eq('year', selectedYear)
+          .eq('semester', selectedSemester)
+          .eq('category', oldFolderName);
+        if (error) throw error;
+        fetchFees();
+      } catch (err) {
+        console.error("Error renaming folder", err);
+        alert("Failed to rename folder. Check console.");
+        setLoading(false);
       }
-      return p;
-    }));
-
-    // 2. Update all records in DB
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('education_fees').update({ category: cleanName })
-        .eq('user_id', user.id)
-        .eq('year', selectedYear)
-        .eq('semester', selectedSemester)
-        .eq('category', oldFolderName);
-      if (error) throw error;
-      fetchFees();
-    } catch (err) {
-      console.error("Error renaming folder", err);
-      alert("Failed to rename folder. Check console.");
-      setLoading(false);
-    }
+    });
   };
 
   const handleDeleteFolder = async (e, folderName) => {
@@ -459,6 +466,60 @@ export default function EducationalFees() {
         />
       )}
 
+      {/* Custom Tailwind Input Prompt Modal */}
+      {promptConfig && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                {promptConfig.title}
+              </h3>
+              <button 
+                onClick={() => setPromptConfig(null)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors hidden"
+              >
+                <X className="h-5 w-5 text-slate-400" />
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if(promptValue.trim()) {
+                 promptConfig.onConfirm(promptValue);
+                 setPromptConfig(null);
+              }
+            }} className="p-5 space-y-4">
+              <input
+                type="text"
+                autoFocus
+                placeholder={promptConfig.placeholder}
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-emerald-200 dark:border-emerald-900/50 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-emerald-500 dark:text-white outline-none transition-all shadow-sm"
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+                required
+              />
+              
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPromptConfig(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!promptValue.trim()}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold shadow-lg shadow-emerald-500/20 transition-colors flex items-center justify-center gap-2 active:scale-95 disabled:active:scale-100"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Record Inspection Modal */}
       {selectedRecord && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -480,7 +541,7 @@ export default function EducationalFees() {
                   <img src={selectedRecord.image_url} alt="Receipt snapshot" className="w-full h-auto object-contain max-h-[40vh]" />
                 </div>
               ) : (
-                <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center h-32 text-slate-400">
+                 <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col items-center justify-center h-32 text-slate-400">
                   <ImageIcon className="h-8 w-8 mb-2 opacity-50" />
                   <p className="text-sm font-medium">No image attached to this record.</p>
                 </div>
