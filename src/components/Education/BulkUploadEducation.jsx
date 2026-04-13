@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   Loader2,
   ClipboardPaste,
-  Info
+  Info,
+  ChevronRight
 } from 'lucide-react';
 import { format, parse } from 'date-fns';
 
