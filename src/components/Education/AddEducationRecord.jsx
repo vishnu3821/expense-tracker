@@ -7,8 +7,10 @@ export default function AddEducationRecord({
   onClose, 
   onSuccess,
   prefilledYear,
+  prefilledYear,
   prefilledSemester,
-  prefilledCategory 
+  prefilledCategory,
+  recordToEdit = null
 }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -21,11 +23,31 @@ export default function AddEducationRecord({
     payment_gateway: '',
     bank_reference_no: '',
     gateway_reference_no: '',
-    amount: '',
-    amount_info: '',
+    amount: recordToEdit?.amount || '',
+    amount_info: recordToEdit?.amount_info || '',
     image: null,
-    manualDate: formatDisplayDate(new Date().toISOString().split('T')[0])
+    manualDate: recordToEdit ? formatDisplayDate(recordToEdit.date) : formatDisplayDate(new Date().toISOString().split('T')[0])
   });
+
+  useEffect(() => {
+    if (recordToEdit) {
+      setFormData({
+        date: recordToEdit.date,
+        receipt_no: recordToEdit.receipt_no || '',
+        order_number: recordToEdit.order_number || '',
+        payment_gateway: recordToEdit.payment_gateway || '',
+        bank_reference_no: recordToEdit.bank_reference_no || '',
+        gateway_reference_no: recordToEdit.gateway_reference_no || '',
+        amount: recordToEdit.amount || '',
+        amount_info: recordToEdit.amount_info || '',
+        image: null,
+        manualDate: formatDisplayDate(recordToEdit.date)
+      });
+      if (recordToEdit.image_url) {
+        setImagePreview(recordToEdit.image_url);
+      }
+    }
+  }, [recordToEdit]);
 
   function formatDisplayDate(isoDate) {
     if (!isoDate) return '';
@@ -133,9 +155,9 @@ export default function AddEducationRecord({
     }
 
     try {
-      let image_url = null;
+      let image_url = recordToEdit?.image_url || null;
 
-      // 1. Upload Image to Supabase Storage if provided
+      // 1. Upload Image to Supabase Storage if a NEW one is provided
       if (formData.image) {
         const fileExt = formData.image.name.split('.').pop() || 'png';
         const fileName = `${user.id}/${Date.now()}_edu_receipt.${fileExt}`;
@@ -153,26 +175,45 @@ export default function AddEducationRecord({
         image_url = publicUrl;
       }
 
-      // 2. Insert Record
-      const { error: insertError } = await supabase
-        .from('education_fees')
-        .insert({
-          user_id: user.id,
-          year: prefilledYear,
-          semester: prefilledSemester,
-          category: prefilledCategory,
-          date: isoDate,
-          receipt_no: formData.receipt_no || null,
-          order_number: formData.order_number || null,
-          payment_gateway: formData.payment_gateway || null,
-          bank_reference_no: formData.bank_reference_no || null,
-          gateway_reference_no: formData.gateway_reference_no || null,
-          amount: parseFloat(formData.amount),
-          amount_info: formData.amount_info || null,
-          image_url: image_url
-        });
+      // 2. Insert or Update Record
+      if (recordToEdit) {
+        const { error: updateError } = await supabase
+          .from('education_fees')
+          .update({
+            date: isoDate,
+            receipt_no: formData.receipt_no || null,
+            order_number: formData.order_number || null,
+            payment_gateway: formData.payment_gateway || null,
+            bank_reference_no: formData.bank_reference_no || null,
+            gateway_reference_no: formData.gateway_reference_no || null,
+            amount: parseFloat(formData.amount),
+            amount_info: formData.amount_info || null,
+            image_url: image_url
+          })
+          .eq('id', recordToEdit.id);
+        
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('education_fees')
+          .insert({
+            user_id: user.id,
+            year: prefilledYear,
+            semester: prefilledSemester,
+            category: prefilledCategory,
+            date: isoDate,
+            receipt_no: formData.receipt_no || null,
+            order_number: formData.order_number || null,
+            payment_gateway: formData.payment_gateway || null,
+            bank_reference_no: formData.bank_reference_no || null,
+            gateway_reference_no: formData.gateway_reference_no || null,
+            amount: parseFloat(formData.amount),
+            amount_info: formData.amount_info || null,
+            image_url: image_url
+          });
 
-      if (insertError) throw insertError;
+        if (insertError) throw insertError;
+      }
 
       onSuccess();
     } catch (err) {
@@ -194,8 +235,12 @@ export default function AddEducationRecord({
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add Record</h2>
-              <p className="text-xs text-slate-500">Into: {prefilledYear} &gt; {prefilledSemester} &gt; {prefilledCategory}</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                {recordToEdit ? 'Update Record' : 'Add Record'}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {recordToEdit ? `Modifying: ${formatDisplayDate(recordToEdit.date)}` : `Into: ${prefilledYear} > ${prefilledSemester} > ${prefilledCategory}`}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
@@ -371,7 +416,7 @@ export default function AddEducationRecord({
             ) : (
               <>
                 <ShieldCheck className="h-6 w-6" />
-                Save to {prefilledCategory}
+                {recordToEdit ? 'Update Details' : `Save to ${prefilledCategory}`}
               </>
             )}
           </button>

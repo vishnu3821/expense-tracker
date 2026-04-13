@@ -23,6 +23,7 @@ import {
   Receipt
 } from 'lucide-react';
 import AddEducationRecord from '../components/Education/AddEducationRecord';
+import BulkUploadEducation from '../components/Education/BulkUploadEducation';
 
 export default function EducationalFees() {
   const { user } = useAuth();
@@ -39,6 +40,8 @@ export default function EducationalFees() {
   const [selectedFolder, setSelectedFolder] = useState(null);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [recordToEdit, setRecordToEdit] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
 
   // Custom UI Prompt State
@@ -530,12 +533,20 @@ export default function EducationalFees() {
                   <p className="text-xs text-slate-500 font-bold">Total: ₹{folderTotal.toLocaleString()}</p>
                </div>
             </div>
-            <button 
-              onClick={() => setIsAddModalOpen(true)}
-              className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-sm"
-            >
-              <Plus className="h-5 w-5" /> Add New
-            </button>
+            <div className="flex items-center gap-2">
+               <button 
+                onClick={() => setIsBulkModalOpen(true)}
+                className="h-11 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-sm"
+              >
+                <ClipboardPaste className="h-5 w-5" /> Bulk
+              </button>
+              <button 
+                onClick={() => setIsAddModalOpen(true)}
+                className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-sm"
+              >
+                <Plus className="h-5 w-5" /> Add New
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -642,14 +653,32 @@ export default function EducationalFees() {
 
       {isAddModalOpen && viewLevel === 'records' && (
         <AddEducationRecord 
-          onClose={() => setIsAddModalOpen(false)} 
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setRecordToEdit(null);
+          }} 
           onSuccess={() => {
             setIsAddModalOpen(false);
+            setRecordToEdit(null);
             fetchFees();
           }}
           prefilledYear={selectedYear}
           prefilledSemester={selectedSemester}
           prefilledCategory={selectedFolder}
+          recordToEdit={recordToEdit}
+        />
+      )}
+
+      {isBulkModalOpen && (
+        <BulkUploadEducation
+          onClose={() => setIsBulkModalOpen(false)}
+          onSuccess={() => {
+            setIsBulkModalOpen(false);
+            fetchFees();
+          }}
+          year={selectedYear}
+          semester={selectedSemester}
+          category={selectedFolder}
         />
       )}
 
@@ -747,9 +776,22 @@ export default function EducationalFees() {
                 <Receipt className="h-6 w-6 text-emerald-500" />
                 Receipt Audit
               </h3>
-              <button onClick={() => setSelectedRecord(null)} className="h-10 w-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-900 transition-colors border border-slate-100 dark:border-slate-700">
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    setRecordToEdit(selectedRecord);
+                    setIsAddModalOpen(true);
+                    setSelectedRecord(null);
+                  }}
+                  className="h-10 px-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black text-xs flex items-center gap-2 border border-indigo-100 dark:border-indigo-900/30 hover:bg-indigo-100 transition-colors"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                  Update Details
+                </button>
+                <button onClick={() => setSelectedRecord(null)} className="h-10 w-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-900 transition-colors border border-slate-100 dark:border-slate-700">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
