@@ -141,7 +141,7 @@ export default function BulkUploadEducation({
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
         
         {/* Header */}
@@ -195,7 +195,7 @@ export default function BulkUploadEducation({
                 <div className="flex-1 border-t border-slate-100 dark:border-slate-800" />
               </div>
 
-              <label className="block w-full h-16 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+              <label className="flex w-full h-16 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                  <Upload className="h-5 w-5 text-slate-400" />
                  <span className="text-sm font-bold text-slate-500">Upload .csv or .txt</span>
                  <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFileUpload} />
