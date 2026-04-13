@@ -41,12 +41,19 @@ export default function BulkUploadEducation({
     }
 
     try {
-      // Split by lines, then by tabs (standard Excel copy-paste format)
+      // Split by lines
       const lines = rawText.trim().split('\n');
+      if (lines.length === 0) return;
+
+      // Auto-detect separator: check first line for tabs, then commas
+      let sep = '\t';
+      if (!lines[0].includes('\t') && lines[0].includes(',')) {
+        sep = ',';
+      }
+
       const data = lines.map(line => {
-        const cols = line.split('\t');
+        const cols = line.split(sep);
         // Expected Order: Date, Amount, Receipt No, Order No, Gateway, Bank Ref, Remarks
-        // Flexible parsing: We'll try to find Amount and Date at least
         return {
           date: cols[0]?.trim() || '',
           amount: cols[1]?.trim() || '',
@@ -56,7 +63,11 @@ export default function BulkUploadEducation({
           bank_reference_no: cols[5]?.trim() || '',
           amount_info: cols[6]?.trim() || ''
         };
-      }).filter(row => row.date && row.amount); // Must have at least date and amount
+      }).filter(row => {
+        // Basic validation: row must have a date and a numeric-like amount
+        const cleanAmount = (row.amount || '').replace(/[^0-9.]/g, '');
+        return row.date && cleanAmount && !isNaN(parseFloat(cleanAmount));
+      });
 
       if (data.length === 0) {
         throw new Error("No valid data found. Ensure you have Date and Amount columns.");
