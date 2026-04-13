@@ -127,6 +127,112 @@ export default function EducationalFees() {
     });
   };
 
+  const handleRenameYear = async (e, oldYear) => {
+    e.stopPropagation();
+    openPrompt("Rename Academic Year", "e.g. 2026", oldYear, async (val) => {
+      const cleanYear = val.trim();
+      if (!cleanYear || cleanYear === oldYear) return;
+
+      setCreatedPaths(prev => prev.map(p => {
+        const parts = p.split('/');
+        if (parts[0] === oldYear) {
+          parts[0] = cleanYear;
+          return parts.join('/');
+        }
+        return p;
+      }));
+
+      setLoading(true);
+      try {
+        const { error } = await supabase.from('education_fees').update({ year: cleanYear })
+          .eq('user_id', user.id)
+          .eq('year', oldYear);
+        if (error) throw error;
+        fetchFees();
+      } catch (err) {
+        console.error("Error renaming year", err);
+        setLoading(false);
+      }
+    });
+  };
+
+  const handleDeleteYear = async (e, yearName) => {
+    e.stopPropagation();
+    openConfirm(
+      "Delete Academic Year?",
+      `This will permanently delete the year "${yearName}" and ALL semesters, folders, and receipts inside it.`,
+      async () => {
+        setCreatedPaths(prev => prev.filter(p => !p.startsWith(yearName)));
+        setLoading(true);
+        try {
+          const { error } = await supabase.from('education_fees').delete()
+            .eq('user_id', user.id)
+            .eq('year', yearName);
+          if (error) throw error;
+          fetchFees();
+        } catch (err) {
+          console.error("Error deleting year", err);
+          setLoading(false);
+        }
+      },
+      true
+    );
+  };
+
+  const handleRenameSemester = async (e, oldSem) => {
+    e.stopPropagation();
+    openPrompt("Rename Semester", "e.g. Semester 2", oldSem, async (val) => {
+      const cleanSem = val.trim();
+      if (!cleanSem || cleanSem === oldSem) return;
+
+      setCreatedPaths(prev => prev.map(p => {
+        const parts = p.split('/');
+        if (parts.length >= 2 && parts[0] === selectedYear && parts[1] === oldSem) {
+          parts[1] = cleanSem;
+          return parts.join('/');
+        }
+        return p;
+      }));
+
+      setLoading(true);
+      try {
+        const { error } = await supabase.from('education_fees').update({ semester: cleanSem })
+          .eq('user_id', user.id)
+          .eq('year', selectedYear)
+          .eq('semester', oldSem);
+        if (error) throw error;
+        fetchFees();
+      } catch (err) {
+        console.error("Error renaming semester", err);
+        setLoading(false);
+      }
+    });
+  };
+
+  const handleDeleteSemester = async (e, semName) => {
+    e.stopPropagation();
+    openConfirm(
+      "Delete Semester?",
+      `This will permanently delete "${semName}" and ALL folders and receipts inside it.`,
+      async () => {
+        setCreatedPaths(prev => prev.filter(p => !p.startsWith(`${selectedYear}/${semName}`)));
+        setLoading(true);
+        try {
+          const { error } = await supabase.from('education_fees').delete()
+            .eq('user_id', user.id)
+            .eq('year', selectedYear)
+            .eq('semester', semName);
+          if (error) throw error;
+          fetchFees();
+        } catch (err) {
+          console.error("Error deleting semester", err);
+          setLoading(false);
+        }
+      },
+      true
+    );
+  };
+
   const handleRenameFolder = async (e, oldFolderName) => {
     e.stopPropagation();
     openPrompt("Rename Folder", "Enter new name", oldFolderName, async (val) => {
@@ -261,13 +367,13 @@ export default function EducationalFees() {
               years.map(year => {
                 const yearTotal = calculateTotal(f => f.year === year);
                 return (
+                <div key={year} className="relative group">
                   <button
-                    key={year}
                     onClick={() => { setSelectedYear(year); setViewLevel('semesters'); }}
-                    className="group bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 text-left relative overflow-hidden active:scale-[0.98]"
+                    className="w-full group bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 text-left relative overflow-hidden active:scale-[0.98]"
                   >
                     <div className="absolute top-0 right-0 h-24 w-24 -mr-8 -mt-8 bg-emerald-500/5 rounded-full group-hover:bg-emerald-500/10 transition-colors" />
-                    <div className="flex items-center gap-4 relative z-10">
+                    <div className="flex items-center gap-4 relative z-10 pr-12">
                       <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                         <Calendar className="h-7 w-7" />
                       </div>
@@ -278,6 +384,17 @@ export default function EducationalFees() {
                       <ChevronRight className="h-6 w-6 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                     </div>
                   </button>
+
+                  {/* Year Action Buttons */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                    <button onClick={(e) => handleRenameYear(e, year)} className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-110 transition-transform">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={(e) => handleDeleteYear(e, year)} className="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl text-red-600 shadow-sm border border-red-100 dark:border-red-900 hover:scale-110 transition-transform">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
                 )
               })
             )}
@@ -311,22 +428,32 @@ export default function EducationalFees() {
             {semesters.map(sem => {
               const semTotal = calculateTotal(f => f.year === selectedYear && f.semester === sem);
               return (
-                <button
-                  key={sem}
-                  onClick={() => { setSelectedSemester(sem); setViewLevel('folders'); }}
-                  className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 hover:shadow-xl transition-all group text-left active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 group-hover:rotate-12 transition-transform">
-                      <Layers className="h-6 w-6" />
+                <div key={sem} className="relative group">
+                  <button
+                    onClick={() => { setSelectedSemester(sem); setViewLevel('folders'); }}
+                    className="w-full bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-teal-500/50 hover:shadow-xl transition-all group text-left active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-4 pr-12">
+                      <div className="h-12 w-12 rounded-xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 group-hover:rotate-12 transition-transform">
+                        <Layers className="h-6 w-6" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{sem}</h3>
+                        <p className="text-xs text-slate-500 font-bold">₹{semTotal.toLocaleString()}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-teal-500 transition-colors" />
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{sem}</h3>
-                      <p className="text-xs text-slate-500 font-bold">₹{semTotal.toLocaleString()}</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-teal-500 transition-colors" />
+                  </button>
+
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                    <button onClick={(e) => handleRenameSemester(e, sem)} className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-110 transition-transform">
+                      <Edit2 className="h-4 w-4" />
+                    </button>
+                    <button onClick={(e) => handleDeleteSemester(e, sem)} className="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl text-red-600 shadow-sm border border-red-100 dark:border-red-900 hover:scale-110 transition-transform">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                </button>
+                </div>
               )
             })}
           </div>
