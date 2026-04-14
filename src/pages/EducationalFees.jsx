@@ -23,10 +23,12 @@ import {
   Receipt,
   ClipboardPaste,
   Table as TableIcon,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import AddEducationRecord from '../components/Education/AddEducationRecord';
 import BulkUploadEducation from '../components/Education/BulkUploadEducation';
+import DownloadStatementModal from '../components/Education/DownloadStatementModal';
 
 export default function EducationalFees() {
   const { user } = useAuth();
@@ -47,6 +49,7 @@ export default function EducationalFees() {
   const [recordToEdit, setRecordToEdit] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isAuditMode, setIsAuditMode] = useState(false);
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
   // Custom UI Prompt State
   const [promptConfig, setPromptConfig] = useState(null);
@@ -683,6 +686,15 @@ export default function EducationalFees() {
              <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest pl-0.5">Education Safe</p>
           </div>
         </div>
+
+        {/* Download Statement Button */}
+        <button
+          onClick={() => setIsDownloadModalOpen(true)}
+          className="h-10 px-4 rounded-2xl bg-linear-to-br from-emerald-600 to-teal-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
+        >
+          <Download className="h-4 w-4" />
+          Statement
+        </button>
       </div>
 
        {/* OS Style Breadcrumbs Log */}
@@ -1037,6 +1049,12 @@ export default function EducationalFees() {
             </div>
           </div>
         </div>
+      )}
+      {isDownloadModalOpen && (
+        <DownloadStatementModal
+          fees={fees}
+          onClose={() => setIsDownloadModalOpen(false)}
+        />
       )}
 
     </div>
