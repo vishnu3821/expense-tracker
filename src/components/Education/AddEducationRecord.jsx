@@ -3,99 +3,218 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2, X, ShieldCheck, FileText, Camera, ScanLine, CheckCircle2, Sparkles } from 'lucide-react';
 
-// ── OCR Extractor ─────────────────────────────────────────────────────────────
+// ── Universal OCR Extractor ──────────────────────────────────────────────────
 
 /**
- * Given raw OCR text from a KL University fee receipt, extract all known fields.
- * The receipt table looks like:
- *   Receipt Number     | 2679567
- *   Order Number       | HDF:P-64313:T-1774713073
- *   Product Info       | End Sem Exam Fee...
- *   Amount             | 1500
- *   Gateway ref Number | 114397152959
- *   Bank Ref Number    | 156397504492
- *   Payment Gateway    | HDFC
- *   Last Updated       | 2026-03-28 21:21:37
+ * Universal receipt field extractor.
+ * Works on ANY payment receipt by matching a wide set of field label synonyms,
+ * then falling back to smart pattern matching (currency, dates, long ref numbers).
  */
-const extractFromOCRText = (text) => {
+const extractFromOCRText = (rawText) => {
   const extracted = {};
 
-  // Normalise: collapse multiple spaces, convert newlines to pipe for easier matching
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  // Normalise text: collapse whitespace, remove stray pipe chars used as separators
+  const clean = rawText.replace(/\r/g, '').replace(/[ \t]{2,}/g, ' ').replace(/^[|\s\-=]+$/gm, '').trim();
+  const lines = clean.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  const fullText = lines.join(' ');
 
-  // Helper: find value after a label key (same line, or next non-empty line)
-  const findValue = (patterns) => {
-    for (const pat of patterns) {
+  // ── Label → Value helper ────────────────────────────────────────────────────
+  // Finds the value that follows a label (same line after separator, or next line)
+  const findByLabels = (labelPatterns) => {
+    for (const pat of labelPatterns) {
+      const re = new RegExp(`(?:^|\\s)${pat}\\s*[:\\-|]?\\s*(.+?)\\s*(?:$|\n)`, 'im');
+      const m = clean.match(re);
+      if (m && m[1] && m[1].trim().length > 0 && !/^[:\-|]+$/.test(m[1].trim())) {
+        return m[1].trim();
+      }
+      // Two-line: label on one line, value on next
       for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        // Check for "Label: Value" or "Label  Value" on same line
-        const sameLineMatch = line.match(new RegExp(`${pat}[:\\s|]+(.+)`, 'i'));
-        if (sameLineMatch) {
-          const val = sameLineMatch[1].trim();
-          if (val && val.length > 0) return val;
-        }
-        // Check if this line IS the label, value is on the next line
-        if (new RegExp(`^${pat}\\s*$`, 'i').test(line) && lines[i + 1]) {
-          return lines[i + 1].trim();
+        if (new RegExp(`^${pat}\\s*[:\-|]?\\s*$`, 'i').test(lines[i]) && lines[i + 1]) {
+          const candidate = lines[i + 1].trim();
+          if (candidate.length > 0 && !/^[:\-=]+$/.test(candidate)) return candidate;
         }
       }
     }
     return null;
   };
 
-  // Receipt Number
-  const receiptNo = findValue(['Receipt Num(?:ber)?', 'Receipt No\\.?', 'Rec(?:eipt)?\\s*#']);
-  if (receiptNo) extracted.receipt_no = receiptNo.replace(/[^0-9A-Za-z\-_]/g, '').slice(0, 50);
+  // ── 1. Receipt / Reference Number ──────────────────────────────────────────
+  const receiptRaw = findByLabels([
+    'Receipt\\s*(?:Num(?:ber)?|No\\.?|#|ID)',
+    'Ref(?:erence)?\\s*(?:Num(?:ber)?|No\\.?|#|ID)',
+    'Transaction\\s*(?:ID|No\\.?|Num(?:ber)?|Ref)',
+    'Txn\\s*(?:ID|No\\.?|Num(?:ber)?)',
+    'Payment\\s*(?:ID|No\\.?|Num(?:ber)?|Ref)',
+    'Invoice\\s*(?:No\\.?|Num(?:ber)?|#)',
+    'Voucher\\s*(?:No\\.?|Num(?:ber)?)',
+    'Acknowledgement\\s*(?:No\\.?|Num(?:ber)?)',
+    'Booking\\s*(?:ID|No\\.?)',
+  ]);
+  if (receiptRaw) extracted.receipt_no = receiptRaw.replace(/[^\w\-:/]/g, '').slice(0, 60);
 
-  // Order Number
-  const orderNum = findValue(['Order Num(?:ber)?', 'Order No\\.?', 'Order\\s*#']);
-  if (orderNum) extracted.order_number = orderNum.trim().slice(0, 100);
+  // ── 2. Order Number ─────────────────────────────────────────────────────────
+  const orderRaw = findByLabels([
+    'Order\\s*(?:Num(?:ber)?|No\\.?|ID|#)',
+    'Merchant\\s*(?:Order|Ref)',
+    'Purchase\\s*(?:Order|ID)',
+    'PO\\s*(?:Num(?:ber)?|No\\.?)',
+  ]);
+  if (orderRaw) extracted.order_number = orderRaw.trim().slice(0, 100);
 
-  // Gateway reference Number
-  const gatewayRef = findValue(['Gateway\\s*Ref(?:erence)?\\s*Num(?:ber)?', 'Gateway\\s*Ref\\.?\\s*No', 'Gateway\\s*Reference', 'GRN']);
-  if (gatewayRef) extracted.gateway_reference_no = gatewayRef.replace(/[^0-9A-Za-z\-_]/g, '').slice(0, 100);
+  // ── 3. Gateway Reference Number ─────────────────────────────────────────────
+  const gatewayRefRaw = findByLabels([
+    'Gateway\\s*Ref(?:erence)?\\s*(?:Num(?:ber)?|No\\.?|ID)?',
+    'PG\\s*Ref(?:erence)?',
+    'Payment\\s*Ref(?:erence)?\\s*(?:Num(?:ber)?|No\\.?)',
+    'Auth(?:orization)?\\s*(?:Code|No\\.?|ID)',
+    'Approval\\s*(?:Code|No\\.?)',
+    'RRN',
+    'Retrieval\\s*Ref(?:erence)?',
+    'ARN',
+  ]);
+  if (gatewayRefRaw) extracted.gateway_reference_no = gatewayRefRaw.replace(/[^\w\-:/]/g, '').slice(0, 100);
 
-  // Bank Ref Number
-  const bankRef = findValue(['Bank\\s*Ref(?:erence)?\\s*Num(?:ber)?', 'Bank\\s*Ref\\.?\\s*No', 'UTR\\s*Num(?:ber)?', 'UTR']);
-  if (bankRef) extracted.bank_reference_no = bankRef.replace(/[^0-9A-Za-z\-_]/g, '').slice(0, 100);
+  // ── 4. Bank Reference / UTR ─────────────────────────────────────────────────
+  const bankRefRaw = findByLabels([
+    'Bank\\s*Ref(?:erence)?\\s*(?:Num(?:ber)?|No\\.?|ID)?',
+    'UTR\\s*(?:Num(?:ber)?|No\\.?)?',
+    'NEFT\\s*(?:Ref|UTR)',
+    'IMPS\\s*(?:Ref|No\\.?)',
+    'UPI\\s*(?:Ref|TXN|ID)',
+    'RTGS\\s*(?:Ref|No\\.?)',
+    'IFSC\\s*(?:Ref|Code)',
+    'Cheque\\s*(?:No\\.?|Num(?:ber)?)',
+    'DD\\s*(?:No\\.?|Num(?:ber)?)',
+  ]);
+  if (bankRefRaw) extracted.bank_reference_no = bankRefRaw.replace(/[^\w\-:/]/g, '').slice(0, 100);
 
-  // Payment Gateway Source
-  const gateway = findValue(['Payment\\s*Gateway\\s*Source', 'Payment\\s*Gateway', 'Gateway\\s*Source', 'Gateway\\s*Name']);
-  if (gateway) extracted.payment_gateway = gateway.trim().slice(0, 50);
+  // ── 5. Payment Gateway / Instrument ─────────────────────────────────────────
+  const gatewayRaw = findByLabels([
+    'Payment\\s*Gateway\\s*(?:Source|Name)?',
+    'Gateway\\s*(?:Source|Name|Provider)?',
+    'Payment\\s*(?:Mode|Method|Via|Through|Instrument|Source)',
+    'Paid\\s*(?:Via|Through|By|Using)',
+    'Mode\\s*of\\s*Payment',
+    'Bank\\s*Name',
+    'Issuer\\s*(?:Name|Bank)?',
+    'Card\\s*(?:Type|Network)',
+    'Wallet\\s*(?:Name|Provider)?',
+  ]);
+  if (gatewayRaw) {
+    // Strip common noise words, keep the meaningful name
+    const gClean = gatewayRaw.replace(/\b(?:payment|gateway|mode|via|through|by|using)\b/gi, '').trim();
+    extracted.payment_gateway = gClean.slice(0, 60);
+  }
 
-  // Product Info → amount_info
-  const product = findValue(['Product\\s*Info(?:rmation)?', 'Product\\s*Name', 'Product', 'Description', 'Particulars']);
-  if (product) extracted.amount_info = product.trim().slice(0, 200);
+  // ── 6. Remarks / Description / Product ──────────────────────────────────────
+  const remarksRaw = findByLabels([
+    'Product\\s*(?:Info(?:rmation)?|Name|Details?|Description)',
+    'Description\\s*(?:of\\s*(?:Transaction|Payment|Service))?',
+    'Particulars?',
+    'Narration',
+    'Remarks?',
+    'Purpose\\s*(?:of\\s*(?:Payment|Transfer))?',
+    'Merchant\\s*(?:Name|Description)',
+    'Service\\s*(?:Name|Description)',
+    'Fee\\s*(?:Type|Description|Category)',
+    'Item\\s*(?:Description|Name)',
+  ]);
+  if (remarksRaw) extracted.amount_info = remarksRaw.trim().slice(0, 200);
 
-  // Amount — prefer the first "Amount" field, not "Amount Reflected"
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    // Must match "Amount" but NOT "Amount Reflected" or "Amount Info"
-    if (/^Amount\s*$/i.test(line) || /^Amount[:\s|]+\d/i.test(line)) {
-      const sameMatch = line.match(/Amount[:\s|]+(\d+(?:\.\d+)?)/i);
-      if (sameMatch) { extracted.amount = sameMatch[1]; break; }
-      if (lines[i + 1] && /^\d+(?:\.\d+)?$/.test(lines[i + 1].trim())) {
-        extracted.amount = lines[i + 1].trim();
-        break;
+  // ── 7. Amount ────────────────────────────────────────────────────────────────
+  // Try labelled first
+  const amountRaw = findByLabels([
+    'Total\\s*(?:Amount\\s*)?(?:Paid|Due|Charged|Deducted)',
+    'Amount\\s*(?:Paid|Charged|Debited|Deducted|Received)',
+    'Net\\s*Amount',
+    'Fee\\s*Amount',
+    '^Amount$',
+  ]);
+  if (amountRaw) {
+    const amtMatch = amountRaw.match(/[\d,]+(?:\.\d{1,2})?/);
+    if (amtMatch) extracted.amount = amtMatch[0].replace(/,/g, '');
+  }
+  // Fallback: scan ALL lines for Number that is prefixed by ₹/Rs./INR or is a standalone amount pattern
+  if (!extracted.amount) {
+    // Check each line for "Amount label + number" broadly
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      // Standalone amount line: just starts with ₹, Rs or has a number after currency symbol
+      const currencyHit = l.match(/(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/);
+      if (currencyHit) { extracted.amount = currencyHit[1].replace(/,/g, ''); break; }
+      // Line with "Amount" (but not "Amount Reflected", "Amount Info", etc.)
+      if (/^(?:total\s+)?amount\s*(?:[:|]|$)/i.test(l) && !/amount\s+(?:reflected|info|words)/i.test(l)) {
+        const numNext = (lines[i + 1] || '').match(/^[\d,]+(?:\.\d{1,2})?$/);
+        const numSame = l.match(/amount\s*[:|]?\s*([\d,]+(?:\.\d{1,2})?)/i);
+        if (numSame) { extracted.amount = numSame[1].replace(/,/g, ''); break; }
+        if (numNext) { extracted.amount = numNext[0].replace(/,/g, ''); break; }
       }
     }
   }
 
-  // Last Updated → date (extract YYYY-MM-DD, strip time)
-  const lastUpdated = findValue(['Last\\s*Updated', 'Updated\\s*On', 'Addedon', 'Date(?:s)?', 'Payment\\s*Date', 'Transaction\\s*Date']);
-  if (lastUpdated) {
-    // Match YYYY-MM-DD
-    const isoMatch = lastUpdated.match(/(\d{4}-\d{2}-\d{2})/);
-    if (isoMatch) extracted.date = isoMatch[1];
-    // Match DD/MM/YYYY
-    const ddmm = lastUpdated.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-    if (ddmm && !isoMatch) extracted.date = `${ddmm[3]}-${ddmm[2]}-${ddmm[1]}`;
+  // ── 8. Date ──────────────────────────────────────────────────────────────────
+  const dateRaw = findByLabels([
+    'Last\\s*Updated',
+    'Transaction\\s*Date(?:\\s*&?\\s*Time)?',
+    'Payment\\s*Date(?:\\s*&?\\s*Time)?',
+    'Date\\s*(?:of\\s*(?:Payment|Transaction|Transfer|Credit|Debit))?',
+    'Processed\\s*(?:On|Date)',
+    'Completed\\s*(?:On|Date|At)',
+    'Booked\\s*(?:On|Date)',
+    'Timestamp',
+    'Addedon',
+  ]);
+
+  const tryParseDate = (raw) => {
+    if (!raw) return null;
+    // YYYY-MM-DD (possibly with time)
+    let m = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    // DD/MM/YYYY or DD-MM-YYYY
+    m = raw.match(/(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
+    if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    // DD Mon YYYY or DD Month YYYY
+    m = raw.match(/(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})/);
+    if (m) {
+      const months = { jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12' };
+      const mo = months[m[2].toLowerCase().slice(0, 3)];
+      if (mo) return `${m[3]}-${mo}-${m[1].padStart(2, '0')}`;
+    }
+    return null;
+  };
+
+  const parsedDate = tryParseDate(dateRaw);
+  if (parsedDate) {
+    extracted.date = parsedDate;
+  } else {
+    // Fallback: scan all lines for ANY date pattern
+    for (const line of lines) {
+      const d = tryParseDate(line);
+      if (d) { extracted.date = d; break; }
+    }
+  }
+
+  // ── 9. Pattern-based fallbacks (no label required) ──────────────────────────
+  // If we still don't have amount, try finding largest standalone number
+  if (!extracted.amount) {
+    const amounts = [];
+    for (const line of lines) {
+      const m = line.match(/\b(\d{2,8}(?:\.\d{1,2})?)\b/);
+      if (m && !isNaN(parseFloat(m[1]))) amounts.push(parseFloat(m[1]));
+    }
+    if (amounts.length > 0) {
+      // Use the most common / median value rather than max to avoid huge IDs
+      amounts.sort((a, b) => a - b);
+      extracted.amount = String(amounts[Math.floor(amounts.length / 2)]);
+    }
   }
 
   return extracted;
 };
 
+
 // ── Date helpers ───────────────────────────────────────────────────────────────
+
 
 function formatDisplayDate(isoDate) {
   if (!isoDate) return '';
@@ -192,7 +311,7 @@ export default function AddEducationRecord({
       const filled = Object.keys(extracted).filter(k => extracted[k] !== undefined && extracted[k] !== null);
 
       if (filled.length === 0) {
-        setError('Could not extract data from this image. Please ensure it is a clear KL University fee receipt.');
+        setError('Could not extract any data from this image. Try a clearer screenshot with visible labels and values.');
         setScanning(false);
         return;
       }
