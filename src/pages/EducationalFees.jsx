@@ -101,6 +101,40 @@ export default function EducationalFees() {
     return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   };
 
+  const numberToWords = (n) => {
+    if (n === 0) return 'Zero';
+    const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const g = ['', 'Thousand', 'Lakh', 'Crore'];
+    
+    const makeWords = (num) => {
+      if (num < 20) return a[num];
+      if (num < 100) return b[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + a[num % 10] : '');
+      if (num < 1000) return a[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' and ' + makeWords(num % 100) : '');
+      return '';
+    };
+
+    const numStr = Math.floor(n).toString();
+    if (numStr.length > 9) return 'Amount too large';
+
+    let words = '';
+    const crores = Math.floor(n / 10000000);
+    const lakhs = Math.floor((n % 10000000) / 100000);
+    const thousands = Math.floor((n % 100000) / 1000);
+    const remaining = Math.floor(n % 1000);
+
+    if (crores > 0) words += makeWords(crores) + ' Crore ';
+    if (lakhs > 0) words += makeWords(lakhs) + ' Lakh ';
+    if (thousands > 0) words += makeWords(thousands) + ' Thousand ';
+    if (remaining > 0) words += makeWords(remaining);
+    
+    const paise = Math.round((n % 1) * 100);
+    let wordsSuffix = ' Rupees Only';
+    if (paise > 0) wordsSuffix = ` Rupees and ${makeWords(paise)} Paise Only`;
+    
+    return words.trim() + wordsSuffix;
+  };
+
   const getDerivedYears = () => {
     let dbYears = fees.map(f => f.year);
     let customYears = createdPaths.filter(p => !p.includes('/')).map(p => p);
@@ -361,6 +395,7 @@ export default function EducationalFees() {
               <div>
                 <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Total Academic Paid</p>
                 <h2 className="text-3xl font-black">₹{formatCurrency(totalOverall)}</h2>
+                <p className="text-[9px] font-bold text-white/60 italic mt-0.5 truncate max-w-[200px]">{numberToWords(totalOverall)}</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
                 <TrendingUp className="h-6 w-6 text-white" />
@@ -431,7 +466,10 @@ export default function EducationalFees() {
              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Academic Year {selectedYear}</p>
              <div className="flex justify-between items-end">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">Annual Total</h2>
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(totalYear)}</span>
+                <div className="text-right">
+                  <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(totalYear)}</span>
+                  <p className="text-[10px] font-bold text-slate-400 italic">{numberToWords(totalYear)}</p>
+                </div>
              </div>
           </div>
 
@@ -758,6 +796,7 @@ export default function EducationalFees() {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="text-sm font-black text-slate-900 dark:text-white">₹{formatCurrency(record.amount)}</div>
+                              <div className="text-[9px] font-bold text-slate-400 italic truncate max-w-[100px] block ml-auto">{numberToWords(record.amount)}</div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
@@ -942,6 +981,7 @@ export default function EducationalFees() {
                 <div className="text-center sm:text-left flex-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Amount Paid</p>
                   <p className="text-4xl text-slate-900 dark:text-emerald-400 font-black">₹{formatCurrency(selectedRecord.amount)}</p>
+                  <p className="text-[11px] font-bold text-slate-500 italic mt-1">{numberToWords(selectedRecord.amount)}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>
