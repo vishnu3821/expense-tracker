@@ -3,6 +3,7 @@ import { X, FileText, Table, Download, Loader2, UserCircle, Hash, ChevronRight, 
 import { format, parseISO } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -198,8 +199,6 @@ const generatePDF = (fees, studentName, studentId) => {
 // ── Excel Generator ──────────────────────────────────────────────────────────
 
 const generateExcel = async (fees, studentName, studentId) => {
-  // Dynamic import so build doesn't break if xlsx hasn't been installed yet
-  const XLSX = await import('xlsx');
 
   const wbp = XLSX.utils.book_new();
   const years = [...new Set(fees.map(f => f.year))].sort((a, b) => b.localeCompare(a));
@@ -306,7 +305,7 @@ export default function DownloadStatementModal({ fees, onClose }) {
   const receiptCount = fees.filter(f => f.image_url).length;
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-500 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-[32px] shadow-2xl shadow-slate-900/20 overflow-hidden animate-in zoom-in-95 duration-200">
 
         {/* Header */}
