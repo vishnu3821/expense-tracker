@@ -185,7 +185,7 @@ export default function AddEducationRecord({
             payment_gateway: formData.payment_gateway || null,
             bank_reference_no: formData.bank_reference_no || null,
             gateway_reference_no: formData.gateway_reference_no || null,
-            amount: parseFloat(formData.amount),
+            amount: Math.round(parseFloat(formData.amount) * 100) / 100,
             amount_info: formData.amount_info || null,
             image_url: image_url
           })
@@ -206,7 +206,7 @@ export default function AddEducationRecord({
             payment_gateway: formData.payment_gateway || null,
             bank_reference_no: formData.bank_reference_no || null,
             gateway_reference_no: formData.gateway_reference_no || null,
-            amount: parseFloat(formData.amount),
+            amount: Math.round(parseFloat(formData.amount) * 100) / 100,
             amount_info: formData.amount_info || null,
             image_url: image_url
           });

@@ -84,7 +84,20 @@ export default function EducationalFees() {
   };
 
   const calculateTotal = (filterFn) => {
-    return fees.filter(filterFn).reduce((sum, f) => sum + parseFloat(f.amount), 0);
+    const sum = fees.filter(filterFn).reduce((acc, f) => {
+      // Handle potential string amounts with commas or symbols
+      const amountStr = String(f.amount || '0').replace(/[^0-9.]/g, '');
+      const val = parseFloat(amountStr);
+      return acc + (isNaN(val) ? 0 : val);
+    }, 0);
+    // Return rounded to 2 decimal places to avoid floating point issues (e.g. 0.1 + 0.2)
+    return Math.round(sum * 100) / 100;
+  };
+
+  const formatCurrency = (val) => {
+    const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.]/g, '')) : parseFloat(val);
+    if (isNaN(num)) return '0';
+    return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   };
 
   const getDerivedYears = () => {
@@ -346,7 +359,7 @@ export default function EducationalFees() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Total Academic Paid</p>
-                <h2 className="text-3xl font-black">₹{totalOverall.toLocaleString()}</h2>
+                <h2 className="text-3xl font-black">₹{formatCurrency(totalOverall)}</h2>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
                 <TrendingUp className="h-6 w-6 text-white" />
@@ -383,7 +396,7 @@ export default function EducationalFees() {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-xl font-black text-slate-900 dark:text-white">{year}</h3>
-                        <p className="text-xs text-slate-500 font-bold mt-0.5">₹{yearTotal.toLocaleString()} total</p>
+                        <p className="text-xs text-slate-500 font-bold mt-0.5">₹{formatCurrency(yearTotal)} total</p>
                       </div>
                       <ChevronRight className="h-6 w-6 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                     </div>
@@ -417,7 +430,7 @@ export default function EducationalFees() {
              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">Academic Year {selectedYear}</p>
              <div className="flex justify-between items-end">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">Annual Total</h2>
-                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{totalYear.toLocaleString()}</span>
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(totalYear)}</span>
              </div>
           </div>
 
@@ -443,7 +456,7 @@ export default function EducationalFees() {
                       </div>
                       <div className="flex-1">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white">{sem}</h3>
-                        <p className="text-xs text-slate-500 font-bold">₹{semTotal.toLocaleString()}</p>
+                        <p className="text-xs text-slate-500 font-bold">₹{formatCurrency(semTotal)}</p>
                       </div>
                       <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-teal-500 transition-colors" />
                     </div>
@@ -476,7 +489,7 @@ export default function EducationalFees() {
              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1">{selectedYear} &bull; {selectedSemester}</p>
              <div className="flex justify-between items-end relative z-10">
                 <h2 className="text-2xl font-black">Semester Fees</h2>
-                <span className="text-2xl font-black text-emerald-400">₹{semTotal.toLocaleString()}</span>
+                <span className="text-2xl font-black text-emerald-400">₹{formatCurrency(semTotal)}</span>
              </div>
           </div>
 
@@ -498,7 +511,7 @@ export default function EducationalFees() {
                     <FolderOpen className="h-12 w-12 text-amber-500 fill-amber-100 dark:fill-amber-900/30 shrink-0 group-hover:scale-110 transition-transform" />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{folder}</h3>
-                      <p className="text-xs text-slate-500 font-bold">₹{folderTotal.toLocaleString()} &bull; {count} items</p>
+                      <p className="text-xs text-slate-500 font-bold">₹{formatCurrency(folderTotal)} &bull; {count} items</p>
                     </div>
                   </div>
 
@@ -531,7 +544,7 @@ export default function EducationalFees() {
                </div>
                <div>
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
-                  <p className="text-xs text-slate-500 font-bold">Total: ₹{folderTotal.toLocaleString()}</p>
+                  <p className="text-xs text-slate-500 font-bold">Total: ₹{formatCurrency(folderTotal)}</p>
                </div>
             </div>
             <div className="flex items-center gap-2">
@@ -587,7 +600,7 @@ export default function EducationalFees() {
                               </p>
                            </div>
                            <div className="text-right shrink-0">
-                              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{parseFloat(record.amount).toLocaleString()}</p>
+                              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(record.amount)}</p>
                            </div>
                         </div>
                       </div>
@@ -823,9 +836,9 @@ export default function EducationalFees() {
 
               {/* Secure Metdata Grid */}
               <div className="grid grid-cols-2 gap-8 px-2">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Paid</p>
-                  <p className="text-4xl text-slate-900 dark:text-emerald-400 font-black">₹{parseFloat(selectedRecord.amount).toLocaleString()}</p>
+                <div className="text-center sm:text-left flex-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Amount Paid</p>
+                  <p className="text-4xl text-slate-900 dark:text-emerald-400 font-black">₹{formatCurrency(selectedRecord.amount)}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>

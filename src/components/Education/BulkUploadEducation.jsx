@@ -115,7 +115,7 @@ export default function BulkUploadEducation({
           semester,
           category,
           date: finalDate,
-          amount: parseFloat(row.amount.replace(/[^0-9.]/g, '')),
+          amount: Math.round(parseFloat(row.amount.replace(/[^0-9.]/g, '')) * 100) / 100,
           receipt_no: row.receipt_no || null,
           order_number: row.order_number || null,
           payment_gateway: row.payment_gateway || null,
