@@ -44,6 +44,7 @@ export default function EducationalFees() {
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [recordToEdit, setRecordToEdit] = useState(null);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [isAuditMode, setIsAuditMode] = useState(false);
 
   // Custom UI Prompt State
   const [promptConfig, setPromptConfig] = useState(null);
@@ -644,23 +645,23 @@ export default function EducationalFees() {
         </div>
       </div>
 
-      {/* OS Style Breadcrumbs Log */}
-      {viewLevel !== 'years' && (
-        <div className="flex items-center gap-1 px-4 py-3 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-wider overflow-x-auto whitespace-nowrap hide-scrollbar">
-          <button className="px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 transition-colors" onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); }}>
+       {/* OS Style Breadcrumbs Log */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-1 px-4 py-3 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-wider overflow-x-auto whitespace-nowrap hide-scrollbar">
+          <button className={`px-3 py-1.5 rounded-xl transition-colors ${viewLevel === 'years' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); }}>
              ROOT
           </button>
           
           {selectedYear && (
              <>
                <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'semesters' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('semesters'); setSelectedSemester(null); setSelectedFolder(null); }}>{selectedYear}</button>
+               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'semesters' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('semesters'); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); }}>{selectedYear}</button>
              </>
           )}
           {selectedSemester && (
              <>
                <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'folders' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('folders'); setSelectedFolder(null); }}>{selectedSemester}</button>
+               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'folders' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('folders'); setSelectedFolder(null); setIsAuditMode(false); }}>{selectedSemester}</button>
              </>
           )}
           {selectedFolder && (
@@ -670,11 +671,113 @@ export default function EducationalFees() {
              </>
           )}
         </div>
-      )}
+
+        <button 
+          onClick={() => setIsAuditMode(!isAuditMode)}
+          className={`h-11 px-4 rounded-3xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all ${isAuditMode ? 'bg-amber-100 text-amber-700 border-amber-300 shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800 hover:text-slate-600'}`}
+        >
+          {isAuditMode ? <TableIcon className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
+          {isAuditMode ? "Exit Audit" : "Audit"}
+        </button>
+      </div>
 
       {/* Render Current Directory Content */}
       <div className="relative">
-         {renderContent()}
+         {isAuditMode ? (
+           <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-3xl p-5 mb-4">
+               <div className="flex items-center gap-3 text-amber-800 dark:text-amber-400">
+                 <AlertCircle className="h-5 w-5" />
+                 <div>
+                   <h4 className="font-black text-xs uppercase tracking-widest">Audit Mode Active</h4>
+                   <p className="text-xs font-medium opacity-80 mt-1">Reviewing all records contributing to the current totals. Duplicates (same date & amount) are highlighted in amber.</p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <tr>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Record Context</th>
+                      <th className="px-6 py-4">Details</th>
+                      <th className="px-6 py-4 text-right">Amount</th>
+                      <th className="px-6 py-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                    {(() => {
+                      const records = fees.filter(f => {
+                        if (selectedFolder) return f.year === selectedYear && f.semester === selectedSemester && f.category === selectedFolder;
+                        if (selectedSemester) return f.year === selectedYear && f.semester === selectedSemester;
+                        if (selectedYear) return f.year === selectedYear;
+                        return true;
+                      });
+
+                      if (records.length === 0) {
+                        return <tr><td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-bold italic">No records found to audit in this directory.</td></tr>;
+                      }
+
+                      return records.map((record) => {
+                        const isDuplicate = records.some(other => 
+                          other.id !== record.id && 
+                          other.date === record.date && 
+                          parseFloat(String(other.amount)) === parseFloat(String(record.amount))
+                        );
+
+                        return (
+                          <tr key={record.id} className={`group transition-colors ${isDuplicate ? 'bg-amber-50/50 dark:bg-amber-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/30'}`}>
+                            <td className="px-6 py-4">
+                              {isDuplicate ? (
+                                <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center animate-pulse" title="Potential Duplicate Found">
+                                  <AlertCircle className="h-4 w-4" />
+                                </div>
+                              ) : (
+                                <div className="h-8 w-8 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-300 flex items-center justify-center">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter truncate max-w-[120px]">
+                                {record.year} &bull; {record.semester}
+                              </div>
+                              <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate max-w-[120px]">
+                                {record.category}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="text-xs font-black text-slate-900 dark:text-white">
+                                {format(parseISO(record.date), 'dd MMM yyyy')}
+                              </div>
+                              <div className="text-[10px] font-bold text-slate-400 mt-0.5 flex items-center gap-2">
+                                {record.receipt_no && <span># {record.receipt_no}</span>}
+                                {record.amount_info && <span className="text-emerald-600 dark:text-emerald-500 italic max-w-[100px] truncate">{record.amount_info}</span>}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <div className="text-sm font-black text-slate-900 dark:text-white">₹{formatCurrency(record.amount)}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => setSelectedRecord(record)} className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-emerald-500 hover:border-emerald-500 transition-all">
+                                  <ImageIcon className="h-4 w-4" />
+                                </button>
+                                <button onClick={() => handleDeleteRecord(record.id)} className="p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 hover:text-red-500 hover:border-red-500 transition-all">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+             </div>
+           </div>
+         ) : renderContent()}
       </div>
 
       {isAddModalOpen && viewLevel === 'records' && (

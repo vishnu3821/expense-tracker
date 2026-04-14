@@ -52,7 +52,20 @@ export default function BulkUploadEducation({
       }
 
       const data = lines.map(line => {
-        const cols = line.split(sep);
+        // More robust CSV split: handles basic quoted fields and tabs
+        let cols = [];
+        if (sep === '\t') {
+          cols = line.split('\t');
+        } else {
+          // handles commas not inside quotes (basic regex for CSV)
+          const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+          if (matches) {
+            cols = matches.map(m => m.replace(/^"|"$/g, ''));
+          } else {
+            cols = line.split(',');
+          }
+        }
+
         // Expected Order: Date, Amount, Receipt No, Order No, Gateway, Bank Ref, Remarks
         return {
           date: cols[0]?.trim() || '',
@@ -70,7 +83,7 @@ export default function BulkUploadEducation({
       });
 
       if (data.length === 0) {
-        throw new Error("No valid data found. Ensure you have Date and Amount columns.");
+        throw new Error("No valid data found. Ensure you have Date and Amount columns aligned correctly.");
       }
 
       setParsedData(data);
@@ -142,7 +155,7 @@ export default function BulkUploadEducation({
 
   return (
     <div className="fixed inset-0 z-300 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
@@ -151,8 +164,8 @@ export default function BulkUploadEducation({
               <ClipboardPaste className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Bulk Import</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Into: {year} &bull; {semester} &bull; {category}</p>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">Enhanced Bulk Import</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Target: {year} &bull; {semester} &bull; {category}</p>
             </div>
           </div>
           <button onClick={onClose} className="h-10 w-10 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-600 border border-slate-100 dark:border-slate-700">
@@ -173,16 +186,21 @@ export default function BulkUploadEducation({
               <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-4 border border-amber-100 dark:border-amber-900/30 flex gap-3">
                  <Info className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                  <div className="text-xs text-amber-800 dark:text-amber-400 font-medium leading-relaxed">
-                   <strong>Quick Guide:</strong> Copy rows from your Excel/Google Sheet and paste them below. 
-                   Ensure your columns are in this order: 
-                   <span className="block mt-1 font-bold opacity-80">Date | Amount | Receipt ID | Order ID | Gateway | Bank Ref | Remarks</span>
+                   <strong>IMPORTANT:</strong> Ensure your spreadsheet columns follow this exact order: 
+                   <div className="mt-2 flex flex-wrap gap-2">
+                     {["Date","Amount","Receipt ID","Order ID","Gateway","Bank Ref","Remarks"].map((h,i) => (
+                       <span key={i} className="px-2 py-1 bg-white dark:bg-slate-800 rounded-lg border border-amber-200 dark:border-amber-900/50 text-[10px] whitespace-nowrap">
+                         <span className="opacity-40 mr-1">{i+1}.</span>{h}
+                       </span>
+                     ))}
+                   </div>
                  </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Paste Data Here</label>
                 <textarea
-                  className="w-full h-64 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-sm font-mono focus:border-indigo-500 outline-none transition-all shadow-inner dark:text-white"
+                  className="w-full h-80 bg-slate-50 dark:bg-slate-950 border-2 border-slate-100 dark:border-slate-800 rounded-2xl p-4 text-sm font-mono focus:border-indigo-500 outline-none transition-all shadow-inner dark:text-white"
                   placeholder="13/04/2026&#9;25000&#9;REC-001&#9;ORD-99&#9;Razorpay&#9;UTR123..."
                   value={rawText}
                   onChange={(e) => setRawText(e.target.value)}
@@ -206,32 +224,39 @@ export default function BulkUploadEducation({
                <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
                   <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-black">
                      <CheckCircle2 className="h-5 w-5" />
-                     {parsedData.length} records parsed successfully
+                     {parsedData.length} records ready for verification
                   </div>
                   <button onClick={() => setView('input')} className="text-xs font-black text-indigo-600 underline">Start Over</button>
                </div>
 
-               <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 uppercase">
+               <div className="border border-slate-100 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-sm">
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">
                       <tr>
                         <th className="px-4 py-3">Date</th>
                         <th className="px-4 py-3 text-right">Amount</th>
-                        <th className="px-4 py-3">Receipt ID</th>
+                        <th className="px-4 py-3">Receipt / Ref</th>
+                        <th className="px-4 py-3">Gateway</th>
+                        <th className="px-4 py-3">Remarks</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
-                      {parsedData.slice(0, 5).map((row, i) => (
+                      {parsedData.slice(0, 8).map((row, i) => (
                         <tr key={i} className="dark:text-slate-300">
-                          <td className="px-4 py-3 font-bold">{row.date}</td>
-                          <td className="px-4 py-3 text-right font-black">₹{row.amount}</td>
-                          <td className="px-4 py-3 text-slate-400">{row.receipt_no || '--'}</td>
+                          <td className="px-4 py-3 font-bold whitespace-nowrap">{row.date}</td>
+                          <td className="px-4 py-3 text-right font-black text-emerald-600">₹{row.amount}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-slate-900 dark:text-slate-300">{row.receipt_no || '--'}</div>
+                            <div className="text-[10px] opacity-40">{row.bank_reference_no || ''}</div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-400">{row.payment_gateway || '--'}</td>
+                          <td className="px-4 py-3 text-slate-500 italic max-w-[150px] truncate">{row.amount_info || '--'}</td>
                         </tr>
                       ))}
-                      {parsedData.length > 5 && (
-                        <tr className="bg-slate-50/50 dark:bg-slate-800/30">
-                           <td colSpan="3" className="px-4 py-2 text-center text-slate-400 font-bold italic">
-                              + {parsedData.length - 5} more records...
+                      {parsedData.length > 8 && (
+                        <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-center">
+                           <td colSpan="5" className="px-4 py-2 text-slate-400 font-bold italic">
+                              + {parsedData.length - 8} more records...
                            </td>
                         </tr>
                       )}
