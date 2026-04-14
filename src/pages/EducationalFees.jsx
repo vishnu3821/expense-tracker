@@ -53,6 +53,7 @@ export default function EducationalFees() {
   const [toast, setToast] = useState(null);
   const [recordSearch, setRecordSearch] = useState('');
   const [recordSort, setRecordSort] = useState('newest');
+  const [lightboxUrl, setLightboxUrl] = useState(null); // full-screen image lightbox
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -1124,9 +1125,17 @@ export default function EducationalFees() {
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {/* Receipt Image */}
               {selectedRecord.image_url ? (
-                <div className="group relative rounded-[32px] border-4 border-slate-50 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-black shadow-2xl">
+                <div
+                  className="group relative rounded-[32px] border-4 border-slate-50 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-black shadow-2xl cursor-zoom-in"
+                  onClick={() => setLightboxUrl(selectedRecord.image_url)}
+                  title="Click to view full screen"
+                >
                   <img src={selectedRecord.image_url} alt="Receipt snapshot" className="w-full h-auto object-contain max-h-[45vh] group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-linear-to-t from-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-md flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M15 3h6m0 0v6m0-6L10 14M9 21H3m0 0v-6m0 6l10-11"/></svg>
+                    Full screen
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-[32px] border-4 border-dashed border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center h-48 text-slate-400">
@@ -1213,6 +1222,62 @@ export default function EducationalFees() {
         </div>
       )}
 
+      {/* ── Image Lightbox ── */}
+      {lightboxUrl && (
+        <LightboxOverlay url={lightboxUrl} onClose={() => setLightboxUrl(null)} />
+      )}
+
+    </div>
+  );
+}
+
+// ── Lightbox Overlay ────────────────────────────────────────────────────────────
+function LightboxOverlay({ url, onClose }) {
+  const [zoom, setZoom] = React.useState(1);
+  const MIN = 0.5;
+  const MAX = 5;
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    setZoom(prev => Math.min(MAX, Math.max(MIN, prev - e.deltaY * 0.001)));
+  };
+
+  const handleImgClick = (e) => {
+    e.stopPropagation();
+    setZoom(prev => prev > 1.05 ? 1 : 2.5);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[900] bg-black/95 backdrop-blur-lg flex flex-col animate-in fade-in duration-200" onClick={onClose}>
+      <div className="flex items-center justify-between px-5 py-4 shrink-0" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3">
+          <span className="text-white text-sm font-bold opacity-60">Receipt</span>
+          <span className="text-[11px] font-black text-white bg-white/10 px-2.5 py-1 rounded-full">{Math.round(zoom * 100)}%</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-white/40 text-xs hidden sm:block">Scroll to zoom · Click image to toggle zoom</span>
+          <button onClick={onClose} className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 flex items-center justify-center overflow-hidden p-4" onWheel={handleWheel} onClick={onClose}>
+        <img
+          src={url}
+          alt="Receipt full screen"
+          onClick={handleImgClick}
+          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', cursor: zoom > 1 ? 'zoom-out' : 'zoom-in' }}
+          className="max-w-full max-h-full object-contain transition-transform duration-150 select-none rounded-2xl shadow-2xl"
+          draggable={false}
+        />
+      </div>
+      <div className="py-4 flex items-center justify-center gap-4 shrink-0" onClick={e => e.stopPropagation()}>
+        <button onClick={() => setZoom(v => Math.max(MIN, v - 0.25))}
+          className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-white text-xl flex items-center justify-center transition-colors font-black">−</button>
+        <button onClick={() => setZoom(1)} className="text-white/40 text-xs font-bold hover:text-white/80 transition-colors w-10 text-center">Reset</button>
+        <button onClick={() => setZoom(v => Math.min(MAX, v + 0.25))}
+          className="h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-white text-xl flex items-center justify-center transition-colors font-black">+</button>
+      </div>
     </div>
   );
 }

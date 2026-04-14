@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader2, X, ShieldCheck, FileText, Camera, ScanLine, CheckCircle2, Sparkles } from 'lucide-react';
@@ -245,7 +245,10 @@ export default function AddEducationRecord({
   const [error, setError] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [scanFields, setScanFields] = useState(null);
-  const [dupWarning, setDupWarning] = useState(null); // { existing: record } | null
+  const [dupWarning, setDupWarning] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const canvasRef = useRef(null);
+  const confettiRaf = useRef(null);
   
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -285,6 +288,62 @@ export default function AddEducationRecord({
   useEffect(() => {
     return () => { if (imagePreview) URL.revokeObjectURL(imagePreview); };
   }, [imagePreview]);
+
+  // ── Confetti animation ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showConfetti || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#10b981','#34d399','#6ee7b7','#fbbf24','#f59e0b','#818cf8','#60a5fa','#f472b6','#fb7185'];
+    const particles = Array.from({ length: 120 }, () => ({
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: (Math.random() - 0.5) * 20,
+      vy: (Math.random() - 0.5) * 20 - 8,
+      size: Math.random() * 10 + 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.3,
+      opacity: 1,
+      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+    }));
+
+    let start = performance.now();
+    const DURATION = 1300;
+
+    const draw = (now) => {
+      const elapsed = now - start;
+      if (elapsed > DURATION) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const progress = elapsed / DURATION;
+      particles.forEach(p => {
+        p.x += p.vx * 0.8;
+        p.y += p.vy * 0.8;
+        p.vy += 0.4; // gravity
+        p.rotation += p.rotSpeed;
+        p.opacity = Math.max(0, 1 - progress * 1.2);
+        ctx.save();
+        ctx.globalAlpha = p.opacity;
+        ctx.fillStyle = p.color;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      });
+      confettiRaf.current = requestAnimationFrame(draw);
+    };
+    confettiRaf.current = requestAnimationFrame(draw);
+    return () => { if (confettiRaf.current) cancelAnimationFrame(confettiRaf.current); };
+  }, [showConfetti]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -417,7 +476,12 @@ export default function AddEducationRecord({
         });
         if (insertError) throw insertError;
       }
-      onSuccess();
+      // 🎉 Confetti burst then call onSuccess
+      setShowConfetti(true);
+      setTimeout(() => {
+        setShowConfetti(false);
+        onSuccess();
+      }, 1300);
     } catch (err) {
       console.error('Error saving education fee:', err);
       setError(err.message || 'Failed to save record.');
@@ -448,7 +512,16 @@ export default function AddEducationRecord({
 
   // ── JSX ──────────────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <>
+      {/* Confetti canvas — full screen, pointer-events-none */}
+      {showConfetti && (
+        <canvas
+          ref={canvasRef}
+          className="fixed inset-0 z-[1000] pointer-events-none"
+        />
+      )}
+
+      <div className="fixed inset-0 z-200 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
 
         {/* Header */}
@@ -725,5 +798,6 @@ export default function AddEducationRecord({
 
       </div>
     </div>
+    </>
   );
 }
