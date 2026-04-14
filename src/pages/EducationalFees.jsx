@@ -50,7 +50,9 @@ export default function EducationalFees() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isAuditMode, setIsAuditMode] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
-  const [toast, setToast] = useState(null); // { message, type }
+  const [toast, setToast] = useState(null);
+  const [recordSearch, setRecordSearch] = useState('');
+  const [recordSort, setRecordSort] = useState('newest');
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -642,90 +644,134 @@ export default function EducationalFees() {
     }
 
     if (viewLevel === 'records') {
-      const records = fees.filter(f => f.year === selectedYear && f.semester === selectedSemester && f.category === selectedFolder);
+      const rawRecords = fees.filter(f => f.year === selectedYear && f.semester === selectedSemester && f.category === selectedFolder);
       const folderTotal = calculateTotal(f => f.year === selectedYear && f.semester === selectedSemester && f.category === selectedFolder);
-      
+      const catIcon = getCategoryIcon(selectedFolder);
+
+      // Search across all fields
+      const q = recordSearch.trim().toLowerCase();
+      const searched = q
+        ? rawRecords.filter(r =>
+            (r.amount_info || '').toLowerCase().includes(q) ||
+            (r.receipt_no || '').toLowerCase().includes(q) ||
+            (r.order_number || '').toLowerCase().includes(q) ||
+            (r.payment_gateway || '').toLowerCase().includes(q) ||
+            String(r.amount || '').includes(q) ||
+            (r.date || '').includes(q)
+          )
+        : rawRecords;
+
+      // Sort
+      const records = [...searched].sort((a, b) => {
+        if (recordSort === 'newest')  return new Date(b.date) - new Date(a.date);
+        if (recordSort === 'oldest')  return new Date(a.date) - new Date(b.date);
+        if (recordSort === 'highest') return parseFloat(b.amount || 0) - parseFloat(a.amount || 0);
+        if (recordSort === 'lowest')  return parseFloat(a.amount || 0) - parseFloat(b.amount || 0);
+        return 0;
+      });
+
       return (
-        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+        <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
+          {/* Category header */}
           <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center gap-4">
-               <div className={`h-12 w-12 rounded-2xl ${getCategoryIcon(selectedFolder).bg} flex items-center justify-center text-2xl select-none`}>
-                 {getCategoryIcon(selectedFolder).emoji}
-               </div>
-               <div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
-                  <p className="text-xs text-slate-500 font-bold">Total: ₹{formatCurrency(folderTotal)}</p>
-               </div>
+              <div className={`h-12 w-12 rounded-2xl ${catIcon.bg} flex items-center justify-center text-2xl select-none`}>
+                {catIcon.emoji}
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
+                <p className="text-xs text-slate-500 font-bold">Total: ₹{formatCurrency(folderTotal)} &bull; {rawRecords.length} record{rawRecords.length !== 1 ? 's' : ''}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
-               <button 
-                onClick={() => setIsBulkModalOpen(true)}
-                className="h-11 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-sm"
-              >
+              <button onClick={() => setIsBulkModalOpen(true)}
+                className="h-11 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-sm">
                 <ClipboardPaste className="h-5 w-5" /> Bulk
               </button>
-              <button 
-                onClick={() => setIsAddModalOpen(true)}
-                className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-sm"
-              >
+              <button onClick={() => setIsAddModalOpen(true)}
+                className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-sm">
                 <Plus className="h-5 w-5" /> Add New
               </button>
             </div>
           </div>
 
-          <div className="space-y-3">
-             {records.length === 0 ? (
-               <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400">
-                 <Receipt className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                 <p className="font-medium">No receipts in this folder.</p>
-               </div>
-             ) : (
-               records.map(record => (
-                 <div key={record.id} className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 transition-all cursor-pointer shadow-sm active:scale-[0.99]" onClick={() => setSelectedRecord(record)}>
-                   <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-4">
-                       {record.image_url ? (
-                         <div className="relative group">
-                            <img src={record.image_url} alt="Receipt" className="h-14 w-14 rounded-2xl object-cover border-2 border-slate-50 dark:border-slate-800 shadow-sm" />
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors rounded-2xl" />
-                         </div>
-                       ) : (
-                         <div className="h-14 w-14 shrink-0 rounded-2xl bg-slate-50 dark:bg-slate-800/80 flex items-center justify-center text-slate-400 border border-slate-200 dark:border-slate-700">
-                           <FileText className="h-6 w-6" />
-                         </div>
-                       )}
+          {/* Search + Sort */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" strokeLinecap="round"/></svg>
+              <input
+                type="text"
+                placeholder="Search description, amount, date, ref…"
+                value={recordSearch}
+                onChange={e => setRecordSearch(e.target.value)}
+                className="w-full pl-10 pr-9 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-white placeholder:text-slate-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
+              />
+              {recordSearch && (
+                <button onClick={() => setRecordSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <select
+              value={recordSort}
+              onChange={e => setRecordSort(e.target.value)}
+              className="h-10 px-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-white outline-none focus:border-emerald-500 transition cursor-pointer"
+            >
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="highest">Highest Amount</option>
+              <option value="lowest">Lowest Amount</option>
+            </select>
+          </div>
+
+          {/* Records list */}
+          <div className="space-y-2.5">
+            {records.length === 0 ? (
+              <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700 text-slate-400">
+                <Receipt className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p className="font-bold">{recordSearch ? `No records match "${recordSearch}"` : 'No receipts in this folder.'}</p>
+              </div>
+            ) : (
+              records.map(record => (
+                <div
+                  key={record.id}
+                  className="group relative bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-slate-200/80 dark:hover:shadow-slate-900/50 transition-all duration-200 cursor-pointer active:scale-[0.99] overflow-hidden"
+                  onClick={() => setSelectedRecord(record)}
+                >
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    {record.image_url ? (
+                      <img src={record.image_url} alt="Receipt" className="h-12 w-12 rounded-2xl object-cover border border-slate-100 dark:border-slate-700 shadow-sm shrink-0" />
+                    ) : (
+                      <div className={`h-12 w-12 shrink-0 rounded-2xl ${catIcon.bg} flex items-center justify-center text-xl select-none`}>
+                        {catIcon.emoji}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-4">
-                           <div className="min-w-0 flex-1">
-                              <h4 className="text-base font-bold text-slate-900 dark:text-white truncate">
-                                 {record.amount_info || record.receipt_no || 'Fee Record'}
-                              </h4>
-                              <p className="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                                 <Calendar className="h-3 w-3" />
-                                 {format(parseISO(record.date), 'dd MMM yyyy')}
-                                 {record.receipt_no && record.amount_info && (
-                                    <span className="opacity-40 ml-1"># {record.receipt_no}</span>
-                                 )}
-                              </p>
-                           </div>
-                           <div className="text-right shrink-0">
-                              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(record.amount)}</p>
-                           </div>
-                        </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                        {record.amount_info || record.receipt_no || 'Fee Record'}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {format(parseISO(record.date), 'dd MMM yyyy')}
+                        </span>
+                        {record.receipt_no && (
+                          <span className="text-[10px] text-slate-300 dark:text-slate-600 font-bold">#{record.receipt_no}</span>
+                        )}
                       </div>
-                      <div className="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-300 group-hover:text-emerald-500 transition-colors ml-2">
-                         <ChevronRight className="h-4 w-4" />
-                      </div>
-                   </div>
-                 </div>
-               ))
-             )}
+                    </div>
+                    <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 shrink-0">₹{formatCurrency(record.amount)}</p>
+                    <ChevronRight className="h-4 w-4 text-slate-200 dark:text-slate-700 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       );
     }
   };
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-24">
@@ -733,7 +779,7 @@ export default function EducationalFees() {
       <div className="flex items-center justify-between mb-4 mt-2">
         <div className="flex items-center gap-4">
           {viewLevel !== 'years' ? (
-            <button 
+            <button
               onClick={goBack}
               className="h-12 w-12 flex justify-center items-center rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 hover:-translate-x-1 transition-all text-slate-700 dark:text-slate-300 active:scale-90"
             >
@@ -744,59 +790,91 @@ export default function EducationalFees() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
           )}
-
           <div>
-             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-               Academic Fees
-             </h1>
-             <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest pl-0.5">Education Safe</p>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Academic Fees</h1>
+            <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest pl-0.5">Education Safe</p>
           </div>
         </div>
-
-        {/* Download Statement Button */}
-        <button
-          onClick={() => setIsDownloadModalOpen(true)}
-          className="h-10 px-4 rounded-2xl bg-linear-to-br from-emerald-600 to-teal-500 text-white font-black text-[11px] uppercase tracking-widest flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
-        >
-          <Download className="h-4 w-4" />
-          Statement
-        </button>
       </div>
 
-       {/* OS Style Breadcrumbs Log */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 flex items-center gap-1 px-4 py-3 bg-white dark:bg-slate-900 shadow-lg shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-800 rounded-3xl text-[10px] font-black uppercase tracking-wider overflow-x-auto whitespace-nowrap hide-scrollbar">
-          <button className={`px-3 py-1.5 rounded-xl transition-colors ${viewLevel === 'years' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`} onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); }}>
-             ROOT
+      {/* Pill-shaped breadcrumb chips + action toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Breadcrumb chips */}
+        <div className="flex-1 flex items-center gap-1.5 flex-wrap">
+          <button
+            onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); setRecordSearch(''); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide border transition-all ${
+              viewLevel === 'years'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
+                : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600'
+            }`}
+          >
+            <GraduationCap className="h-3 w-3" /> Home
           </button>
-          
+
           {selectedYear && (
-             <>
-               <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'semesters' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('semesters'); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); }}>{selectedYear}</button>
-             </>
+            <>
+              <ChevronRight className="h-3 w-3 text-slate-300" />
+              <button
+                onClick={() => { setViewLevel('semesters'); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); setRecordSearch(''); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide border transition-all ${
+                  viewLevel === 'semesters'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600'
+                }`}
+              >
+                <Calendar className="h-3 w-3" /> {selectedYear}
+              </button>
+            </>
           )}
+
           {selectedSemester && (
-             <>
-               <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className={`px-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${viewLevel === 'folders' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30' : 'text-slate-600 dark:text-slate-400'}`} onClick={() => { setViewLevel('folders'); setSelectedFolder(null); setIsAuditMode(false); }}>{selectedSemester}</button>
-             </>
+            <>
+              <ChevronRight className="h-3 w-3 text-slate-300" />
+              <button
+                onClick={() => { setViewLevel('folders'); setSelectedFolder(null); setIsAuditMode(false); setRecordSearch(''); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide border transition-all ${
+                  viewLevel === 'folders'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/20'
+                    : 'bg-white dark:bg-slate-900 text-slate-500 border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:text-emerald-600'
+                }`}
+              >
+                <Layers className="h-3 w-3" /> {selectedSemester}
+              </button>
+            </>
           )}
+
           {selectedFolder && (
-             <>
-               <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
-               <button className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 ring-1 ring-emerald-500/20">{selectedFolder}</button>
-             </>
+            <>
+              <ChevronRight className="h-3 w-3 text-slate-300" />
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide border bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/20">
+                <span className="text-sm leading-none">{getCategoryIcon(selectedFolder).emoji}</span>
+                {selectedFolder}
+              </span>
+            </>
           )}
         </div>
 
-        <button 
-          onClick={() => setIsAuditMode(!isAuditMode)}
-          className={`h-11 px-4 rounded-3xl flex items-center gap-2 font-black text-[10px] uppercase tracking-widest transition-all ${isAuditMode ? 'bg-amber-100 text-amber-700 border-amber-300 shadow-lg' : 'bg-white dark:bg-slate-900 text-slate-400 border border-slate-100 dark:border-slate-800 hover:text-slate-600'}`}
-        >
-          {isAuditMode ? <TableIcon className="h-4 w-4" /> : <Layers className="h-4 w-4" />}
-          {isAuditMode ? "Exit Audit" : "Audit"}
-        </button>
+        {/* Action toolbar: Statement + Audit */}
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setIsDownloadModalOpen(true)}
+            className="h-9 px-3.5 rounded-full bg-linear-to-br from-emerald-600 to-teal-500 text-white font-black text-[10px] uppercase tracking-wide flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all shadow-md shadow-emerald-500/20"
+          >
+            <Download className="h-3.5 w-3.5" /> Statement
+          </button>
+          <button
+            onClick={() => setIsAuditMode(!isAuditMode)}
+            className={`h-9 px-3.5 rounded-full flex items-center gap-1.5 font-black text-[10px] uppercase tracking-wide transition-all border ${
+              isAuditMode
+                ? 'bg-amber-100 text-amber-700 border-amber-300 shadow-md'
+                : 'bg-white dark:bg-slate-900 text-slate-400 border-slate-200 dark:border-slate-700 hover:text-slate-600 hover:border-slate-300'
+            }`}
+          >
+            {isAuditMode ? <TableIcon className="h-3.5 w-3.5" /> : <Layers className="h-3.5 w-3.5" />}
+            {isAuditMode ? 'Exit Audit' : 'Audit'}
+          </button>
+        </div>
       </div>
 
       {/* Render Current Directory Content */}

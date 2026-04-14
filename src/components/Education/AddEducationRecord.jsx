@@ -243,8 +243,9 @@ export default function AddEducationRecord({
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [scanning, setScanning] = useState(false);         // OCR in progress
-  const [scanFields, setScanFields] = useState(null);       // fields extracted by OCR (for highlight)
+  const [scanning, setScanning] = useState(false);
+  const [scanFields, setScanFields] = useState(null);
+  const [dupWarning, setDupWarning] = useState(null); // { existing: record } | null
   
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -357,23 +358,31 @@ export default function AddEducationRecord({
   const handleDrop       = (e) => { e.preventDefault(); setIsDragging(false); processFile(e.dataTransfer.files?.[0]); };
 
   // ── Submit ───────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const doSave = async (isoDate, skipDupCheck = false) => {
     setLoading(true);
     setError(null);
-
-    if (!prefilledYear || !prefilledSemester || !prefilledCategory) {
-      setError('System Error: Component lost navigation context.');
-      setLoading(false);
-      return;
-    }
-
-    const isoDate = parseDisplayDate(formData.manualDate);
-    if (!isoDate) { setError('Please enter a valid date in DD/MM/YYYY format.'); setLoading(false); return; }
-
+    setDupWarning(null);
     try {
-      let image_url = recordToEdit?.image_url || null;
+      // Duplicate check — only on new records
+      if (!recordToEdit && !skipDupCheck) {
+        const amount = Math.round(parseFloat(formData.amount) * 100) / 100;
+        const { data: dups } = await supabase
+          .from('education_fees')
+          .select('id, amount_info, receipt_no')
+          .eq('user_id', user.id)
+          .eq('year', prefilledYear)
+          .eq('semester', prefilledSemester)
+          .eq('category', prefilledCategory)
+          .eq('date', isoDate)
+          .eq('amount', amount);
+        if (dups && dups.length > 0) {
+          setDupWarning({ existing: dups[0], isoDate });
+          setLoading(false);
+          return;
+        }
+      }
 
+      let image_url = recordToEdit?.image_url || null;
       if (formData.image) {
         const fileExt = formData.image.name.split('.').pop() || 'png';
         const fileName = `${user.id}/${Date.now()}_edu_receipt.${fileExt}`;
@@ -408,7 +417,6 @@ export default function AddEducationRecord({
         });
         if (insertError) throw insertError;
       }
-
       onSuccess();
     } catch (err) {
       console.error('Error saving education fee:', err);
@@ -416,6 +424,18 @@ export default function AddEducationRecord({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (!prefilledYear || !prefilledSemester || !prefilledCategory) {
+      setError('System Error: Component lost navigation context.');
+      return;
+    }
+    const isoDate = parseDisplayDate(formData.manualDate);
+    if (!isoDate) { setError('Please enter a valid date in DD/MM/YYYY format.'); return; }
+    await doSave(isoDate, false);
   };
 
   // ── Field highlight helper ───────────────────────────────────────────────────
@@ -486,6 +506,41 @@ export default function AddEducationRecord({
               </div>
             </div>
           )}
+
+          {/* Duplicate warning banner */}
+          {dupWarning && (
+            <div className="mb-4 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+              <div className="flex items-start gap-3">
+                <span className="text-xl shrink-0">⚠️</span>
+                <div className="flex-1">
+                  <p className="text-sm font-black text-amber-800 dark:text-amber-300">Possible Duplicate Detected</p>
+                  <p className="text-xs text-amber-700/80 dark:text-amber-400 mt-0.5 font-medium">
+                    A record with the same date and amount already exists in this folder:
+                    <span className="block font-bold mt-1 italic">"{dupWarning.existing.amount_info || dupWarning.existing.receipt_no || 'Fee Record'}"</span>
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => doSave(dupWarning.isoDate, true)}
+                      disabled={loading}
+                      className="h-8 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                      Save Anyway
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDupWarning(null)}
+                      className="h-8 px-4 rounded-xl bg-white dark:bg-slate-800 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-xs font-black hover:bg-amber-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           <form id="edu-fee-form" onSubmit={handleSubmit} className="space-y-5">
 
