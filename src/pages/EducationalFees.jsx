@@ -21,7 +21,9 @@ import {
   AlertCircle,
   TrendingUp,
   Receipt,
-  ClipboardPaste
+  ClipboardPaste,
+  Table as TableIcon,
+  CheckCircle2
 } from 'lucide-react';
 import AddEducationRecord from '../components/Education/AddEducationRecord';
 import BulkUploadEducation from '../components/Education/BulkUploadEducation';
