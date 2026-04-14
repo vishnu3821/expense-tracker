@@ -98,7 +98,7 @@ export default function EducationalFees() {
   const formatCurrency = (val) => {
     const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.]/g, '')) : parseFloat(val);
     if (isNaN(num)) return '0';
-    return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   };
 
   const numberToWords = (n) => {
