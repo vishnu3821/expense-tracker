@@ -517,7 +517,7 @@ export default function AddEducationRecord({
       {showConfetti && (
         <canvas
           ref={canvasRef}
-          className="fixed inset-0 z-[1000] pointer-events-none"
+          className="fixed inset-0 z-1000 pointer-events-none"
         />
       )}
 

@@ -1236,7 +1236,7 @@ export default function EducationalFees() {
 
       {/* Success Toast */}
       {toast && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[600] animate-in slide-in-from-bottom-4 fade-in duration-300 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-white font-bold text-sm ${
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-600 animate-in slide-in-from-bottom-4 fade-in duration-300 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-white font-bold text-sm ${
           toast.type === 'success' ? 'bg-emerald-600 shadow-emerald-500/30' : 'bg-red-600 shadow-red-500/30'
         }`}>
           <span className="text-lg">{toast.type === 'success' ? '✅' : '❌'}</span>
@@ -1271,7 +1271,7 @@ function LightboxOverlay({ url, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[900] bg-black/95 backdrop-blur-lg flex flex-col animate-in fade-in duration-200" onClick={onClose}>
+    <div className="fixed inset-0 z-900 bg-black/95 backdrop-blur-lg flex flex-col animate-in fade-in duration-200" onClick={onClose}>
       <div className="flex items-center justify-between px-5 py-4 shrink-0" onClick={e => e.stopPropagation()}>
         <div className="flex items-center gap-3">
           <span className="text-white text-sm font-bold opacity-60">Receipt</span>
