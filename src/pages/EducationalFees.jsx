@@ -29,6 +29,7 @@ import {
 import AddEducationRecord from '../components/Education/AddEducationRecord';
 import BulkUploadEducation from '../components/Education/BulkUploadEducation';
 import DownloadStatementModal from '../components/Education/DownloadStatementModal';
+import { generatePDF, generateExcel, numVal } from '../components/Education/exportUtils';
 
 export default function EducationalFees() {
   const { user } = useAuth();
@@ -53,7 +54,8 @@ export default function EducationalFees() {
   const [toast, setToast] = useState(null);
   const [recordSearch, setRecordSearch] = useState('');
   const [recordSort, setRecordSort] = useState('newest');
-  const [lightboxUrl, setLightboxUrl] = useState(null); // full-screen image lightbox
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [folderExporting, setFolderExporting] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -688,6 +690,27 @@ export default function EducationalFees() {
               <button onClick={() => setIsBulkModalOpen(true)}
                 className="h-11 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-sm">
                 <ClipboardPaste className="h-5 w-5" /> Bulk
+              </button>
+              <button
+                onClick={() => {
+                  setFolderExporting(true);
+                  try {
+                    generatePDF(
+                      rawRecords,
+                      '',
+                      '',
+                      `${selectedFolder} – ${selectedSemester} ${selectedYear}`,
+                      `${selectedFolder.replace(/\s+/g, '_')}_${selectedYear}_${selectedSemester.replace(/\s+/g, '_')}`
+                    );
+                  } finally {
+                    setFolderExporting(false);
+                  }
+                }}
+                disabled={rawRecords.length === 0 || folderExporting}
+                className="h-11 px-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-black flex items-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 active:scale-95 transition-all text-sm disabled:opacity-40 disabled:cursor-not-allowed border border-indigo-100 dark:border-indigo-800"
+              >
+                {folderExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                PDF
               </button>
               <button onClick={() => setIsAddModalOpen(true)}
                 className="h-11 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black flex items-center gap-2 shadow-xl shadow-emerald-500/20 active:scale-95 transition-all text-sm">
