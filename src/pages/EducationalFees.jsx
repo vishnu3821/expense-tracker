@@ -50,6 +50,12 @@ export default function EducationalFees() {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [isAuditMode, setIsAuditMode] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [toast, setToast] = useState(null); // { message, type }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Custom UI Prompt State
   const [promptConfig, setPromptConfig] = useState(null);
@@ -104,6 +110,37 @@ export default function EducationalFees() {
     const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.]/g, '')) : parseFloat(val);
     if (isNaN(num)) return '0';
     return num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  };
+
+  // Returns { emoji, bg, text } based on category name keywords
+  const getCategoryIcon = (name = '') => {
+    const n = name.toLowerCase();
+    if (/hostel|accom|room|dormit|pg|residenc/.test(n))
+      return { emoji: '🏠', bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-600' };
+    if (/mess|food|dining|canteen|meal|lunch|dinner|breakfast/.test(n))
+      return { emoji: '🍽️', bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-600' };
+    if (/tuition|sem fee|semfee|academic|course|program|semester|term fee/.test(n))
+      return { emoji: '📚', bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600' };
+    if (/exam|test|crt|assessment|evaluat/.test(n))
+      return { emoji: '📝', bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-600' };
+    if (/library|book|journal|reading/.test(n))
+      return { emoji: '📖', bg: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-600' };
+    if (/transport|bus|travel|shuttle|cab/.test(n))
+      return { emoji: '🚌', bg: 'bg-teal-100 dark:bg-teal-900/30', text: 'text-teal-600' };
+    if (/lab|laboratory|practical|workshop/.test(n))
+      return { emoji: '🔬', bg: 'bg-cyan-100 dark:bg-cyan-900/30', text: 'text-cyan-600' };
+    if (/uniform|dress|kit|sport/.test(n))
+      return { emoji: '👕', bg: 'bg-slate-100 dark:bg-slate-700', text: 'text-slate-600' };
+    if (/electricity|utility|maintenance|water|power/.test(n))
+      return { emoji: '⚡', bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600' };
+    if (/activity|event|fest|cultural|extra/.test(n))
+      return { emoji: '🎭', bg: 'bg-pink-100 dark:bg-pink-900/30', text: 'text-pink-600' };
+    if (/insurance|medical|health|hospital/.test(n))
+      return { emoji: '🏥', bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-600' };
+    if (/fee|charge|misc|other|general/.test(n))
+      return { emoji: '🧾', bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600' };
+    // Fallback
+    return { emoji: '📂', bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600' };
   };
 
   const numberToWords = (n) => {
@@ -381,9 +418,28 @@ export default function EducationalFees() {
   const renderContent = () => {
     if (loading && fees.length === 0) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[40vh] gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-          <p className="text-slate-500 font-medium animate-pulse">Loading Academic Files...</p>
+        <div className="space-y-6 animate-pulse">
+          {/* Skeleton: Grand total card */}
+          <div className="h-28 rounded-3xl bg-slate-200 dark:bg-slate-800" />
+          {/* Skeleton: section header */}
+          <div className="flex justify-between items-center px-1">
+            <div className="h-6 w-36 rounded-xl bg-slate-200 dark:bg-slate-700" />
+            <div className="h-10 w-24 rounded-xl bg-slate-100 dark:bg-slate-800" />
+          </div>
+          {/* Skeleton: cards grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-24 rounded-3xl bg-slate-100 dark:bg-slate-800">
+                <div className="p-5 flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-slate-200 dark:bg-slate-700 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 rounded-lg bg-slate-200 dark:bg-slate-700" />
+                    <div className="h-3 w-20 rounded-lg bg-slate-100 dark:bg-slate-750" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       );
     }
@@ -400,7 +456,10 @@ export default function EducationalFees() {
               <div>
                 <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Total Academic Paid</p>
                 <h2 className="text-3xl font-black">₹{formatCurrency(totalOverall)}</h2>
-                <p className="text-[9px] font-bold text-white/60 italic mt-0.5 truncate max-w-[200px]">{numberToWords(totalOverall)}</p>
+                <p
+                  className="text-[9px] font-bold text-white/70 italic mt-1 leading-relaxed"
+                  title={numberToWords(totalOverall)}
+                >{numberToWords(totalOverall)}</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
                 <TrendingUp className="h-6 w-6 text-white" />
@@ -473,7 +532,10 @@ export default function EducationalFees() {
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">Annual Total</h2>
                 <div className="text-right">
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(totalYear)}</span>
-                  <p className="text-[10px] font-bold text-slate-400 italic">{numberToWords(totalYear)}</p>
+                  <p
+                    className="text-[10px] font-bold text-slate-400 italic leading-relaxed truncate max-w-[150px]"
+                    title={numberToWords(totalYear)}
+                  >{numberToWords(totalYear)}</p>
                 </div>
              </div>
           </div>
@@ -549,10 +611,14 @@ export default function EducationalFees() {
               const folderTotal = calculateTotal(f => f.year === selectedYear && f.semester === selectedSemester && f.category === folder);
               const count = fees.filter(f => f.year === selectedYear && f.semester === selectedSemester && f.category === folder).length;
               
+              const catIcon = getCategoryIcon(folder);
               return (
-                <div key={folder} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 relative group hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-500/30 transition-all duration-300 overflow-hidden active:scale-[0.98]">
+                <div key={folder} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 relative group hover:shadow-2xl hover:border-opacity-50 transition-all duration-300 overflow-hidden active:scale-[0.98]"
+                  style={{ '--tw-shadow-color': catIcon.text.replace('text-', '') }}>
                   <div onClick={() => { setSelectedFolder(folder); setViewLevel('records'); }} className="p-6 pr-16 h-full flex items-center gap-4 cursor-pointer">
-                    <FolderOpen className="h-12 w-12 text-amber-500 fill-amber-100 dark:fill-amber-900/30 shrink-0 group-hover:scale-110 transition-transform" />
+                    <div className={`h-12 w-12 rounded-xl ${catIcon.bg} flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform select-none`}>
+                      {catIcon.emoji}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate">{folder}</h3>
                       <p className="text-xs text-slate-500 font-bold">₹{formatCurrency(folderTotal)} &bull; {count} items</p>
@@ -583,8 +649,8 @@ export default function EducationalFees() {
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
           <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center gap-4">
-               <div className="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-                  <FolderOpen className="h-6 w-6 text-amber-500 fill-amber-100 dark:fill-amber-900/30" />
+               <div className={`h-12 w-12 rounded-2xl ${getCategoryIcon(selectedFolder).bg} flex items-center justify-center text-2xl select-none`}>
+                 {getCategoryIcon(selectedFolder).emoji}
                </div>
                <div>
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
@@ -854,9 +920,10 @@ export default function EducationalFees() {
       {isBulkModalOpen && (
         <BulkUploadEducation
           onClose={() => setIsBulkModalOpen(false)}
-          onSuccess={() => {
+          onSuccess={(count) => {
             setIsBulkModalOpen(false);
             fetchFees();
+            showToast(`✓ ${count} record${count !== 1 ? 's' : ''} imported successfully`);
           }}
           year={selectedYear}
           semester={selectedSemester}
@@ -1055,6 +1122,17 @@ export default function EducationalFees() {
           fees={fees}
           onClose={() => setIsDownloadModalOpen(false)}
         />
+      )}
+
+      {/* Success Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[600] animate-in slide-in-from-bottom-4 fade-in duration-300 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl text-white font-bold text-sm ${
+          toast.type === 'success' ? 'bg-emerald-600 shadow-emerald-500/30' : 'bg-red-600 shadow-red-500/30'
+        }`}>
+          <span className="text-lg">{toast.type === 'success' ? '✅' : '❌'}</span>
+          {toast.message}
+          <button onClick={() => setToast(null)} className="ml-2 h-5 w-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-xs transition-colors">✕</button>
+        </div>
       )}
 
     </div>

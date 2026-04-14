@@ -144,7 +144,7 @@ export default function BulkUploadEducation({
 
       if (insertError) throw insertError;
 
-      onSuccess();
+      onSuccess(recordsToInsert.length);
     } catch (err) {
       console.error("Bulk Upload Error:", err);
       setError(err.message || "Failed to upload records.");
