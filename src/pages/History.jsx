@@ -210,8 +210,40 @@ export default function History() {
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      <div className="space-y-6 pb-8 animate-in fade-in duration-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+            <div className="h-4 w-64 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse mt-2" />
+          </div>
+        </div>
+        <div className="space-y-5 mt-8">
+          {[1, 2, 3].map(day => (
+            <div key={day} className="space-y-3">
+              <div className="flex justify-between items-center px-1">
+                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse" />
+              </div>
+              <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+                {[1, 2].map(item => (
+                  <div key={item} className="flex items-center justify-between px-5 py-4">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
+                      <div className="space-y-2">
+                        <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                        <div className="flex gap-2">
+                          <div className="h-3 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                          <div className="h-3 w-12 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

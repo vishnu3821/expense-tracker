@@ -352,8 +352,27 @@ export default function Savings() {
 
   if (loading && accounts.length === 0) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      <div className="max-w-4xl mx-auto space-y-8 pb-32 animate-in fade-in">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" />
+            <div className="space-y-2">
+              <div className="h-6 w-32 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+              <div className="h-4 w-48 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Big Summary Card Skeleton */}
+        <div className="h-48 rounded-3xl bg-slate-200 dark:bg-slate-800 animate-pulse border border-slate-100 dark:border-slate-800" />
+
+        {/* List Items Skeleton */}
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-28 rounded-3xl bg-slate-200 dark:bg-slate-800 animate-pulse border border-slate-100 dark:border-slate-800" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -738,8 +757,10 @@ export default function Savings() {
 
             <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-4">
               {loadingActivity ? (
-                <div className="flex h-40 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-24 bg-slate-100 dark:bg-slate-800 rounded-3xl animate-pulse border border-slate-50 dark:border-slate-800/50" />
+                  ))}
                 </div>
               ) : accountActivity.length === 0 ? (
                 <div className="text-center py-12 text-slate-400">
