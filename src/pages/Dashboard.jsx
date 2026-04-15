@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon } from 'lucide-react';
 
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ today: 0, month: 0, year: 0 });
   const [recent, setRecent] = useState([]);
   const [chartData, setChartData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
   const [calendarData, setCalendarData] = useState({}); // { 'YYYY-MM-DD': amount }
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
@@ -58,6 +59,7 @@ export default function Dashboard() {
       let yearTotal = 0;
       const monthlyData = {};
       const dailyMap = {};
+      const categoryMap = {};
 
       data.forEach(expense => {
         const expenseDate = parseISO(expense.date);
@@ -73,6 +75,12 @@ export default function Dashboard() {
           // Group by month for trend chart
           const monthKey = format(expenseDate, 'MMM yyyy');
           monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
+          
+          // Group by category for pie chart (Only current month)
+          if (expenseDate >= monthStart) {
+            const cat = expense.category || 'Other';
+            categoryMap[cat] = (categoryMap[cat] || 0) + amount;
+          }
         }
 
         // Group by day for calendar (always show activity regardless of category)
@@ -84,9 +92,14 @@ export default function Dashboard() {
         .reverse()
         .slice(-6);
 
+      const formattedCategoryData = Object.entries(categoryMap)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+
       setStats({ today: todayTotal, month: monthTotal, year: yearTotal });
       setRecent(data.slice(0, 5));
       setChartData(formattedChartData);
+      setCategoryData(formattedCategoryData);
       setCalendarData(dailyMap);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -255,9 +268,54 @@ export default function Dashboard() {
             <span className="text-[10px] text-slate-400 dark:text-slate-500">More</span>
           </div>
         </div>
+        
+        {/* Category Breakdown (Doughnut Chart) */}
+        <div className="card p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+              <PieChartIcon className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              Spending by Category
+            </h3>
+          </div>
+          <div className="flex-1 flex items-center justify-center min-h-[250px]">
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <RechartsTooltip 
+                    formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontWeight: 'bold' }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={65}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => {
+                      const colors = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1', '#0f766e', '#115e59'];
+                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />;
+                    })}
+                  </Pie>
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    iconType="circle"
+                    formatter={(value) => <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-slate-400 text-sm">No expenses to analyze yet.</p>
+            )}
+          </div>
+        </div>
 
         {/* Recent Transactions */}
-        <div className="card p-0 overflow-hidden flex flex-col">
+        <div className="card p-0 overflow-hidden flex flex-col lg:col-span-2">
           <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Transactions</h3>
           </div>

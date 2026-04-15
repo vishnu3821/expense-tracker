@@ -425,13 +425,13 @@ export default function Savings() {
           <p className="text-teal-100 text-xs font-bold uppercase tracking-[0.2em]">Combined Savings Portfolio</p>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-4xl font-bold tracking-tight">
-              {isPrivate ? '••••••••' : `₹${totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+              {isPrivate ? '••••••••' : `₹${totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             </span>
             {!isPrivate && <TrendingUp className="h-5 w-5 text-teal-200" />}
           </div>
 
           {/* Wealth Distribution Bar */}
-          {!isPrivate && totalSavings > 0 && (
+          {!isPrivate && totalSavings > 0 && accounts.length > 0 && (
             <div className="mt-8 space-y-2">
               <div className="flex items-center justify-between text-[10px] font-bold text-teal-100 uppercase tracking-widest">
                 <span>Wealth Distribution</span>
@@ -455,9 +455,10 @@ export default function Savings() {
             </div>
           )}
         </div>
+
         {/* Background blobs for design */}
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-teal-500 blur-3xl opacity-50" />
-        <div className="absolute -left-12 -bottom-12 h-48 w-48 rounded-full bg-teal-700 blur-3xl opacity-50" />
+        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-teal-500 blur-3xl opacity-50 pointer-events-none" />
+        <div className="absolute -left-12 -bottom-12 h-48 w-48 rounded-full bg-teal-700 blur-3xl opacity-50 pointer-events-none" />
       </div>
 
       {/* Accounts List */}
