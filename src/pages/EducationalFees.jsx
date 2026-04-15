@@ -676,17 +676,17 @@ export default function EducationalFees() {
       return (
         <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
           {/* Category header */}
-          <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
             <div className="flex items-center gap-4">
-              <div className={`h-12 w-12 rounded-2xl ${catIcon.bg} flex items-center justify-center text-2xl select-none`}>
+              <div className={`h-12 w-12 rounded-2xl ${catIcon.bg} flex items-center justify-center text-2xl select-none shrink-0`}>
                 {catIcon.emoji}
               </div>
-              <div>
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">{selectedFolder}</h2>
-                <p className="text-xs text-slate-500 font-bold">Total: ₹{formatCurrency(folderTotal)} &bull; {rawRecords.length} record{rawRecords.length !== 1 ? 's' : ''}</p>
+              <div className="min-w-0">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white truncate">{selectedFolder}</h2>
+                <p className="text-xs text-slate-500 font-bold mt-0.5">Total: ₹{formatCurrency(folderTotal)} &bull; {rawRecords.length} record{rawRecords.length !== 1 ? 's' : ''}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-1 sm:pb-0 -mb-1 sm:mb-0 w-full sm:w-auto">
               <button onClick={() => setIsBulkModalOpen(true)}
                 className="h-11 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-black flex items-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all text-sm">
                 <ClipboardPaste className="h-5 w-5" /> Bulk
@@ -822,9 +822,9 @@ export default function EducationalFees() {
       </div>
 
       {/* Pill-shaped breadcrumb chips + action toolbar */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         {/* Breadcrumb chips */}
-        <div className="flex-1 flex items-center gap-1.5 flex-wrap">
+        <div className="flex-1 flex items-center gap-1.5 overflow-x-auto hide-scrollbar pb-1 -mb-1 w-full relative before:absolute before:right-0 before:top-0 before:bottom-0 before:w-4 before:bg-linear-to-l before:from-slate-50 dark:before:from-black before:to-transparent before:pointer-events-none before:z-10">
           <button
             onClick={() => { setViewLevel('years'); setSelectedYear(null); setSelectedSemester(null); setSelectedFolder(null); setIsAuditMode(false); setRecordSearch(''); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wide border transition-all ${

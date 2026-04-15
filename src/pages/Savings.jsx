@@ -585,8 +585,6 @@ export default function Savings() {
                   required
                 />
               </div>
-
-              </div>
               
                 <button
                   type="submit"

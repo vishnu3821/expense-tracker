@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, FileText, Table, Download, Loader2, UserCircle, Hash, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { generatePDF, generateExcel, numVal } from './exportUtils';
 function boldHash(str) {
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
