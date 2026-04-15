@@ -63,8 +63,6 @@ export default function Savings() {
   // Form state
   const [bankName, setBankName] = useState('');
   const [balance, setBalance] = useState('');
-  const [upiId, setUpiId] = useState('');
-  const [upiIdError, setUpiIdError] = useState('');
 
   // Prevent body scroll when any modal/drawer is open
   useEffect(() => {
@@ -99,7 +97,6 @@ export default function Savings() {
 
       if (error) throw error;
       setAccounts(data || []);
-      await set('savings_accounts_cache', data || []);
     } catch (err) {
       console.error('Error fetching savings:', err);
     } finally {
@@ -121,47 +118,17 @@ export default function Savings() {
       setTransferStep(2); // Step 2: Validating
       
       if (editingId) {
-        // Check uniqueness excluding self
-        if (upiId) {
-          const { data: existing } = await supabase
-            .from('user_savings')
-            .select('id')
-            .eq('upi_id', upiId)
-            .neq('id', editingId)
-            .maybeSingle();
-          if (existing) {
-            setUpiIdError('This UPI ID is already in use. Try another.');
-            setIsSubmitting(false);
-            setTransferStatus('idle');
-            return;
-          }
-        }
         // Update
         const { error } = await supabase
           .from('user_savings')
           .update({ 
             bank_name: bankName, 
             balance: parseFloat(balance),
-            type: accountType,
-            upi_id: upiId || null,
+            type: accountType 
           })
           .eq('id', editingId);
         if (error) throw error;
       } else {
-        // Check uniqueness for new
-        if (upiId) {
-          const { data: existing } = await supabase
-            .from('user_savings')
-            .select('id')
-            .eq('upi_id', upiId)
-            .maybeSingle();
-          if (existing) {
-            setUpiIdError('This UPI ID is already in use. Try another.');
-            setIsSubmitting(false);
-            setTransferStatus('idle');
-            return;
-          }
-        }
         // Create
         const { error } = await supabase
           .from('user_savings')
@@ -169,28 +136,28 @@ export default function Savings() {
             user_id: user.id, 
             bank_name: bankName, 
             balance: parseFloat(balance),
-            type: accountType,
-            upi_id: upiId || null,
+            type: accountType
           }]);
         if (error) throw error;
       }
 
-      await new Promise(r => setTimeout(r, 800));
-      setTransferStep(3); // Step 3: Syncing
-      fetchSavings();
-
-      await new Promise(r => setTimeout(r, 800));
-      setTransferStep(4); // Step 4: Finalizing
       await new Promise(r => setTimeout(r, 600));
+      setTransferStep(3); // Step 3: Success
+      await new Promise(r => setTimeout(r, 800));
 
-      setBankName('');
-      setBalance('');
-      setUpiId('');
-      setUpiIdError('');
-      setAccountType('bank');
-      setEditingId(null);
-      setShowModal(false);
+      setTransferStatus('success');
       
+      // Auto-close after success animation
+      setTimeout(() => {
+        setTransferStatus('idle');
+        fetchSavings();
+
+        setBankName('');
+        setBalance('');
+        setAccountType('bank');
+        setEditingId(null);
+        setShowModal(false);
+      }, 1500);
       // We don't show receipt for manual updates, just close and reset
       setTransferStatus('idle');
       setTransferStep(0);
@@ -377,8 +344,6 @@ export default function Savings() {
     setBankName(account.bank_name);
     setBalance(account.balance);
     setAccountType(account.type || 'bank');
-    setUpiId(account.upi_id || '');
-    setUpiIdError('');
     setEditingId(account.id);
     setShowModal(true);
   };
@@ -621,39 +586,6 @@ export default function Savings() {
                 />
               </div>
 
-              {/* UPI ID (Sim Pay handle) */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Sim UPI ID <span className="text-slate-400 font-normal text-xs">(optional · 4 digits)</span>
-                </label>
-                <div className="flex gap-2 justify-center">
-                  {[0,1,2,3].map(i => (
-                    <input
-                      key={i}
-                      id={`upi-digit-${i}`}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={upiId[i] || ''}
-                      onChange={e => {
-                        const val = e.target.value.replace(/\D/g, '');
-                        const arr = upiId.split('');
-                        arr[i] = val;
-                        const newId = arr.join('').slice(0, 4);
-                        setUpiId(newId);
-                        setUpiIdError('');
-                        if (val && i < 3) document.getElementById(`upi-digit-${i+1}`)?.focus();
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Backspace' && !upiId[i] && i > 0)
-                          document.getElementById(`upi-digit-${i-1}`)?.focus();
-                      }}
-                      className="w-14 h-14 text-center text-2xl font-black rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition"
-                    />
-                  ))}
-                </div>
-                {upiIdError && <p className="text-xs text-red-500 font-medium text-center">{upiIdError}</p>}
-                <p className="text-[11px] text-slate-400 text-center">Other users can find this account by searching this ID in Sim Pay</p>
               </div>
               
                 <button

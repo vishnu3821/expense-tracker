@@ -45,19 +45,9 @@ export default function More() {
   const [broadcastStatus, setBroadcastStatus] = useState('idle'); // idle, processing, success, error
   const [broadcastStep, setBroadcastStep] = useState(0);
   const [broadcastResult, setBroadcastResult] = useState(null);
-  const [payEnabled, setPayEnabled] = useState(false);
 
   React.useEffect(() => {
-    if (user) {
-      checkNotificationStatus();
-      // Load pay feature flag
-      supabase
-        .from('feature_flags')
-        .select('value')
-        .eq('key', 'sim_pay_enabled')
-        .maybeSingle()
-        .then(({ data }) => setPayEnabled(data?.value === true));
-    }
+    if (user) checkNotificationStatus();
   }, [user]);
 
   const checkNotificationStatus = async () => {
@@ -553,24 +543,6 @@ export default function More() {
             </div>
             <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
           </Link>
-
-          {payEnabled && (
-            <Link
-              to="/more/simpay"
-              className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400 transition-colors group-hover:bg-violet-100 dark:group-hover:bg-violet-900/50">
-                  <Send className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Sim Pay</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Send virtual money by 4-digit UPI ID</p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
-            </Link>
-          )}
 
           <Link 
             to="/more/education-fees" 

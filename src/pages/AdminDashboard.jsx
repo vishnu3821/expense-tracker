@@ -15,10 +15,7 @@ import {
   Wallet,
   MoreVertical,
   Download,
-  Filter,
-  ToggleLeft,
-  ToggleRight,
-  Send
+  Filter
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -31,40 +28,14 @@ export default function AdminDashboard() {
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [payEnabled, setPayEnabled] = useState(null);
-  const [togglingPay, setTogglingPay] = useState(false);
-  const [toggleMsg, setToggleMsg] = useState('');
 
   const isAdmin = user?.email === 'p.vishnuprabhakar@gmail.com';
 
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
-      // Load pay feature flag
-      supabase
-        .from('feature_flags')
-        .select('value')
-        .eq('key', 'sim_pay_enabled')
-        .maybeSingle()
-        .then(({ data }) => setPayEnabled(data?.value === true));
     }
   }, [isAdmin]);
-
-  const handleTogglePay = async () => {
-    if (togglingPay || payEnabled === null) return;
-    setTogglingPay(true);
-    const newVal = !payEnabled;
-    const { error } = await supabase
-      .from('feature_flags')
-      .update({ value: newVal, updated_by: user.email, updated_at: new Date().toISOString() })
-      .eq('key', 'sim_pay_enabled');
-    if (!error) {
-      setPayEnabled(newVal);
-      setToggleMsg(newVal ? '✅ Sim Pay enabled for all users' : '🔒 Sim Pay disabled');
-      setTimeout(() => setToggleMsg(''), 3000);
-    }
-    setTogglingPay(false);
-  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -346,48 +317,7 @@ export default function AdminDashboard() {
 
       {!selectedUser ? (
         /* USER LIST VIEW */
-        <div className="space-y-6">
-
-          {/* ─── Feature Controls ─────────────────────────────────────── */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="h-10 w-10 rounded-xl bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600">
-                <Send className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900 dark:text-white text-sm">Feature Controls</h3>
-                <p className="text-xs text-slate-500">Manage which features are visible to users</p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-semibold text-slate-900 dark:text-white text-sm">💸 Sim Pay</p>
-                <p className="text-xs text-slate-500 mt-0.5">Allow users to send virtual money via UPI ID</p>
-              </div>
-              <button
-                onClick={handleTogglePay}
-                disabled={togglingPay || payEnabled === null}
-                className="relative shrink-0 transition-all active:scale-95 disabled:opacity-50"
-                title={payEnabled ? 'Click to disable' : 'Click to enable'}
-              >
-                {payEnabled === null ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                ) : payEnabled ? (
-                  <ToggleRight className="h-10 w-10 text-emerald-500" />
-                ) : (
-                  <ToggleLeft className="h-10 w-10 text-slate-400" />
-                )}
-              </button>
-            </div>
-
-            {toggleMsg && (
-              <p className="mt-3 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl">{toggleMsg}</p>
-            )}
-          </div>
-
-          {/* ─── User Grid ─────────────────────────────────────── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredUsers.length > 0 ? (
             filteredUsers.map(u => (
               <button
@@ -435,7 +365,6 @@ export default function AdminDashboard() {
               <p className="text-slate-500">No users found matching your search.</p>
             </div>
           )}
-        </div>
         </div>
       ) : (
         /* USER DETAIL VIEW (DRILL-DOWN TABLE) */

@@ -13,7 +13,6 @@ import MonthDetail from './pages/MonthDetail'
 import Savings from './pages/Savings'
 import AdminDashboard from './pages/AdminDashboard'
 import EducationalFees from './pages/EducationalFees'
-import SimPay from './pages/SimPay'
 import { Analytics } from '@vercel/analytics/react'
 
 function PrivateRoute({ children }) {
@@ -38,7 +37,6 @@ function App() {
               <Route path="more/year/:year/:month" element={<MonthDetail />} />
               <Route path="more/savings" element={<Savings />} />
               <Route path="more/education-fees" element={<EducationalFees />} />
-              <Route path="more/simpay" element={<SimPay />} />
               <Route path="more/admin-breakdown" element={<AdminDashboard />} />
             </Route>
           </Routes>
