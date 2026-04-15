@@ -175,7 +175,6 @@ export default function SimPay() {
         .from('user_savings')
         .select('id, bank_name, user_id, upi_id')
         .eq('upi_id', id)
-        .neq('user_id', user.id)
         .maybeSingle();
 
       if (error || !data) {
