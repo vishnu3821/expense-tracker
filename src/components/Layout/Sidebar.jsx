@@ -27,7 +27,7 @@ export default function Sidebar({ isOpen, onClose }) {
       >
         <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
           <div className="flex items-center shrink-0">
-            <img src="/logo.png" alt="Expense Tracker" className="h-24 w-auto object-contain -ml-4" />
+            <img src="/website_logo.png" alt="Expense Tracker" className="h-24 w-auto object-contain -ml-4" />
           </div>
           <button onClick={onClose} className="md:hidden text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 p-2 -mr-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800" aria-label="Close menu">
             <X className="h-5 w-5" />

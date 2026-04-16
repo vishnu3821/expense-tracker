@@ -13,7 +13,9 @@ import MonthDetail from './pages/MonthDetail'
 import Savings from './pages/Savings'
 import AdminDashboard from './pages/AdminDashboard'
 import EducationalFees from './pages/EducationalFees'
+import SplashScreen from './components/Common/SplashScreen'
 import { Analytics } from '@vercel/analytics/react'
+import { useState, useEffect } from 'react'
 
 function PrivateRoute({ children }) {
   const { user } = useAuth()
@@ -21,9 +23,12 @@ function PrivateRoute({ children }) {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   return (
     <AuthProvider>
       <ThemeProvider>
+        {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
         <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />

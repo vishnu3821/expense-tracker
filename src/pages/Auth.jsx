@@ -63,7 +63,7 @@ export default function Auth() {
     <div className="flex h-screen w-full items-center justify-center bg-slate-50 px-4 font-sans">
       <div className="w-full max-w-md card p-8 mx-auto">
         <div className="text-center mb-8 flex flex-col items-center relative overflow-hidden">
-          <img src="/logo.png" alt="Expense Tracker" className="h-32 w-auto object-contain -my-8" />
+          <img src="/website_logo.png" alt="Expense Tracker" className="h-32 w-auto object-contain -my-8" />
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight pt-4 relative z-10">
             {isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome back' : 'Create an account')}
           </h2>

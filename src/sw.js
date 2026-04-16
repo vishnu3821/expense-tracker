@@ -23,8 +23,8 @@ onBackgroundMessage(messaging, (payload) => {
   const title = payload.notification?.title || 'Expense Tracker';
   const options = {
     body: payload.notification?.body || 'You have a new update.',
-    icon: '/logo.png',
-    badge: '/logo.png',
+    icon: '/app_logo.png',
+    badge: '/app_logo.png',
   };
   self.registration.showNotification(title, options);
 });

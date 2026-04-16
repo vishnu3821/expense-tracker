@@ -286,8 +286,8 @@ export default function More() {
           const reg = await navigator.serviceWorker.ready;
           await reg.showNotification('🔔 Notifications Enabled!', {
             body: 'You\'ll receive daily expense summaries every evening. Great choice!',
-            icon: '/logo.png',
-            badge: '/logo.png',
+            icon: '/app_logo.png',
+            badge: '/app_logo.png',
             tag: 'notifications-enabled',
           });
         } catch (notifErr) {

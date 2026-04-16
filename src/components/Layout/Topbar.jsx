@@ -20,7 +20,7 @@ export default function Topbar() {
         <div className="flex items-center gap-4">
           {/* Logo shown on mobile since there's no sidebar */}
           <Link to="/" className="md:hidden flex items-center overflow-hidden h-8">
-            <img src="/logo.png" alt="Expense Tracker" className="h-16 w-auto object-contain -ml-2 select-none pointer-events-none" />
+            <img src="/website_logo.png" alt="Expense Tracker" className="h-16 w-auto object-contain -ml-2 select-none pointer-events-none" />
           </Link>
         </div>
         
