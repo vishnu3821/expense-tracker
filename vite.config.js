@@ -17,21 +17,21 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
       },
       manifest: {
-        name: 'Expense Tracker',
-        short_name: 'Tracker',
+        name: 'Expense Monitor',
+        short_name: 'Monitor',
         description: 'Track your expenses directly from your mobile device',
         theme_color: '#0d9488',
         background_color: '#ffffff',
         display: 'standalone',
         icons: [
           {
-            src: '/logo.png',
+            src: '/app_logo.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/logo.png',
+            src: '/app_logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
