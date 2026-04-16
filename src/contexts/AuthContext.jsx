@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
 
           {/* Minimal Brand Footer at bottom center */}
           <div className="fixed bottom-16 left-0 right-0 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1500">
-            <h2 className="text-sm font-bold tracking-[0.4em] text-slate-400 uppercase">Expense Tracker</h2>
+            <h2 className="text-sm font-bold tracking-[0.4em] text-slate-400 uppercase">Expense Monitor</h2>
             <div className="h-[3px] w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-teal-500 animate-[loading-bar_2.5s_infinite]" style={{ width: '100%', transformOrigin: 'left' }} />
             </div>

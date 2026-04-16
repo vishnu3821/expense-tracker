@@ -22,7 +22,7 @@ export default function SplashScreen({ onFinish }) {
 
   return (
     <div 
-      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-white transition-opacity duration-200 ease-in-out ${
+      className={`fixed inset-0 z-9999 flex items-center justify-center bg-white transition-opacity duration-200 ease-in-out ${
         isExiting ? 'opacity-0' : 'opacity-100'
       }`}
     >

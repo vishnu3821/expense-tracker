@@ -477,7 +477,7 @@ export default function More() {
         doc.setFontSize(7);
         doc.setTextColor(148, 163, 184);
         doc.text(
-          `Expense Tracker  •  Page ${i} of ${pageCount}  •  ${generatedOn}`,
+          `Expense Monitor  •  Page ${i} of ${pageCount}  •  ${generatedOn}`,
           pageWidth / 2,
           doc.internal.pageSize.getHeight() - 6,
           { align: 'center' }

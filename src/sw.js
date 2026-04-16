@@ -20,7 +20,7 @@ const messaging = getMessaging(firebaseApp);
 
 onBackgroundMessage(messaging, (payload) => {
   console.log('[sw.js] Background message received:', payload);
-  const title = payload.notification?.title || 'Expense Tracker';
+  const title = payload.notification?.title || 'Expense Monitor';
   const options = {
     body: payload.notification?.body || 'You have a new update.',
     icon: '/app_logo.png',
