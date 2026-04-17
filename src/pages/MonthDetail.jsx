@@ -57,6 +57,9 @@ export default function MonthDetail() {
     }
   };
 
+  const maxExpenseId = expenses.length > 0 ? expenses.reduce((prev, current) => (Number(prev.amount) > Number(current.amount)) ? prev : current).id : null;
+  const minExpenseId = expenses.length > 0 && expenses.length > 1 ? expenses.reduce((prev, current) => (Number(prev.amount) < Number(current.amount)) ? prev : current).id : null;
+
   const handleDelete = async (id, e) => {
     if (e) e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this expense?")) return;
@@ -99,18 +102,24 @@ export default function MonthDetail() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto pb-6 relative min-h-[80vh]">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button 
-          onClick={() => navigate('/more/year')}
-          className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            {MONTH_NAMES[selectedMonthIndex]} {selectedYear}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Total spent this month</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate('/more/year')}
+            className="h-12 w-12 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">
+              {MONTH_NAMES[selectedMonthIndex]}
+            </h2>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Archive Detail {selectedYear}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Scan</span>
         </div>
       </div>
 
@@ -120,53 +129,112 @@ export default function MonthDetail() {
         </div>
       ) : (
         <>
-          {/* Total Banner Header */}
-          <div className="bg-slate-900 dark:bg-slate-800/80 border border-transparent dark:border-slate-800 rounded-[20px] p-6 text-white text-center shadow-lg">
-            <p className="text-slate-400 text-sm font-medium uppercase tracking-widest mb-1 pointer-events-none">Total Expense</p>
-            <p className="text-4xl font-extrabold tracking-tight pointer-events-none">₹{monthTotal.toFixed(2)}</p>
+          {/* Total Banner Header - The Wealth Pulse */}
+          <div className="relative group perspective-1000">
+            <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/10 transition-all duration-500">
+               {/* Pulsing Aura */}
+               <div className="absolute inset-0 bg-emerald-500/5 animate-pulse" />
+               
+               <div className="relative z-10 flex flex-col items-center text-center py-4">
+                  <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] mb-3">Monthly Outflow Ledger</p>
+                  <p className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-linear-to-b from-white to-white/60">
+                    ₹{monthTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  </p>
+                  <div className="mt-6 flex items-center gap-4">
+                     <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-2xl border border-white/10 backdrop-blur-md">
+                        <div className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">{expenses.length} Records</span>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Background Decorative Rings */}
+               <div className="absolute -top-10 -right-10 h-40 w-40 border border-white/5 rounded-full" />
+               <div className="absolute -bottom-10 -left-10 h-32 w-32 border border-white/5 rounded-full" />
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <h3 className="font-semibold text-slate-900 dark:text-white px-1 mt-4">Transactions</h3>
+          <div className="space-y-6 relative">
+            <div className="flex items-center justify-between px-1">
+               <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Transaction Stream</h3>
+               <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800 mx-4" />
+            </div>
             
+            {/* The Scanner Beam */}
+            <div className="absolute left-0 right-0 h-10 bg-linear-to-b from-emerald-500/20 to-transparent blur-xl pointer-events-none z-20 animate-scanner-beam" />
+
             {expenses.length === 0 ? (
-              <div className="card p-10 text-center text-slate-500 dark:text-slate-400 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                No recorded transactions for this month.
+              <div className="p-20 text-center bg-slate-50 dark:bg-slate-900/40 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+                <p className="text-sm font-bold text-slate-400 italic">No recorded transactions detected.</p>
               </div>
             ) : (
-              <div className="grid gap-3">
-                {expenses.map((expense) => (
+              <div className="grid gap-4">
+                {expenses.map((expense) => {
+                  const isMax = expense.id === maxExpenseId;
+                  const isMin = expense.id === minExpenseId;
+                  
+                  return (
                   <button
                     key={expense.id}
                     onClick={() => setSelectedExpense(expense)}
-                    className="card p-4 flex items-center justify-between text-left transition-all duration-200 active:scale-[0.98] border border-slate-100 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-md bg-white dark:bg-slate-900"
+                    className={`relative overflow-hidden p-6 flex items-center justify-between text-left transition-all duration-300 active:scale-[0.98] rounded-[2rem] border group ${
+                      isMax 
+                        ? 'bg-red-500/5 border-red-500/20 shadow-lg shadow-red-500/5' 
+                        : isMin 
+                          ? 'bg-emerald-500/5 border-emerald-500/20 shadow-lg shadow-emerald-500/5'
+                          : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-emerald-500/30'
+                    }`}
                   >
-                    <div className="flex items-center gap-3 overflow-hidden pr-4">
-                      <div className="h-10 w-10 shrink-0 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700">
+                    {isMax && <div className="absolute top-2 right-6 text-[8px] font-black text-red-500 uppercase tracking-widest">Highest Outlier</div>}
+                    {isMin && <div className="absolute top-2 right-6 text-[8px] font-black text-emerald-500 uppercase tracking-widest">Lowest Record</div>}
+                    
+                    <div className="flex items-center gap-5 overflow-hidden pr-4">
+                      <div className={`h-14 w-14 shrink-0 rounded-[1.25rem] flex items-center justify-center transition-all duration-500 ${
+                        isMax ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' :
+                        isMin ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' :
+                        'bg-slate-50 dark:bg-slate-800/50 group-hover:bg-emerald-500 group-hover:text-white'
+                      }`}>
                         {expense.image_url ? (
-                          <ImageIcon className="h-4 w-4 text-teal-600" />
+                          <ImageIcon className="h-6 w-6" />
                         ) : (
-                          <div className="h-2 w-2 rounded-full bg-teal-400" />
+                          <span className="text-xl font-bold">{isMax ? '📉' : isMin ? '📈' : '💳'}</span>
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{expense.name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                          {format(parseISO(expense.date), 'MMM dd')} • {(expense.created_at ? new Date(expense.created_at) : parseISO(expense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} • {expense.category || 'Other'}
-                        </p>
+                        <p className="text-base font-black text-slate-900 dark:text-white truncate tracking-tight">{expense.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{expense.category || 'Other'}</span>
+                           <div className="h-1 w-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+                           <span className="text-[10px] font-bold text-slate-400">{format(parseISO(expense.date), 'MMM dd')}</span>
+                        </div>
                       </div>
                     </div>
                     
                     <div className="shrink-0 text-right">
-                      <p className="text-[15px] font-bold text-slate-900 dark:text-white">₹{Number(expense.amount).toFixed(2)}</p>
+                      <p className={`text-xl font-black tracking-tighter ${isMax ? 'text-red-600' : isMin ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
+                        ₹{Number(expense.amount).toLocaleString('en-IN')}
+                      </p>
                     </div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </>
       )}
+
+      <style>{`
+        @keyframes scanner-beam {
+          0% { top: 0; opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { top: 100%; opacity: 0; }
+        }
+        .animate-scanner-beam {
+          animation: scanner-beam 4s infinite linear;
+        }
+      `}</style>
 
       {/* Transaction Modal Base styles from history slightly adapted */}
       {selectedExpense && (
