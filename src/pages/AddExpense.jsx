@@ -62,6 +62,16 @@ export default function AddExpense() {
   // Animation State
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
   const [transferStep, setTransferStep] = useState(0);
+  const [rewardMessage, setRewardMessage] = useState('');
+
+  const REWARDS = [
+    "Wealth Secured! 💰",
+    "Financial Goal Updated! 🚀",
+    "Budget Protocol Active! 🛡️",
+    "Expense Logged to Ledger! 📜",
+    "Smart Saving Move! ✨",
+    "Transaction Certified! ✅"
+  ];
 
 
   const [formData, setFormData] = useState({
@@ -231,6 +241,7 @@ export default function AddExpense() {
         
         setTransferStep(4); // Finalizing
         await new Promise(r => setTimeout(r, 800));
+        setRewardMessage(REWARDS[Math.floor(Math.random() * REWARDS.length)]);
         setTransferStatus('success');
       }
 
@@ -618,7 +629,54 @@ export default function AddExpense() {
           60%  { opacity: 1; transform: translateY(-4px) scale(1.03); }
           100% { opacity: 1; transform: translateY(0px) scale(1); }
         }
+        @keyframes money-flow {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes chime {
+          0% { transform: scale(1) rotate(0); }
+          25% { transform: scale(1.2) rotate(5deg); }
+          50% { transform: scale(1.1) rotate(-5deg); }
+          100% { transform: scale(1) rotate(0); }
+        }
+        .animate-chime {
+          animation: chime 0.5s ease-in-out;
+        }
+        .animate-money-flow {
+          animation: money-flow 1.5s infinite linear;
+        }
+        @keyframes confetti-fall {
+          0% { transform: translateY(-100vh) rotate(0); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        .confetti {
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          background: #10b981;
+          top: -10px;
+          animation: confetti-fall 3s linear forwards;
+        }
       `}</style>
+       
+      {transferStatus === 'success' && (
+        <div className="fixed inset-0 pointer-events-none z-110 overflow-hidden">
+          {[...Array(30)].map((_, i) => (
+            <div 
+              key={i} 
+              className="confetti"
+              style={{
+                left: `${Math.random() * 100}%`,
+                backgroundColor: ['#10b981', '#34d399', '#059669', '#6ee7b7'][Math.floor(Math.random() * 4)],
+                animationDelay: `${Math.random() * 2}s`,
+                width: `${Math.random() * 10 + 5}px`,
+                height: `${Math.random() * 5 + 5}px`,
+                borderRadius: i % 2 === 0 ? '50%' : '2px'
+              }}
+            />
+          ))}
+        </div>
+      )}
       
       {(transferStatus !== 'idle') && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -643,16 +701,18 @@ export default function AddExpense() {
                 </div>
 
                 <div className="relative z-10 flex flex-col items-center gap-2">
-                   <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-50 dark:bg-teal-900/30' : 'shadow-sm'}`}>
-                      {transferStatus === 'success' ? (
-                        <CheckCircle className="h-8 w-8 text-teal-600 animate-in zoom-in" />
-                      ) : (
-                        <ReceiptText className={`h-8 w-8 ${transferStep >= 3 ? 'text-teal-600 dark:text-teal-400 animate-pulse' : 'text-slate-400'}`} />
-                      )}
-                      <div className="absolute -bottom-6 flex flex-col items-center w-24">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expense</span>
-                      </div>
-                   </div>
+                    <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${transferStep >= 4 ? 'bg-teal-50 dark:bg-teal-900/30' : 'shadow-sm'}`}>
+                       {transferStatus === 'success' ? (
+                         <div className="animate-chime">
+                           <CheckCircle className="h-8 w-8 text-teal-600" />
+                         </div>
+                       ) : (
+                         <ReceiptText className={`h-8 w-8 ${transferStep >= 3 ? 'text-teal-600 dark:text-teal-400 animate-pulse' : 'text-slate-400'}`} />
+                       )}
+                       <div className="absolute -bottom-6 flex flex-col items-center w-24">
+                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Expense</span>
+                       </div>
+                    </div>
                 </div>
               </div>
 
@@ -673,7 +733,7 @@ export default function AddExpense() {
                         <div className="h-10 w-10 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-teal-500/30">
                           <ShieldCheck className="h-6 w-6 text-white" />
                         </div>
-                         <p className="text-sm font-bold text-slate-900 dark:text-white">Expense Recorded Successfully</p>
+                         <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">{rewardMessage}</p>
                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium px-6 leading-relaxed">
                             Added <span className="text-teal-600 dark:text-teal-400 font-black">"{successName}"</span> and updated bank balance.
                          </p>
