@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -56,117 +56,149 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Your Profile</h2>
-        <p className="text-slate-500 text-sm mt-1">Manage your account settings and credentials.</p>
+    <div className="max-w-2xl mx-auto space-y-10 pb-10 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Your Identity</h2>
+        <p className="text-slate-500 text-sm font-medium">Manage your elite financial credentials.</p>
       </div>
 
-      {/* Account Info Card */}
-      <div className="card overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-            <User className="h-5 w-5 text-teal-600" />
+      {/* Titanium Membership Card */}
+      <div className="relative group perspective-1000">
+        <div className="relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/10 transition-all duration-700 hover:rotate-y-2">
+          {/* Shimmer Effect */}
+          <div className="absolute inset-0 bg-linear-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col justify-between h-56">
+             <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                   <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-emerald-400 fill-emerald-400" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">Titanium Member</p>
+                   </div>
+                   <h3 className="text-2xl font-black tracking-tight mt-2">EXPENSE MONITOR</h3>
+                </div>
+                {/* Holographic Badge */}
+                <div className="relative h-14 w-14 rounded-full bg-linear-to-br from-emerald-400 via-teal-200 to-emerald-600 p-0.5 shadow-[0_0_20px_rgba(16,185,129,0.4)] animate-pulse">
+                   <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center">
+                      <BadgeCheck className="h-8 w-8 text-emerald-400" />
+                   </div>
+                   <div className="absolute inset-0 rounded-full bg-linear-to-tr from-transparent via-white/40 to-transparent opacity-50" />
+                </div>
+             </div>
+
+             <div className="space-y-4">
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Digital Identifier</p>
+                   <p className="text-lg font-black tracking-tight truncate max-w-[280px]">{user?.email}</p>
+                </div>
+                <div className="flex justify-between items-end">
+                   <div className="space-y-1">
+                      <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Member Since</p>
+                      <p className="text-xs font-bold tracking-widest">EST. 2024</p>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Network Status</p>
+                      <div className="flex items-center gap-2 justify-end mt-1">
+                         <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+                         <span className="text-[10px] font-black uppercase">Encrypted</span>
+                      </div>
+                   </div>
+                </div>
+             </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-slate-900 leading-tight">Account Information</h3>
-            <p className="text-xs text-slate-500">Currently securely authenticated account details.</p>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="flex items-center gap-3 text-slate-700 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm">
-            <Mail className="h-5 w-5 text-slate-400" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-500">Registered Email</p>
-              <p className="text-base truncate font-medium">{user?.email}</p>
-            </div>
-          </div>
+
+          {/* Background Patterns */}
+          <div className="absolute top-0 right-0 h-64 w-64 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 h-40 w-40 bg-teal-500/5 blur-[60px] rounded-full pointer-events-none" />
         </div>
       </div>
 
-      {/* Security Card */}
-      <div className="card overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-            <Lock className="h-5 w-5 text-indigo-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-slate-900 leading-tight">Security</h3>
-            <p className="text-xs text-slate-500">Update your password to keep your account safe.</p>
-          </div>
-        </div>
-        
-        <form onSubmit={handleUpdatePassword} className="p-6 space-y-6">
-          {success && (
-            <div className="rounded-xl border border-teal-200 bg-teal-50 p-4 flex items-center gap-3 text-teal-800">
-              <CheckCircle className="h-5 w-5 text-teal-600" />
-              <p className="text-sm font-medium">Password successfully updated!</p>
+      <div className="grid gap-8">
+        {/* Security / Update Card */}
+        <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8 group">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <Lock className="h-6 w-6 text-emerald-400" />
             </div>
-          )}
-
-          {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-800">
-              <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
-              <p className="text-sm font-medium">{error}</p>
+            <div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Security Protocol</h3>
+              <p className="text-xs text-slate-500 font-medium">Update your encrypted access credentials.</p>
             </div>
-          )}
-
-          <div className="grid gap-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">New Password</label>
-              <div className="relative">
-                <input
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  className="input-field pr-10"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+          </div>
+          
+          <form onSubmit={handleUpdatePassword} className="space-y-6">
+            {success && (
+              <div className="rounded-2xl bg-emerald-500/10 p-4 text-xs font-bold text-emerald-600 border border-emerald-500/20 flex items-center gap-3 animate-in slide-in-from-top-2">
+                <CheckCircle className="h-5 w-5" />
+                <p>Credential sequence updated successfully.</p>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Confirm New Password</label>
-              <div className="relative">
+            {error && (
+              <div className="rounded-2xl bg-red-500/10 p-4 text-xs font-bold text-red-400 border border-red-500/20 flex items-center gap-3 animate-in slide-in-from-top-2">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p>{error}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">New Password</label>
+                <div className="relative">
+                  <input
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="w-full bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-slate-900 dark:text-white text-sm font-bold placeholder:text-slate-400 focus:border-emerald-500/50 outline-none transition-all shadow-sm"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm New Password</label>
                 <input
                   name="confirmPassword"
                   type={showPassword ? "text" : "password"}
                   required
-                  className="input-field pr-10"
+                  className="w-full bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl px-5 py-4 text-slate-900 dark:text-white text-sm font-bold placeholder:text-slate-400 focus:border-emerald-500/50 outline-none transition-all shadow-sm"
                   placeholder="••••••••"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                 />
               </div>
             </div>
-          </div>
 
-          <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={loading || !formData.password}
-              className="btn-primary"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update Password'
-              )}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={loading || !formData.password}
+                className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-50 flex items-center gap-3"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Synchronizing...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" />
+                    Update Access
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
