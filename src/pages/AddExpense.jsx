@@ -172,12 +172,15 @@ export default function AddExpense() {
     const savedName = formData.name; // capture before reset
 
     try {
-      // Start Animation
+      // Start Animation Protocol
+      setTransferStatus('processing');
       if (formData.savings_account_id) {
-        setTransferStatus('processing');
         setTransferStep(1); // Initiating
         await new Promise(r => setTimeout(r, 800));
         setTransferStep(2); // Deducting
+      } else {
+        setTransferStep(3); // General Recording
+        await new Promise(r => setTimeout(r, 500));
       }
 
       let image_url = null;
@@ -238,12 +241,11 @@ export default function AddExpense() {
             fetchAccounts();
           }
         }
-        
-        setTransferStep(4); // Finalizing
-        await new Promise(r => setTimeout(r, 800));
-        setRewardMessage(REWARDS[Math.floor(Math.random() * REWARDS.length)]);
-        setTransferStatus('success');
       }
+      setTransferStep(4); // Finalizing
+      await new Promise(r => setTimeout(r, 800));
+      setRewardMessage(REWARDS[Math.floor(Math.random() * REWARDS.length)]);
+      setTransferStatus('success');
 
       setFormData({
         name: '',
@@ -695,7 +697,9 @@ export default function AddExpense() {
                    </div>
                    <div className="absolute -bottom-6 flex flex-col items-center w-32">
                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center truncate w-full">
-                       {accounts.find(a => a.id === formData.savings_account_id)?.bank_name || 'Bank'}
+                       {formData.savings_account_id 
+                         ? (accounts.find(a => a.id === formData.savings_account_id)?.bank_name || 'Bank')
+                         : 'Manual Entry'}
                      </span>
                    </div>
                 </div>
