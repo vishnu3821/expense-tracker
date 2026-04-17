@@ -56,6 +56,7 @@ export default function AddExpense() {
   const [error, setError] = useState(null);
   const [scanMessage, setScanMessage] = useState(null);
   const [accounts, setAccounts] = useState([]);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const imagePreviewUrl = useRef(null);
 
   // Animation State
@@ -394,11 +395,47 @@ export default function AddExpense() {
             </div>
 
             <div className="space-y-3 sm:col-span-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                Select Category
-                <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Visual Grid</span>
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
+                <button 
+                  type="button"
+                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                  className="text-xs font-bold text-teal-600 hover:text-teal-700 bg-teal-50 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  {isCategoryOpen ? 'Close Grid' : 'Change Category'}
+                </button>
+              </div>
+
+              {/* Selected Category Preview (Always Visible) */}
+              {!isCategoryOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryOpen(true)}
+                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-teal-600 dark:text-teal-400 border border-slate-100 dark:border-slate-700">
+                      {(() => {
+                        const cat = CATEGORIES.find(c => c.name === formData.category) || CATEGORIES[CATEGORIES.length - 1];
+                        const Icon = cat.icon;
+                        return <Icon className="h-6 w-6" />;
+                      })()}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Active Selection</p>
+                      <p className="text-base font-bold text-slate-900 dark:text-white leading-none">{formData.category}</p>
+                    </div>
+                  </div>
+                  <div className="h-8 w-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-teal-600 transition-colors">
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                </button>
+              )}
+
+              {/* Collapsible Grid */}
+              <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 transition-all duration-500 overflow-hidden ${
+                isCategoryOpen ? 'max-h-[500px] opacity-100 mt-2 py-2' : 'max-h-0 opacity-0'
+              }`}>
                 {CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   const isSelected = formData.category === cat.name;
@@ -406,7 +443,10 @@ export default function AddExpense() {
                     <button
                       key={cat.name}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, category: cat.name }))}
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, category: cat.name }));
+                        setIsCategoryOpen(false);
+                      }}
                       className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group
                         ${isSelected 
                           ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-500/30 scale-[1.05] z-10' 
