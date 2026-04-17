@@ -277,67 +277,87 @@ export default function History() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="relative mt-8">
+        {/* The Activity Line (Timeline) */}
+        <div className="absolute left-[1.125rem] top-2 bottom-0 w-[2px] bg-linear-to-b from-emerald-500/50 via-teal-500/20 to-transparent pointer-events-none" />
+
         {Object.keys(groupedByDay).length > 0 ? (
-          Object.entries(groupedByDay).map(([dateKey, { expenses: dayExpenses, total: dayTotal }]) => (
-            <div key={dateKey}>
-              {/* Day Header */}
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{dayLabel(dateKey)}</span>
-                <span className="text-xs font-semibold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2.5 py-1 rounded-full">₹{dayTotal.toFixed(2)}</span>
-              </div>
-              {/* Expense Cards for this day */}
-              <div className="card overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
-                {dayExpenses.map((expense) => {
-                  // Use created_at for the most accurate transaction time
-                  const realTimeSource = expense.created_at ? new Date(expense.created_at) : new Date(expense.date);
-                  const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-                  
-                  return (
-                  <div
-                    key={expense.id}
-                    className="flex items-center justify-between px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
-                    onClick={() => setSelectedExpense(expense)}
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors flex items-center justify-center text-lg">
-                        {expense.image_url ? <ImageIcon className="h-4 w-4 text-teal-500" /> : '💳'}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{expense.name}</p>
-                        <div className="flex items-center gap-2">
-                          <span className="inline-block mt-0.5 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded">{expense.category || 'Other'}</span>
-                          <span className="text-[10px] text-slate-400 mt-0.5">{timeStr}</span>
+          <div className="space-y-12">
+            {Object.entries(groupedByDay).map(([dateKey, { expenses: dayExpenses, total: dayTotal }]) => (
+              <div key={dateKey} className="relative pl-10">
+                {/* Sticky Date Bubble */}
+                <div className="sticky top-4 z-20 -ml-10 mb-6 flex items-center gap-3">
+                   <div className="h-9 w-9 rounded-full bg-slate-900 border-2 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] relative z-30">
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                   </div>
+                   <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-100 dark:border-slate-800 px-4 py-2 rounded-2xl shadow-sm flex items-center gap-4 group">
+                      <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">{dayLabel(dateKey)}</span>
+                      <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
+                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">₹{dayTotal.toLocaleString('en-IN')}</span>
+                   </div>
+                </div>
+
+                {/* Expense Cards for this day */}
+                <div className="space-y-4 relative">
+                  {dayExpenses.map((expense) => {
+                    const realTimeSource = expense.created_at ? new Date(expense.created_at) : new Date(expense.date);
+                    const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                    
+                    return (
+                    <div
+                      key={expense.id}
+                      className="relative group cursor-pointer active:scale-[0.99] transition-all"
+                      onClick={() => setSelectedExpense(expense)}
+                    >
+                      {/* Connector Dot */}
+                      <div className="absolute -left-[1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:border-emerald-500 group-hover:bg-emerald-500 transition-all z-10 shadow-sm" />
+
+                      <div className="bg-white dark:bg-slate-900/40 backdrop-blur-xl border border-slate-100 dark:border-slate-800 rounded-3xl p-5 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5 transition-all duration-300">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="h-12 w-12 shrink-0 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-inner">
+                              {expense.image_url ? <ImageIcon className="h-5 w-5 text-emerald-500 group-hover:text-white" /> : <span className="text-xl">💳</span>}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-slate-900 dark:text-white truncate pr-2 tracking-tight">{expense.name}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-emerald-500/70 transition-colors">{expense.category || 'Other'}</span>
+                                <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+                                <span className="text-[9px] font-bold text-slate-400">{timeStr}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-lg font-black text-slate-900 dark:text-white tracking-tighter">₹{Number(expense.amount).toLocaleString('en-IN')}</span>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <button
+                                 onClick={(e) => handleDelete(expense.id, e)}
+                                 disabled={isDeleting}
+                                 className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                               >
+                                 <Trash2 className="h-3.5 w-3.5" />
+                               </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-3">
-                      <span className="text-sm font-bold text-slate-900 dark:text-white">₹{Number(expense.amount).toFixed(2)}</span>
-                      <button
-                        onClick={(e) => handleDelete(expense.id, e)}
-                        disabled={isDeleting}
-                        className="text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                        title="Delete expense"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <div className="p-12 text-center text-slate-500">
-            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-4">
-              <ExternalLink className="h-6 w-6 text-slate-400" />
+          <div className="p-20 text-center bg-slate-50 dark:bg-slate-900/40 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+            <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-white dark:bg-slate-800 shadow-sm mb-6">
+              <Search className="h-8 w-8 text-slate-300" />
             </div>
-            <p className="font-medium text-slate-900 mb-1">
-              {expenses.length > 0 ? "No search results match" : "No expenses yet"}
+            <p className="font-black text-slate-900 dark:text-white uppercase text-xs tracking-[0.2em] mb-2">
+              {expenses.length > 0 ? "No Signal Detected" : "Empty Records"}
             </p>
-            <p className="text-sm">
-              {expenses.length > 0 ? "Try adjusting your search query." : "When you record transactions, they'll appear here."}
+            <p className="text-sm text-slate-500 font-medium">
+              {expenses.length > 0 ? "Adjust your search parameters" : "Transactions will manifest here"}
             </p>
           </div>
         )}
