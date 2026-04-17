@@ -88,10 +88,10 @@ export default function Auth() {
               <img src="/website_logo.png" alt="Expense Monitor" className="h-24 w-auto object-contain relative z-10" />
             </div>
             <h2 className="text-3xl font-black text-white tracking-tighter leading-none">
-              {isForgotPassword ? 'Secure Reset' : (isLogin ? 'Welcome Back' : 'Create Identity')}
+              {isForgotPassword ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Create Account')}
             </h2>
             <p className="text-white/40 mt-3 text-xs font-bold uppercase tracking-widest">
-              {isForgotPassword ? 'Authorization Recovery' : (isLogin ? 'Personnel Identification' : 'New Account Protocol')}
+              {isForgotPassword ? 'Enter your email to reset' : (isLogin ? 'Sign in to your account' : 'Join the platform')}
             </p>
           </div>
 
@@ -106,13 +106,13 @@ export default function Auth() {
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
                 <ShieldCheck className="h-3 w-3" />
-                Email Access Point
+                Email Address
               </label>
               <input
                 type="email"
                 required
                 className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-bold placeholder:text-white/20 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all shadow-inner"
-                placeholder="identity@secure.net"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -122,7 +122,7 @@ export default function Auth() {
                 <div className="flex justify-between items-center ml-1">
                   <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
                     <Lock className="h-3 w-3" />
-                    Access Token
+                    Password
                   </label>
                   {isLogin && (
                     <button
@@ -130,7 +130,7 @@ export default function Auth() {
                       onClick={() => { setIsForgotPassword(true); setError(null); }}
                       className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest transition-colors"
                     >
-                      Recovery?
+                      Forgot?
                     </button>
                   )}
                 </div>
@@ -159,7 +159,7 @@ export default function Auth() {
                 disabled={loading}
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
               >
-                {isForgotPassword ? 'Request Link' : (isLogin ? 'Authorize Access' : 'Register Identity')}
+                {isForgotPassword ? 'Send Link' : (isLogin ? 'Sign In' : 'Sign Up')}
               </button>
             </div>
           </form>
@@ -171,7 +171,7 @@ export default function Auth() {
                   <div className="w-full border-t border-white/5"></div>
                 </div>
                 <div className="relative flex justify-center text-[10px]">
-                  <span className="bg-[#0f172a] px-4 font-black text-white/20 uppercase tracking-[0.3em]">Alternate Protocol</span>
+                  <span className="bg-[#0f172a] px-4 font-black text-white/20 uppercase tracking-[0.3em]">Or continue with</span>
                 </div>
               </div>
 
@@ -200,7 +200,7 @@ export default function Auth() {
                       fill="#047857"
                     />
                   </svg>
-                  Google Node
+                  Google
                 </button>
               </div>
             </>
@@ -212,16 +212,16 @@ export default function Auth() {
                 onClick={() => { setIsForgotPassword(false); setError(null); }}
                 className="font-black text-[10px] text-white/40 hover:text-white uppercase tracking-[0.3em] transition-all flex items-center justify-center w-full gap-3"
               >
-                <span>←</span> Abort Recovery
+                <span>←</span> Back to login
               </button>
             ) : (
               <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.3em]">
-                {isLogin ? "No identity recorded? " : "Identity already active? "}
+                {isLogin ? "Don't have an account? " : "Already have an account? "}
                 <button
                   onClick={() => { setIsLogin(!isLogin); setError(null); }}
                   className="text-emerald-500 hover:text-emerald-400 transition-colors"
                 >
-                  {isLogin ? 'Initiate Registration' : 'Return to Core'}
+                  {isLogin ? 'Sign up' : 'Sign in'}
                 </button>
               </p>
             )}
