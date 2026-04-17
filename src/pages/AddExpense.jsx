@@ -2,10 +2,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
-import { Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, ReceiptText, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
+import { 
+  Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, 
+  ReceiptText, ShieldCheck, CreditCard, ArrowRight,
+  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal
+} from 'lucide-react';
 import { get, del } from 'idb-keyval';
 
 import { createWorker } from 'tesseract.js';
+
+const CATEGORIES = [
+  { name: 'Food & Dining', icon: Utensils, color: 'bg-orange-50 text-orange-600 border-orange-100' },
+  { name: 'Transport', icon: Car, color: 'bg-blue-50 text-blue-600 border-blue-100' },
+  { name: 'Shopping', icon: ShoppingBag, color: 'bg-purple-50 text-purple-600 border-purple-100' },
+  { name: 'Entertainment', icon: Film, color: 'bg-pink-50 text-pink-600 border-pink-100' },
+  { name: 'Utilities', icon: Zap, color: 'bg-amber-50 text-amber-600 border-amber-100' },
+  { name: 'Health', icon: HeartPulse, color: 'bg-red-50 text-red-600 border-red-100' },
+  { name: 'Housing', icon: Home, color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
+  { name: 'Other', icon: MoreHorizontal, color: 'bg-slate-50 text-slate-600 border-slate-100' }
+];
 
 async function analyzeReceiptImage(imageFile) {
   const worker = await createWorker('eng');
@@ -378,25 +393,41 @@ export default function AddExpense() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="category" className="text-sm font-medium text-slate-700">Category</label>
-              <select
-                id="category"
-                name="category"
-                className="input-field py-[0.6rem]"
-                value={formData.category}
-                onChange={handleChange}
-                required
-              >
-                <option value="Food & Dining">Food & Dining</option>
-                <option value="Transport">Transport</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Health">Health</option>
-                <option value="Housing">Housing</option>
-                <option value="Other">Other</option>
-              </select>
+            <div className="space-y-3 sm:col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                Select Category
+                <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Visual Grid</span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {CATEGORIES.map((cat) => {
+                  const Icon = cat.icon;
+                  const isSelected = formData.category === cat.name;
+                  return (
+                    <button
+                      key={cat.name}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, category: cat.name }))}
+                      className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group
+                        ${isSelected 
+                          ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-500/30 scale-[1.05] z-10' 
+                          : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-teal-200 dark:hover:border-teal-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
+                    >
+                      <div className={`mb-2 p-2 rounded-xl transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30'}`}>
+                        <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400'}`} />
+                      </div>
+                      <span className="text-[11px] font-bold text-center tracking-tight leading-none">{cat.name}</span>
+                      {isSelected && (
+                        <div className="absolute -top-1 -right-1">
+                          <div className="bg-white text-teal-600 rounded-full p-0.5 shadow-sm">
+                            <CheckCircle className="h-3 w-3 fill-current" />
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="space-y-2">
