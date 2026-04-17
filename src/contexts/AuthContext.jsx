@@ -10,26 +10,39 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Safety timeout: Ensure loading is set to false after 3 seconds max
+    // Safety timeout: Ensure loading is set to false after 3 seconds max
     const timeout = setTimeout(() => {
       setLoading(false);
     }, 3000);
+
+    // Detect if we're in an OAuth redirect flow
+    const isOAuthCallback = window.location.hash.includes('access_token=') || 
+                           window.location.hash.includes('error=');
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSession(session)
         setUser(session.user)
       }
-      setLoading(false)
-      clearTimeout(timeout);
+      
+      // If we're in a callback, don't stop loading yet - let onAuthStateChange handle it
+      if (!isOAuthCallback) {
+        setLoading(false)
+        clearTimeout(timeout);
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
       setUser(session?.user || null)
       
-      // If we just signed in via OAuth, ensure it's flushed to storage
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      // Force a hard stop on loading for any significant auth event
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
         setLoading(false);
+        clearTimeout(timeout);
+      } else if (event === 'SIGNED_OUT' && !isOAuthCallback) {
+        setLoading(false);
+        clearTimeout(timeout);
       }
     })
 
