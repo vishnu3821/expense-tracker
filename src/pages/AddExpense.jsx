@@ -395,79 +395,88 @@ export default function AddExpense() {
             </div>
 
             <div className="space-y-3 sm:col-span-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
-                <button 
-                  type="button"
-                  onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                  className="text-xs font-bold text-teal-600 hover:text-teal-700 bg-teal-50 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  {isCategoryOpen ? 'Close Grid' : 'Change Category'}
-                </button>
-              </div>
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
+              
+              {/* Active Category Trigger Card */}
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(true)}
+                className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-teal-600 dark:text-teal-400 border border-slate-100 dark:border-slate-700 transition-transform group-active:scale-95">
+                    {(() => {
+                      const cat = CATEGORIES.find(c => c.name === formData.category) || CATEGORIES[CATEGORIES.length - 1];
+                      const Icon = cat.icon;
+                      return <Icon className="h-6 w-6" />;
+                    })()}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Active Selection</p>
+                    <p className="text-base font-bold text-slate-900 dark:text-white leading-none">{formData.category}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-lg uppercase">Change</span>
+                  <ArrowRight className="h-4 w-4 text-slate-300 group-hover:text-teal-500 transition-colors" />
+                </div>
+              </button>
 
-              {/* Selected Category Preview (Always Visible) */}
-              {!isCategoryOpen && (
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryOpen(true)}
-                  className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all group"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-teal-600 dark:text-teal-400 border border-slate-100 dark:border-slate-700">
-                      {(() => {
-                        const cat = CATEGORIES.find(c => c.name === formData.category) || CATEGORIES[CATEGORIES.length - 1];
+              {/* Floating Modal / Box Overlay */}
+              {isCategoryOpen && (
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+                  <div 
+                    className="absolute inset-0" 
+                    onClick={() => setIsCategoryOpen(false)} 
+                  />
+                  
+                  <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl w-full max-w-sm rounded-[2.5rem] border border-white/20 dark:border-slate-800/50 shadow-2xl p-8 animate-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">Choose Category</h3>
+                      <button 
+                        type="button"
+                        onClick={() => setIsCategoryOpen(false)}
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                      >
+                        <X className="h-5 w-5 text-slate-400" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      {CATEGORIES.map((cat) => {
                         const Icon = cat.icon;
-                        return <Icon className="h-6 w-6" />;
-                      })()}
-                    </div>
-                    <div className="text-left">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Active Selection</p>
-                      <p className="text-base font-bold text-slate-900 dark:text-white leading-none">{formData.category}</p>
+                        const isSelected = formData.category === cat.name;
+                        return (
+                          <button
+                            key={cat.name}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, category: cat.name }));
+                              setIsCategoryOpen(false);
+                            }}
+                            className={`flex flex-col items-center justify-center gap-2 transition-all duration-300 ${
+                              isSelected ? 'scale-110' : 'hover:scale-105 active:scale-95'
+                            }`}
+                          >
+                            <div className={`h-16 w-16 rounded-2xl flex items-center justify-center transition-all border ${
+                              isSelected 
+                                ? 'bg-teal-500 border-teal-400 text-white shadow-lg shadow-teal-500/40' 
+                                : 'bg-white/50 dark:bg-slate-800/50 border-white/20 dark:border-slate-700/50 text-slate-500 dark:text-slate-400 shadow-sm'
+                            }`}>
+                              <Icon className="h-7 w-7" />
+                            </div>
+                            <span className={`text-[10px] font-bold text-center tracking-tight leading-none uppercase ${
+                              isSelected ? 'text-teal-600 dark:text-teal-400' : 'text-slate-400'
+                            }`}>
+                              {cat.name.split(' ')[0]}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="h-8 w-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-teal-600 transition-colors">
-                    <ArrowRight className="h-4 w-4" />
-                  </div>
-                </button>
+                </div>
               )}
-
-              {/* Collapsible Grid */}
-              <div className={`grid grid-cols-2 sm:grid-cols-4 gap-3 transition-all duration-500 overflow-hidden ${
-                isCategoryOpen ? 'max-h-[500px] opacity-100 mt-2 py-2' : 'max-h-0 opacity-0'
-              }`}>
-                {CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
-                  const isSelected = formData.category === cat.name;
-                  return (
-                    <button
-                      key={cat.name}
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, category: cat.name }));
-                        setIsCategoryOpen(false);
-                      }}
-                      className={`relative flex flex-col items-center justify-center p-4 rounded-2xl border transition-all duration-300 group
-                        ${isSelected 
-                          ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-500/30 scale-[1.05] z-10' 
-                          : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-teal-200 dark:hover:border-teal-900 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                        }`}
-                    >
-                      <div className={`mb-2 p-2 rounded-xl transition-colors ${isSelected ? 'bg-white/20' : 'bg-slate-50 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30'}`}>
-                        <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400'}`} />
-                      </div>
-                      <span className="text-[11px] font-bold text-center tracking-tight leading-none">{cat.name}</span>
-                      {isSelected && (
-                        <div className="absolute -top-1 -right-1">
-                          <div className="bg-white text-teal-600 rounded-full p-0.5 shadow-sm">
-                            <CheckCircle className="h-3 w-3 fill-current" />
-                          </div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
 
             <div className="space-y-2">
