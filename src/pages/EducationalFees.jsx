@@ -513,7 +513,7 @@ export default function EducationalFees() {
                 <div key={year} className="relative group">
                   <button
                     onClick={() => { setSelectedYear(year); setViewLevel('semesters'); }}
-                    className="w-full bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 text-left relative overflow-hidden active:scale-[0.98]"
+                    className="w-full bg-white dark:bg-slate-900 p-6 rounded-4xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 text-left relative overflow-hidden active:scale-[0.98]"
                   >
                     <div className="flex items-center gap-5 relative z-10">
                       <div className="h-16 w-16 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border border-slate-100 dark:border-slate-800 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">

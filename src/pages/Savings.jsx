@@ -499,15 +499,15 @@ export default function Savings() {
                 <div 
                   key={acc.id} 
                   onClick={() => fetchActivity(acc.id)}
-                  className={`relative h-60 w-full overflow-hidden rounded-[2rem] p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
+                  className={`relative h-60 w-full overflow-hidden rounded-4xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
                 >
                   {/* Glassmorphic Patterns */}
                   <div className="absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-white/5 blur-2xl group-hover:scale-150 transition-transform duration-700" />
                   <div className="absolute top-0 right-0 p-6 flex flex-col items-end gap-1">
                     <div className="h-8 w-12 bg-linear-to-br from-yellow-300 to-yellow-600 rounded-md shadow-sm border border-yellow-200/50 relative overflow-hidden">
                        <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                          <div className="w-full h-[1px] bg-black rotate-45" />
-                          <div className="w-full h-[1px] bg-black -rotate-45" />
+                          <div className="w-full h-px bg-black rotate-45" />
+                          <div className="w-full h-px bg-black -rotate-45" />
                        </div>
                     </div>
                     <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">Digital Wallet v2.0</p>
