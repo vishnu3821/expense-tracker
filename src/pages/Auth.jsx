@@ -46,17 +46,27 @@ export default function Auth() {
     try {
       setLoading(true);
       setError(null);
-      const { error } = await supabase.auth.signInWithOAuth({
+      
+      // Explicitly target the root origin to trigger PWA scope
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
         }
       });
+      
       if (error) throw error;
+
+      // Force a clean replacement to help the OS intercept the navigation
+      if (data?.url) {
+        window.location.replace(data.url);
+      }
     } catch (err) {
       setError(err.message);
       setLoading(false);
