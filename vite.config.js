@@ -20,9 +20,11 @@ export default defineConfig({
         name: 'Expense Monitor',
         short_name: 'Monitor',
         description: 'Track your expenses directly from your mobile device',
-        theme_color: '#0d9488',
-        background_color: '#ffffff',
+        theme_color: '#10b981',
+        background_color: '#0f172a',
         display: 'standalone',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/app_logo.png',
