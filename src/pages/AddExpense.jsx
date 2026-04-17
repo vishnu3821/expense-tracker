@@ -244,6 +244,16 @@ export default function AddExpense() {
       }
       setTransferStep(4); // Finalizing
       await new Promise(r => setTimeout(r, 800));
+      
+      // Play Premium Success Chime
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+        audio.volume = 0.5;
+        audio.play();
+      } catch (err) {
+        console.error('Audio playback failed:', err);
+      }
+
       setRewardMessage(REWARDS[Math.floor(Math.random() * REWARDS.length)]);
       setTransferStatus('success');
 
