@@ -79,11 +79,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'No target users matched.' });
     }
 
-    // 🏆 Cleanest Template Logic (No nested backticks to avoid OXC parser issues)
+    // 🏆 Premium "Expense Monitor" Template
     const getEmailHtml = (userEmail, customNote) => {
       const userName = userEmail.split('@')[0];
       const customNoteHtml = customNote 
-        ? '<div style="background: #f0fdfa; border-left: 4px solid #0d9488; padding: 16px; margin-bottom: 24px; border-radius: 0 12px 12px 0; color: #0d9488; font-weight: 500;">' + customNote + '</div>'
+        ? '<div style="background: #f0fdfa; border-left: 4px solid #10b981; padding: 20px; margin-bottom: 24px; border-radius: 0 16px 16px 0; color: #047857; font-weight: 500; font-size: 15px;">' + customNote + '</div>'
         : '';
       
       return `
@@ -91,50 +91,69 @@ export default async function handler(req, res) {
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #334155; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc; }
     .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
-    .header { text-align: center; margin-bottom: 40px; }
-    .logo { width: 80px; height: 80px; margin-bottom: 20px; }
-    .content { background: #ffffff; border-radius: 24px; padding: 40px; border: 1px solid #e2e8f0; }
-    .hero-text { font-size: 24px; font-weight: 700; color: #0f172a; margin-bottom: 16px; text-align: center; }
-    .feature-card { background: #f8fafc; border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid #f1f5f9; }
-    .feature-title { font-weight: 700; color: #0d9488; font-size: 18px; margin-bottom: 8px; display: flex; align-items: center; }
-    .feature-desc { font-size: 14px; color: #64748b; }
+    .header { text-align: center; margin-bottom: 32px; }
+    .logo { width: 120px; height: auto; margin-bottom: 16px; }
+    .content { background: #ffffff; border-radius: 32px; padding: 48px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+    .hero-text { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 12px; text-align: center; letter-spacing: -0.025em; }
+    .sub-hero { font-size: 16px; color: #64748b; text-align: center; margin-bottom: 32px; }
+    .feature-grid { display: grid; gap: 16px; margin: 32px 0; }
+    .feature-card { background: #f1f5f9; border-radius: 20px; padding: 24px; border: 1px solid #f8fafc; }
+    .feature-icon { font-size: 24px; margin-bottom: 12px; display: block; }
+    .feature-title { font-weight: 700; color: #0f172a; font-size: 16px; margin-bottom: 4px; }
+    .feature-desc { font-size: 14px; color: #475569; }
+    .btn { display: block; background: #10b981; color: #ffffff !important; padding: 18px 32px; border-radius: 16px; text-decoration: none; font-weight: 700; text-align: center; margin-top: 32px; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
     .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #94a3b8; }
-    .btn { display: inline-block; background: #0d9488; color: #ffffff; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; margin-top: 24px; }
-    .badge { background: #ccfbf1; color: #0f766e; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 99px; text-transform: uppercase; margin-left: 8px; }
+    .badge { background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 99px; text-transform: uppercase; margin-bottom: 8px; display: inline-block; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://expensemonitor.tech/logo.png" alt="Expense Tracker" class="logo">
-      <div class="hero-text">Big Updates are Here! 🚀</div>
-      <p>Master your finances with the all-new Expense Tracker.</p>
+      <img src="https://expensemonitor.tech/logo.png" alt="Expense Monitor" class="logo">
+      <div class="hero-text">The Evolution is Here.</div>
+      <div class="sub-hero">Welcome to the all-new <b>Expense Monitor</b> experience.</div>
     </div>
     <div class="content">
-      <p>Hi ${userName},</p>
+      <p style="font-size: 16px;">Hello ${userName},</p>
+      <p style="font-size: 16px;">We've completely transformed the way you track your finances. From a brand new identity to powerful modules, Expense Monitor is now faster, sleeker, and more capable than ever.</p>
+      
       ${customNoteHtml}
-      <p>We've been working hard to make your financial journey smoother and more insightful. Here are the powerful new features waiting for you in the app:</p>
+
       <div class="feature-card">
-        <div class="feature-title">💰 Your Savings Module <span class="badge">New</span></div>
-        <div class="feature-desc">Track manual bank balances. See total wealth in one glance.</div>
+        <span class="badge">Rebranding</span>
+        <div class="feature-title">✨ A New Identity</div>
+        <div class="feature-desc">We've evolved from Expense Tracker to <b>Expense Monitor</b>, featuring a refined logo and a premium visual language.</div>
       </div>
+
+      <div style="height: 16px;"></div>
+
       <div class="feature-card">
-        <div class="feature-title">💸 Auto-Balance Deduction <span class="badge">New</span></div>
-        <div class="feature-desc">Auto-subtract amount from bank balance when logging expenses.</div>
+        <span class="badge">New Module</span>
+        <div class="feature-title">🎓 Educational Fee Management</div>
+        <div class="feature-desc">Dedicated section to track academic payments, store receipts, and manage your education-related expenses with ease.</div>
       </div>
+
+      <div style="height: 16px;"></div>
+
       <div class="feature-card">
-        <div class="feature-title">🕵️ Privacy Mode <span class="badge">New</span></div>
-        <div class="feature-desc">Hide sensitive balances with one tap.</div>
+        <span class="badge">UI/UX</span>
+        <div class="feature-title">💎 Premium Experience</div>
+        <div class="feature-desc">Enjoy a state-of-the-art interface with glassmorphic elements, smooth animations, and a high-impact 1.5s startup sequence.</div>
       </div>
-      <div style="text-align: center;">
-        <a href="https://expensemonitor.tech" class="btn">Explore New Features</a>
-      </div>
+
+      <a href="https://expensemonitor.tech" class="btn">Experience Expense Monitor</a>
+      
+      <p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 24px;">
+        Log in now to see your upgraded dashboard.
+      </p>
     </div>
     <div class="footer">
-      <p>&copy; 2026 Expense Tracker. All rights reserved.</p>
+      <p>&copy; 2026 Expense Monitor. All rights reserved.</p>
+      <p>Helping you master your finances, one transaction at a time.</p>
     </div>
   </div>
 </body>
@@ -147,7 +166,7 @@ export default async function handler(req, res) {
       .map(user => ({
         from: resendFromEmail,
         to: user.email,
-        subject: 'New Features: Savings & Privacy Mode are Here! 🚀',
+        subject: '🚀 Introducing Expense Monitor: A New Financial Chapter',
         html: getEmailHtml(user.email, customMessage),
       }));
 
