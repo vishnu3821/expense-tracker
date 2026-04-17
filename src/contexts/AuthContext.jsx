@@ -15,9 +15,10 @@ export function AuthProvider({ children }) {
       setLoading(false);
     }, 3000);
 
-    // Detect if we're in an OAuth redirect flow
+    // Detect if we're in an OAuth redirect flow (supports both Hash and PKCE Code flow)
     const isOAuthCallback = window.location.hash.includes('access_token=') || 
-                           window.location.hash.includes('error=');
+                           window.location.hash.includes('error=') ||
+                           window.location.search.includes('code=');
 
     // Detection of manual storage as a safety net
     const checkLocalStorage = () => {
