@@ -32,15 +32,24 @@ onBackgroundMessage(messaging, (payload) => {
 // ── Share Target (Android OS share sheet) ─────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  
   if (event.request.method === 'POST' && url.pathname === '/add') {
     event.respondWith((async () => {
       try {
         const formData = await event.request.formData();
         const file = formData.get('file');
+        
         if (file) {
+          // Store the file in IndexedDB using idb-keyval
           await set('shared-image', file);
         }
-        return Response.redirect('/add', 303);
+        
+        // Instead of a 303 redirect which can be flaky for POST, 
+        // return a tiny HTML bridge that redirects via JS
+        return new Response(
+          '<html><head><meta http-equiv="refresh" content="0; url=/add"></head><body><script>window.location.href="/add";</script></body></html>',
+          { headers: { 'Content-Type': 'text/html' } }
+        );
       } catch (error) {
         console.error('Error handling share target POST:', error);
         return Response.redirect('/add', 303);

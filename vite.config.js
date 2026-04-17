@@ -8,11 +8,14 @@ export default defineConfig({
     react(), 
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,mp4}'],
-        navigateFallbackDenylist: [/^\/auth/], // Don't intercept auth routes
-        cleanupOutdatedCaches: true,
+      injectRegister: 'script',
+      devOptions: {
+        enabled: true,
+        type: 'module'
       },
       manifest: {
         name: 'Expense Monitor',
