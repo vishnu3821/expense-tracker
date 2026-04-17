@@ -15,15 +15,22 @@ export function AuthProvider({ children }) {
     }, 3000);
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user || null)
+      if (session) {
+        setSession(session)
+        setUser(session.user)
+      }
       setLoading(false)
       clearTimeout(timeout);
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
       setUser(session?.user || null)
+      
+      // If we just signed in via OAuth, ensure it's flushed to storage
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        setLoading(false);
+      }
     })
 
     return () => {
