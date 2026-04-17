@@ -35,6 +35,7 @@ export function AuthProvider({ children }) {
   const value = {
     session,
     user,
+    loading,
     signOut: () => supabase.auth.signOut(),
   }
 

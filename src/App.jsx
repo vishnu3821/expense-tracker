@@ -18,7 +18,9 @@ import { Analytics } from '@vercel/analytics/react'
 import { useState, useEffect } from 'react'
 
 function PrivateRoute({ children }) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+  
+  if (loading) return null; // Let AuthContext's internal loader handle it
   return user ? children : <Navigate to="/auth" />
 }
 
