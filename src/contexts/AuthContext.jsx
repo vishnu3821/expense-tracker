@@ -19,10 +19,25 @@ export function AuthProvider({ children }) {
     const isOAuthCallback = window.location.hash.includes('access_token=') || 
                            window.location.hash.includes('error=');
 
+    // Detection of manual storage as a safety net
+    const checkLocalStorage = () => {
+      try {
+        const stored = window.localStorage.getItem(`sb-${import.meta.env.VITE_SUPABASE_URL.split('.')[0].split('//')[1]}-auth-token`);
+        if (stored && !session) {
+           const parsed = JSON.parse(stored);
+           if (parsed?.user) return parsed.user;
+        }
+      } catch (e) {}
+      return null;
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setSession(session)
         setUser(session.user)
+      } else {
+        const fallbackUser = checkLocalStorage();
+        if (fallbackUser) setUser(fallbackUser);
       }
       
       // If we're in a callback, don't stop loading yet - let onAuthStateChange handle it
