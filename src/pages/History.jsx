@@ -279,7 +279,7 @@ export default function History() {
 
       <div className="relative mt-8">
         {/* The Activity Line (Timeline) */}
-        <div className="absolute left-[1.125rem] top-2 bottom-0 w-[2px] bg-linear-to-b from-emerald-500/50 via-teal-500/20 to-transparent pointer-events-none" />
+        <div className="absolute left-4.5 top-2 bottom-0 w-[2px] bg-linear-to-b from-emerald-500/50 via-teal-500/20 to-transparent pointer-events-none" />
 
         {Object.keys(groupedByDay).length > 0 ? (
           <div className="space-y-12">

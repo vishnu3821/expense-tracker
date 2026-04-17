@@ -177,7 +177,7 @@ export default function MonthDetail() {
                   <button
                     key={expense.id}
                     onClick={() => setSelectedExpense(expense)}
-                    className={`relative overflow-hidden p-6 flex items-center justify-between text-left transition-all duration-300 active:scale-[0.98] rounded-[2rem] border group ${
+                    className={`relative overflow-hidden p-6 flex items-center justify-between text-left transition-all duration-300 active:scale-[0.98] rounded-4xl border group ${
                       isMax 
                         ? 'bg-red-500/5 border-red-500/20 shadow-lg shadow-red-500/5' 
                         : isMin 
