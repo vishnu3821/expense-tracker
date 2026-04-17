@@ -456,20 +456,40 @@ export default function EducationalFees() {
       return (
         <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
           {/* Summary Card */}
-          <div className="bg-linear-to-br from-emerald-600 to-teal-700 rounded-3xl p-6 text-white shadow-xl shadow-emerald-500/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-emerald-100 text-xs font-bold uppercase tracking-widest mb-1">Total Academic Paid</p>
-                <h2 className="text-3xl font-black">₹{formatCurrency(totalOverall)}</h2>
-                <p
-                  className="text-[9px] font-bold text-white/70 italic mt-1 leading-relaxed"
-                  title={numberToWords(totalOverall)}
-                >{numberToWords(totalOverall)}</p>
+          <div className="relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-900 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/10 border border-white/5">
+            <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-1 w-4 bg-emerald-500 rounded-full" />
+                    <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.25em]">Educational Portfolio</p>
+                  </div>
+                  <h2 className="text-4xl font-black tracking-tighter">₹{formatCurrency(totalOverall)}</h2>
+                  <p
+                    className="text-[10px] font-bold text-white/40 italic mt-2 leading-relaxed max-w-sm"
+                    title={numberToWords(totalOverall)}
+                  >{numberToWords(totalOverall)}</p>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-8 w-8 rounded-full border-2 border-slate-900 bg-teal-800 flex items-center justify-center">
+                        <GraduationCap className="h-4 w-4 text-emerald-400" />
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verified Academic Records</p>
+                </div>
               </div>
-              <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-white" />
+
+              <div className="h-20 w-20 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center shadow-inner">
+                <TrendingUp className="h-10 w-10 text-emerald-500 opacity-80" />
               </div>
             </div>
+
+            {/* Decorative background blur */}
+            <div className="absolute top-0 right-0 h-40 w-40 bg-emerald-500/10 blur-3xl rounded-full -mr-10 -mt-10" />
           </div>
 
           <div className="flex items-center justify-between px-1">
@@ -479,11 +499,12 @@ export default function EducationalFees() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {years.length === 0 ? (
-              <div className="col-span-full text-center py-12 bg-white dark:bg-slate-800/40 rounded-3xl border-2 border-dashed border-slate-100 dark:border-slate-800">
-                <Folder className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                <p className="text-slate-500 font-medium">No records found. Start with a year.</p>
+              <div className="col-span-full text-center py-20 bg-slate-50 dark:bg-slate-900/40 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
+                <FolderOpen className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+                <p className="text-slate-500 font-black uppercase text-xs tracking-[0.2em]">No records discovered yet</p>
+                <button onClick={handleAddYear} className="mt-4 text-emerald-600 font-black text-xs uppercase tracking-widest hover:underline">Create First Directory</button>
               </div>
             ) : (
               years.map(year => {
@@ -492,28 +513,33 @@ export default function EducationalFees() {
                 <div key={year} className="relative group">
                   <button
                     onClick={() => { setSelectedYear(year); setViewLevel('semesters'); }}
-                    className="w-full group bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-300 text-left relative overflow-hidden active:scale-[0.98]"
+                    className="w-full bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:border-emerald-500/50 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 text-left relative overflow-hidden active:scale-[0.98]"
                   >
-                    <div className="absolute top-0 right-0 h-24 w-24 -mr-8 -mt-8 bg-emerald-500/5 rounded-full group-hover:bg-emerald-500/10 transition-colors" />
-                    <div className="flex items-center gap-4 relative z-10 pr-12">
-                      <div className="h-14 w-14 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                        <Calendar className="h-7 w-7" />
+                    <div className="flex items-center gap-5 relative z-10">
+                      <div className="h-16 w-16 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border border-slate-100 dark:border-slate-800 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                        <GraduationCap className="h-8 w-8 text-emerald-600 group-hover:text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white">{year}</h3>
-                        <p className="text-xs text-slate-500 font-bold mt-0.5">₹{formatCurrency(yearTotal)} total</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Academic Year</p>
+                        <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-none">{year}</h3>
+                        <div className="flex items-center gap-2 mt-3">
+                           <div className="h-1 w-8 bg-emerald-500 rounded-full" />
+                           <p className="text-xs text-slate-600 dark:text-slate-400 font-black tracking-tight">₹{formatCurrency(yearTotal)}</p>
+                        </div>
                       </div>
-                      <ChevronRight className="h-6 w-6 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                      <div className="h-10 w-10 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all">
+                        <ChevronRight className="h-5 w-5" />
+                      </div>
                     </div>
                   </button>
 
                   {/* Year Action Buttons */}
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
-                    <button onClick={(e) => handleRenameYear(e, year)} className="p-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-slate-600 dark:text-slate-300 shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-110 transition-transform">
-                      <Edit2 className="h-4 w-4" />
+                  <div className="absolute right-4 top-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
+                    <button onClick={(e) => handleRenameYear(e, year)} className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-xl text-slate-400 hover:text-emerald-600 shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-110 transition-transform">
+                      <Edit2 className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={(e) => handleDeleteYear(e, year)} className="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-xl text-red-600 shadow-sm border border-red-100 dark:border-red-900 hover:scale-110 transition-transform">
-                      <Trash2 className="h-4 w-4" />
+                    <button onClick={(e) => handleDeleteYear(e, year)} className="p-2 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-xl text-slate-400 hover:text-red-500 shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-110 transition-transform">
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>

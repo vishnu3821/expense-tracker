@@ -420,35 +420,41 @@ export default function Savings() {
       </div>
 
       {/* Summary Card */}
-      <div className="relative overflow-hidden rounded-3xl bg-teal-600 p-8 text-white shadow-xl">
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-linear-to-br from-teal-600 to-emerald-800 p-8 text-white shadow-2xl shadow-teal-500/20">
         <div className="relative z-10">
-          <p className="text-teal-100 text-xs font-bold uppercase tracking-[0.2em]">Combined Savings Portfolio</p>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-1.5 w-6 bg-white/40 rounded-full" />
+            <p className="text-teal-100 text-[10px] font-black uppercase tracking-[0.25em]">Combined Savings Portfolio</p>
+          </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-4xl font-bold tracking-tight">
-              {isPrivate ? '••••••••' : `₹${totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            <span className="text-5xl font-black tracking-tighter">
+              {isPrivate ? '••••••••' : `₹${totalSavings.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
+              <span className="text-xl opacity-60 ml-1">.{(totalSavings % 1).toFixed(2).split('.')[1]}</span>
             </span>
-            {!isPrivate && <TrendingUp className="h-5 w-5 text-teal-200" />}
           </div>
 
           {/* Wealth Distribution Bar */}
           {!isPrivate && totalSavings > 0 && accounts.length > 0 && (
-            <div className="mt-8 space-y-2">
-              <div className="flex items-center justify-between text-[10px] font-bold text-teal-100 uppercase tracking-widest">
+            <div className="mt-10 space-y-3">
+              <div className="flex items-center justify-between text-[10px] font-black text-teal-50 uppercase tracking-widest opacity-80">
                 <span>Wealth Distribution</span>
-                <span>{accounts.length} Sources</span>
+                <span className="bg-white/20 px-2 py-0.5 rounded-lg">{accounts.length} Sources</span>
               </div>
-              <div className="h-3 w-full bg-teal-700/40 rounded-full flex overflow-hidden border border-white/10 p-px">
+              <div className="h-4 w-full bg-black/20 rounded-2xl flex overflow-hidden backdrop-blur-sm p-1">
                 {accounts.map((acc, i) => {
                   const width = (acc.balance / totalSavings) * 100;
                   if (width < 1) return null;
-                  const colors = ['bg-white', 'bg-teal-200', 'bg-white/40', 'bg-teal-300', 'bg-white/70'];
+                  const colors = ['bg-white', 'bg-teal-300', 'bg-emerald-300', 'bg-white/40', 'bg-teal-100'];
                   return (
                     <div 
                       key={acc.id}
                       style={{ width: `${width}%` }}
-                      className={`${colors[i % colors.length]} h-full first:rounded-l-full last:rounded-r-full transition-all duration-500 hover:opacity-80`}
-                      title={`${acc.bank_name}: ${width.toFixed(1)}%`}
-                    />
+                      className={`${colors[i % colors.length]} h-full first:rounded-l-xl last:rounded-r-xl transition-all duration-700 hover:brightness-110 relative group`}
+                    >
+                       <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-bold">
+                         {acc.bank_name}: {width.toFixed(0)}%
+                       </div>
+                    </div>
                   );
                 })}
               </div>
@@ -456,86 +462,102 @@ export default function Savings() {
           )}
         </div>
 
-        {/* Background blobs for design */}
-        <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-teal-500 blur-3xl opacity-50 pointer-events-none" />
-        <div className="absolute -left-12 -bottom-12 h-48 w-48 rounded-full bg-teal-700 blur-3xl opacity-50 pointer-events-none" />
+        {/* Decorative elements */}
+        <div className="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-emerald-400 blur-[80px] opacity-30 pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 h-48 w-48 rounded-full bg-teal-400 blur-[60px] opacity-20 pointer-events-none" />
+        <div className="absolute top-0 right-0 p-8">
+           <Landmark className="h-16 w-16 text-white/10" />
+        </div>
       </div>
 
       {/* Accounts List */}
       <div className="space-y-4">
         {accounts.length === 0 ? (
-          <div className="text-center py-20 bg-slate-50 dark:bg-slate-900/50 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+          <div className="text-center py-20 bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800">
             <Wallet className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <p className="text-slate-500">No bank accounts added yet.</p>
+            <p className="text-slate-500 font-bold">No bank accounts added yet.</p>
             <button 
               onClick={() => setShowModal(true)}
-              className="mt-4 text-teal-600 font-semibold hover:underline"
+              className="mt-4 text-teal-600 font-bold hover:underline uppercase text-xs tracking-widest"
             >
               Add your first account
             </button>
           </div>
         ) : (
-          accounts.map((acc, idx) => (
-            <div 
-              key={acc.id} 
-              onClick={() => fetchActivity(acc.id)}
-              className="relative overflow-hidden card group hover:shadow-md transition-all border-slate-100 dark:border-slate-800/50 cursor-pointer active:scale-[0.99]"
-            >
-              {/* Subtle background gradient based on index for variety */}
-              <div className={`absolute inset-0 opacity-[0.03] pointer-events-none bg-linear-to-br ${
-                idx % 3 === 0 ? 'from-teal-500 to-blue-500' : 
-                idx % 3 === 1 ? 'from-indigo-500 to-purple-500' : 
-                'from-emerald-500 to-teal-500'
-              }`} />
-              
-              <div className="p-6 flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-5">
-                  <div className="p-px rounded-2xl bg-slate-100 dark:bg-slate-800 transition-all duration-300 transform group-hover:scale-110">
-                    <div className={`h-14 w-14 rounded-2xl flex items-center justify-center ${
-                      idx % 3 === 0 ? 'bg-teal-50 text-teal-600 dark:bg-teal-900/20 dark:text-teal-400' : 
-                      idx % 3 === 1 ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400' : 
-                      'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
-                    }`}>
-                      {acc.type === 'cash' ? <Banknote className="h-7 w-7" /> : 
-                       acc.type === 'upi' ? <Smartphone className="h-7 w-7" /> : 
-                       <Landmark className="h-7 w-7" />}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {accounts.map((acc, idx) => {
+              // Premium Card Gradients
+              const cardStyles = [
+                'from-slate-900 to-slate-800 text-white', // Onyx
+                'from-teal-600 to-emerald-700 text-white', // Emerald
+                'from-indigo-700 to-blue-800 text-white', // Sapphire
+                'from-purple-700 to-fuchsia-800 text-white', // Amethyst
+              ];
+              const style = cardStyles[idx % cardStyles.length];
+
+              return (
+                <div 
+                  key={acc.id} 
+                  onClick={() => fetchActivity(acc.id)}
+                  className={`relative h-60 w-full overflow-hidden rounded-[2rem] p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
+                >
+                  {/* Glassmorphic Patterns */}
+                  <div className="absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-white/5 blur-2xl group-hover:scale-150 transition-transform duration-700" />
+                  <div className="absolute top-0 right-0 p-6 flex flex-col items-end gap-1">
+                    <div className="h-8 w-12 bg-linear-to-br from-yellow-300 to-yellow-600 rounded-md shadow-sm border border-yellow-200/50 relative overflow-hidden">
+                       <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                          <div className="w-full h-[1px] bg-black rotate-45" />
+                          <div className="w-full h-[1px] bg-black -rotate-45" />
+                       </div>
+                    </div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">Digital Wallet v2.0</p>
+                  </div>
+
+                  <div className="h-full flex flex-col justify-between relative z-10">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Landmark className="h-4 w-4 opacity-60" />
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">{acc.type || 'Bank Account'}</span>
+                      </div>
+                      <h3 className="text-xl font-black tracking-tight">{acc.bank_name}</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-end justify-between">
+                         <div>
+                            <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1">Current Balance</p>
+                            <p className="text-3xl font-black font-mono tracking-tighter">
+                              {isPrivate ? '••••••' : `₹${Number(acc.balance).toLocaleString('en-IN')}`}
+                            </p>
+                         </div>
+                         <div className="h-10 w-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:bg-white/20 transition-colors">
+                           <ArrowRight className="h-5 w-5" />
+                         </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                         <div className="flex gap-4">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); openEdit(acc); }}
+                              className="text-[10px] font-black uppercase tracking-widest hover:text-teal-300 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDelete(acc.id); }}
+                              className="text-[10px] font-black uppercase tracking-widest hover:text-red-400 transition-colors"
+                            >
+                              Remove
+                            </button>
+                         </div>
+                         <p className="text-[10px] font-medium opacity-40">•••• 9842</p>
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100">{acc.bank_name}</h3>
-                      {idx === 0 && <ShieldCheck className="h-3.5 w-3.5 text-teal-500" title="Primary Account" />}
-                    </div>
-                    <p className="text-2xl font-bold text-slate-800 dark:text-white mt-1 font-mono tracking-tight">
-                      {isPrivate ? '••••••' : `₹${Number(acc.balance).toLocaleString('en-IN')}`}
-                    </p>
-                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openEdit(acc);
-                    }}
-                    className="p-2.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-xl transition-all"
-                    title="Adjust Balance"
-                  >
-                    <Edit2 className="h-5 w-5" />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(acc.id);
-                    }}
-                    className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
-                    title="Delete Account"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
       </div>
 
