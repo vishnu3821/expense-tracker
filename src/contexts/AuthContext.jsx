@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
               poster="/website_logo.png"
               className="h-64 w-64 object-contain relative z-20 drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)]"
             >
-              <source src="/Logo-animation.mp4" type="video/mp4" />
+              <source src="/logoanimato.mp4" type="video/mp4" />
               <img src="/website_logo.png" alt="Logo" className="h-40 w-40" />
             </video>
           </div>
