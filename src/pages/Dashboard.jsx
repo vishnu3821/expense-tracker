@@ -228,10 +228,60 @@ export default function Dashboard() {
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-3">
-        <StatCard title="Today's Total" amount={stats.today} icon={IndianRupee} colorClass="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50" />
-        <StatCard title="Monthly Total" amount={stats.month} icon={Calendar} colorClass="bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 border border-teal-100 dark:border-teal-900/50" />
-        <StatCard title="Yearly Total" amount={stats.year} icon={TrendingUp} colorClass="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/50" />
+      {/* Glassmorphic Command Center */}
+      <div className="relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-900 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/20 border border-white/5">
+        <div className="relative z-10 space-y-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-1.5 w-6 bg-emerald-500 rounded-full animate-pulse" />
+                <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Financial Intelligence</p>
+              </div>
+              <h2 className="text-4xl font-black tracking-tighter">Command Center</h2>
+            </div>
+            <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-50">Live Analytics</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Today's Flow</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-white">₹{stats.today.toLocaleString('en-IN')}</span>
+                <span className="text-[10px] font-bold text-emerald-400">{(stats.today / (stats.month || 1) * 100).toFixed(0)}% of month</span>
+              </div>
+              <div className="h-1 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
+                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min((stats.today / (stats.month || 1) * 100), 100)}%` }} />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Monthly Spending</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-emerald-400">₹{stats.month.toLocaleString('en-IN')}</span>
+              </div>
+              <p className="text-[10px] font-bold text-white/20 italic">Cumulative Month Activity</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Annual Outflow</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-white">₹{stats.year.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                 <TrendingUp className="h-3 w-3 text-emerald-500" />
+                 <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year 2024</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Background Blurs */}
+        <div className="absolute top-0 right-0 h-40 w-40 bg-emerald-500/10 blur-[80px] rounded-full -mr-10 -mt-10" />
+        <div className="absolute bottom-0 left-0 h-32 w-32 bg-teal-500/5 blur-[60px] rounded-full -ml-10 -mb-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
