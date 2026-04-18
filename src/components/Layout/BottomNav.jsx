@@ -31,7 +31,7 @@ export default function BottomNav() {
       </svg>
 
       <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden w-[90%] max-w-sm pointer-events-none">
-        <div className="relative bg-white/10 dark:bg-slate-900/60 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-4xl px-4 py-2 flex items-center justify-between gap-1 shadow-[0_20px_50px_rgba(0,0,0,0.3)] pointer-events-auto overflow-hidden">
+        <div className="relative h-16 rounded-4xl bg-slate-900/80 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] pointer-events-auto overflow-hidden">
           
           {/* Liquid Indicator Layer */}
           <div className="absolute inset-0 filter-url-[#liquid] pointer-events-none">
