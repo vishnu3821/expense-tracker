@@ -971,11 +971,16 @@ export default function Savings() {
 
       {/* 📜 Pro Success Receipt */}
       {receiptData && (
-        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-500">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden animate-receipt-pop relative">
-            {/* Design Elements */}
-            <div className="absolute top-0 left-0 w-full h-32 bg-linear-to-b from-teal-500/10 to-transparent pointer-events-none" />
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl animate-in fade-in duration-500">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm shadow-[0_0_100px_rgba(0,0,0,0.8)] relative animate-receipt-pop overflow-visible rounded-3xl">
             
+            {/* Top Scalloped Edge - True Cutouts */}
+            <div className="absolute top-0 left-0 right-0 flex justify-around px-4 -translate-y-1/2 pointer-events-none">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="h-6 w-6 bg-slate-950 rounded-full" />
+              ))}
+            </div>
+
             <button 
               onClick={() => {
                 setTransferStatus('idle');
@@ -986,22 +991,15 @@ export default function Savings() {
               <X className="h-5 w-5" />
             </button>
 
-            {/* Scalloped Receipt Body */}
-            <div className="bg-white dark:bg-slate-900 mx-8 p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 overflow-hidden">
-               {/* Clean Scalloped Edges (Top) */}
-               <div className="absolute top-0 left-0 right-0 flex justify-around px-2 -translate-y-1/2">
-                 {Array.from({ length: 15 }).map((_, i) => (
-                   <div key={i} className="h-5 w-5 bg-slate-950/90 rounded-full border-2 border-slate-900/10" />
-                 ))}
-               </div>
-
+            {/* Receipt Content */}
+            <div className="p-8 relative overflow-hidden rounded-3xl">
                {/* Subliminal Watermark */}
-               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.015] rotate-[-25deg] select-none">
-                 <span className="text-8xl font-black tracking-tighter uppercase whitespace-nowrap">Verified Secure Protocol</span>
+               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.02] rotate-[-25deg] select-none">
+                 <span className="text-8xl font-black tracking-tighter uppercase whitespace-nowrap">Verified Secure</span>
                </div>
 
                <div className="relative z-10 text-center space-y-6">
-                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-2">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                     <CheckCircle className="h-8 w-8" />
                   </div>
                   
@@ -1017,7 +1015,7 @@ export default function Savings() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-10 text-left pt-2">
+                  <div className="grid grid-cols-2 gap-10 text-left pt-2 pb-4 border-b border-slate-100 dark:border-slate-800/50">
                     <div className="space-y-1">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Debit From</p>
                       <p className="font-black text-slate-900 dark:text-slate-200 text-sm tracking-tight">{receiptData.from}</p>
@@ -1028,7 +1026,7 @@ export default function Savings() {
                     </div>
                   </div>
 
-                  <div className="pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
+                  <div className="pt-4 flex justify-between items-end">
                     <div className="text-left space-y-1">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Credential Ref</p>
                       <p className="text-[10px] font-mono font-bold text-slate-500 tracking-tight">{receiptData.txnId}</p>
@@ -1042,34 +1040,40 @@ export default function Savings() {
                     </div>
                   </div>
                </div>
-
-               {/* Clean Scalloped Edges (Bottom) */}
-               <div className="absolute bottom-0 left-0 right-0 flex justify-around px-2 translate-y-1/2">
-                 {Array.from({ length: 15 }).map((_, i) => (
-                   <div key={i} className="h-5 w-5 bg-slate-950/90 rounded-full border-2 border-slate-900/10" />
-                 ))}
-               </div>
             </div>
 
-            <div className="p-8 pt-0 grid grid-cols-5 gap-3">
-              <button 
-                className="col-span-1 h-16 bg-white/5 hover:bg-white/10 text-slate-400 rounded-2xl flex items-center justify-center border border-white/10 transition-all"
-                title="Share Receipt"
-              >
-                <Share2 className="h-5 w-5" />
-              </button>
-              <button 
-                onClick={() => {
-                  setTransferStatus('idle');
-                  setReceiptData(null);
-                  setFromAccount('');
-                  setToAccount('');
-                  setTransferAmount('');
-                }}
-                className="col-span-4 h-16 bg-white/5 hover:bg-white/10 text-emerald-400 rounded-2xl font-black uppercase tracking-[0.3em] text-xs border border-emerald-500/30 hover:border-emerald-500 transition-all shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]"
-              >
-                Finalize & Close
-              </button>
+            {/* Bottom Section with Action Buttons */}
+            <div className="p-8 pt-0 relative">
+               {/* Middle Perforation Line */}
+               <div className="absolute top-0 left-0 right-0 border-t-2 border-dashed border-slate-100 dark:border-slate-800/50 -translate-y-4" />
+
+               <div className="grid grid-cols-5 gap-3 relative z-10">
+                <button 
+                  className="col-span-1 h-16 bg-slate-50 dark:bg-slate-800/50 text-slate-400 rounded-2xl flex items-center justify-center border border-slate-200 dark:border-slate-800 transition-all"
+                  title="Share Receipt"
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
+                <button 
+                  onClick={() => {
+                    setTransferStatus('idle');
+                    setReceiptData(null);
+                    setFromAccount('');
+                    setToAccount('');
+                    setTransferAmount('');
+                  }}
+                  className="col-span-4 h-16 bg-white/5 hover:bg-white/10 text-emerald-400 rounded-2xl font-black uppercase tracking-[0.3em] text-xs border border-emerald-500/30 hover:border-emerald-500 transition-all shadow-[0_0_20px_rgba(16,185,129,0.1)] hover:shadow-[0_0_30px_rgba(16,185,129,0.2)]"
+                >
+                  Finalize & Close
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Scalloped Edge - True Cutouts */}
+            <div className="absolute bottom-0 left-0 right-0 flex justify-around px-4 translate-y-1/2 pointer-events-none">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="h-6 w-6 bg-slate-950 rounded-full" />
+              ))}
             </div>
           </div>
         </div>
