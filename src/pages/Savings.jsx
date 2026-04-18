@@ -433,14 +433,14 @@ export default function Savings() {
             </span>
           </div>
 
-          {/* Wealth Distribution Bar */}
+          {/* Liquid Wealth Distribution Bar */}
           {!isPrivate && totalSavings > 0 && accounts.length > 0 && (
             <div className="mt-10 space-y-3">
               <div className="flex items-center justify-between text-[10px] font-black text-teal-50 uppercase tracking-widest opacity-80">
                 <span>Wealth Distribution</span>
                 <span className="bg-white/20 px-2 py-0.5 rounded-lg">{accounts.length} Sources</span>
               </div>
-              <div className="h-4 w-full bg-black/20 rounded-2xl flex overflow-hidden backdrop-blur-sm p-1">
+              <div className="h-4 w-full bg-black/20 rounded-2xl flex overflow-hidden backdrop-blur-sm p-1 relative">
                 {accounts.map((acc, i) => {
                   const width = (acc.balance / totalSavings) * 100;
                   if (width < 1) return null;
@@ -449,9 +449,12 @@ export default function Savings() {
                     <div 
                       key={acc.id}
                       style={{ width: `${width}%` }}
-                      className={`${colors[i % colors.length]} h-full first:rounded-l-xl last:rounded-r-xl transition-all duration-700 hover:brightness-110 relative group`}
+                      className={`${colors[i % colors.length]} h-full first:rounded-l-xl last:rounded-r-xl transition-all duration-700 hover:brightness-110 relative group overflow-hidden`}
                     >
-                       <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-bold">
+                       {/* Liquid Animation Layer */}
+                       <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-liquid-flow pointer-events-none" />
+                       
+                       <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[9px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none font-bold z-20">
                          {acc.bank_name}: {width.toFixed(0)}%
                        </div>
                     </div>
@@ -484,7 +487,7 @@ export default function Savings() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 perspective-1000">
             {accounts.map((acc, idx) => {
               // Premium Card Gradients
               const cardStyles = [
@@ -499,7 +502,7 @@ export default function Savings() {
                 <div 
                   key={acc.id} 
                   onClick={() => fetchActivity(acc.id)}
-                  className={`relative h-60 w-full overflow-hidden rounded-4xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
+                  className={`relative h-64 w-full overflow-hidden rounded-[2.5rem] p-8 shadow-xl transition-all duration-500 hover:-translate-y-3 hover:rotate-x-2 hover:rotate-y-[-2deg] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
                 >
                   {/* Glassmorphic Patterns */}
                   <div className="absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-white/5 blur-2xl group-hover:scale-150 transition-transform duration-700" />
@@ -751,30 +754,30 @@ export default function Savings() {
             onClick={() => setSelectedAccountId(null)}
           />
           <div 
-            className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-t-[3rem] shadow-2xl flex flex-col relative z-20 animate-in slide-in-from-bottom duration-500 h-[85vh] sm:h-auto sm:max-h-[85vh] touch-auto"
+            className="bg-slate-950/80 dark:bg-slate-950/90 w-full max-w-2xl rounded-t-[3.5rem] shadow-2xl flex flex-col relative z-20 animate-in slide-in-from-bottom duration-500 h-[85vh] sm:h-auto sm:max-h-[85vh] touch-auto border-t border-white/10 backdrop-blur-3xl"
             onClick={e => e.stopPropagation()}
           >
-            <div className="py-3 flex justify-center sticky top-0 bg-inherit z-10">
-              <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full" />
+            <div className="py-4 flex justify-center sticky top-0 bg-transparent z-10">
+              <div className="w-16 h-1.5 bg-white/20 rounded-full" />
             </div>
             
-            <div className="px-8 pb-4 border-b border-slate-50 dark:border-slate-800 flex justify-between items-start">
-              <div className="flex items-center gap-4">
-                <div className="h-14 w-14 rounded-2xl bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
-                  <HistoryIcon className="h-7 w-7" />
+            <div className="px-10 pb-6 border-b border-white/5 flex justify-between items-start">
+              <div className="flex items-center gap-5">
+                <div className="h-16 w-16 rounded-[1.5rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <HistoryIcon className="h-8 w-8" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Recent Activity</h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-sm">
+                  <h3 className="text-3xl font-black text-white tracking-tighter italic">Recent Activity</h3>
+                  <p className="text-emerald-400/60 text-xs font-bold uppercase tracking-widest">
                     {accounts.find(a => a.id === selectedAccountId)?.bank_name}
                   </p>
                 </div>
               </div>
               <button 
                 onClick={() => setSelectedAccountId(null)}
-                className="h-10 w-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors"
+                className="h-12 w-12 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full flex items-center justify-center text-white/60 hover:text-white transition-all"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
 
@@ -846,7 +849,7 @@ export default function Savings() {
                                 </button>
                               </code>
                             </div>
-                            <div className="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-1.5 rounded-full uppercase tracking-widest">
+                            <div className="text-[10px] font-bold text-teal-600 bg-teal-50 dark:bg-teal-900/30 px-3 py-1.5 rounded-full uppercase tracking-widest animate-verified-pulse shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                               Verified
                             </div>
                           </div>
@@ -1053,6 +1056,26 @@ export default function Savings() {
           </div>
         </div>
       )}
+      <style>{`
+        @keyframes liquid-flow {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .animate-liquid-flow {
+          animation: liquid-flow 3s infinite linear;
+        }
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+        @keyframes verified-pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-verified-pulse {
+          animation: verified-pulse 2s infinite ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }

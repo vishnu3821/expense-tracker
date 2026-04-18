@@ -102,12 +102,29 @@ export default function YearBreakdown() {
         </div>
       ) : (
         <>
-          {/* Main Hero Card */}
-          <div className="rounded-[20px] bg-linear-to-br from-indigo-500 to-indigo-700 p-6 text-white relative overflow-hidden shadow-lg">
-            <div className="absolute -top-6 -right-6 h-32 w-32 rounded-full bg-white/10 blur-xl" />
-            <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-xl" />
-            <p className="text-indigo-100 text-sm font-semibold uppercase tracking-widest mb-1 relative z-10">Total Expenditure</p>
-            <p className="text-4xl font-extrabold tracking-tight relative z-10">₹{yearTotal.toFixed(2)}</p>
+          {/* Main Hero Card with Dynamic Intensity Glow */}
+          <div className={`rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl transition-all duration-700 ${
+            yearTotal > 100000 ? 'bg-linear-to-br from-indigo-900 via-purple-900 to-fuchsia-900' : 
+            yearTotal > 50000 ? 'bg-linear-to-br from-indigo-700 to-indigo-900' :
+            'bg-linear-to-br from-teal-600 to-emerald-800'
+          }`}>
+            <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-[60px] animate-pulse" />
+            <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-white/5 blur-[40px]" />
+            
+            <div className="relative z-10 flex flex-col justify-between min-h-[120px]">
+               <div className="flex items-center gap-2 mb-1">
+                 <div className="h-1.5 w-6 bg-white/40 rounded-full" />
+                 <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em]">Annual Outflow Protocol</p>
+               </div>
+               
+               <div className="space-y-1">
+                 <p className="text-5xl font-black tracking-tighter">₹{yearTotal.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}<span className="text-xl opacity-40 ml-1">.{(yearTotal % 1).toFixed(2).split('.')[1]}</span></p>
+                 <div className="flex items-center gap-3">
+                   <div className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
+                   <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest italic">Certified Yearly Aggregate</p>
+                 </div>
+               </div>
+            </div>
           </div>
 
           {/* Monthly Breakdown List */}
