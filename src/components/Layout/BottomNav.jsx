@@ -12,58 +12,79 @@ const navItems = [
 export default function BottomNav() {
   const location = useLocation();
   
-  // Calculate active index for the sliding indicator
   const activeIndex = navItems.findIndex(item => {
     if (item.end) return location.pathname === item.path;
     return location.pathname.startsWith(item.path);
   });
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-transparent pointer-events-none pb-6 px-4">
-      <div className="rounded-full bg-white/75 dark:bg-slate-900/80 backdrop-blur-3xl border border-white/50 dark:border-slate-700/50 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] shadow-teal-500/10 px-2 py-2 pointer-events-auto max-w-md mx-auto relative overflow-hidden">
-        {/* Subtle inner highlight */}
-        <div className="absolute inset-0 rounded-full border border-white/20 dark:border-white/5 pointer-events-none" />
-        
-        <div className="relative flex items-center justify-around isolate">
-          {/* Sliding Indicator Pill */}
-          <div 
-            className="absolute inset-y-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] bg-emerald-50 dark:bg-emerald-900/40 rounded-full z-[-1]"
-            style={{
-              width: `${100 / navItems.length}%`,
-              left: `${(activeIndex === -1 ? 0 : activeIndex) * (100 / navItems.length)}%`,
-              opacity: activeIndex === -1 ? 0 : 1
-            }}
-          >
-            {/* Soft glow under the active item */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-4 bg-emerald-400/40 blur-md rounded-full" />
-          </div>
+    <>
+      {/* Liquid Gooey Filter */}
+      <svg className="hidden">
+        <defs>
+          <filter id="liquid">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -10" result="liquid" />
+            <feComposite in="SourceGraphic" in2="liquid" operator="atop" />
+          </filter>
+        </defs>
+      </svg>
 
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.end}
-              className="flex-1"
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden w-[90%] max-w-sm pointer-events-none">
+        <div className="relative h-16 rounded-[2rem] bg-slate-900/80 dark:bg-slate-900/90 backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] pointer-events-auto overflow-hidden">
+          
+          {/* Liquid Indicator Layer */}
+          <div className="absolute inset-0 filter-url-[#liquid] pointer-events-none">
+             <div 
+              className="absolute top-1/2 -translate-y-1/2 h-10 transition-all duration-700 cubic-bezier(0.34, 1.56, 0.64, 1) bg-emerald-500/20 dark:bg-emerald-500/10 rounded-2xl"
+              style={{
+                width: `${100 / navItems.length}%`,
+                left: `${(activeIndex === -1 ? 0 : activeIndex) * (100 / navItems.length)}%`,
+                opacity: activeIndex === -1 ? 0 : 1
+              }}
             >
-              {({ isActive }) => (
-                <div className={`flex flex-col items-center justify-center gap-0.5 py-2 transition-all duration-300 ${
-                  isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'
-                }`}>
-                  <item.icon 
-                    className={`h-5 w-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'scale-100'}`} 
-                    strokeWidth={isActive ? 2.5 : 1.8} 
-                  />
-                  <span className={`text-[10px] tracking-tight transition-all duration-300 ${
-                    isActive ? 'font-bold opacity-100' : 'font-medium opacity-70'
-                  }`}>
-                    {item.name}
-                  </span>
-                </div>
-              )}
-            </NavLink>
-          ))}
+              <div className="absolute inset-2 bg-emerald-500/80 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
+            </div>
+          </div>
+          
+          <div className="relative h-full flex items-center justify-around px-2">
+            {navItems.map((item, idx) => {
+              const isActive = activeIndex === idx;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={item.end}
+                  className="flex-1 group"
+                >
+                  <div className="relative flex flex-col items-center justify-center py-2 transition-all duration-500">
+                    <div className={`relative transition-all duration-500 transform ${isActive ? '-translate-y-1 scale-110' : 'group-active:scale-90'}`}>
+                      <item.icon 
+                        className={`h-6 w-6 transition-all duration-500 ${isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`} 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                      />
+                      {isActive && (
+                        <div className="absolute -inset-1 bg-emerald-400/20 blur-md rounded-full animate-pulse" />
+                      )}
+                    </div>
+                    <span className={`text-[9px] font-black uppercase tracking-widest mt-1 transition-all duration-500 ${
+                      isActive ? 'text-emerald-400 opacity-100' : 'text-slate-600 opacity-0 -translate-y-1'
+                    }`}>
+                      {item.name}
+                    </span>
+                  </div>
+                </NavLink>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+      
+      <style>{`
+        .filter-url-[#liquid] {
+          filter: url(#liquid);
+        }
+      `}</style>
+    </>
   );
 }

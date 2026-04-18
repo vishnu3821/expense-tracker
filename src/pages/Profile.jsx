@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap, Shield } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -9,7 +9,13 @@ export default function Profile() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [isScanning, setIsScanning] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsScanning(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const [formData, setFormData] = useState({
     password: '',
     confirmPassword: ''
@@ -57,12 +63,39 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-10 pb-10 animate-in fade-in duration-500">
+      {isScanning && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center animate-out fade-out duration-500 delay-1000">
+           <div className="relative">
+              <div className="h-32 w-32 rounded-3xl border-2 border-emerald-500/30 flex items-center justify-center relative overflow-hidden">
+                 <Shield className="h-16 w-16 text-emerald-500 animate-pulse" />
+                 <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-400 shadow-[0_0_15px_#10b981] animate-scan-line" />
+              </div>
+              <div className="absolute -inset-4 border border-white/10 rounded-[2.5rem] animate-ping duration-1000 opacity-20" />
+           </div>
+           <div className="mt-8 text-center">
+              <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.4em] mb-2">Security Protocol</p>
+              <h3 className="text-white text-lg font-bold tracking-tight">Verifying Identity...</h3>
+           </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes scan-line {
+          0% { transform: translateY(0); opacity: 0; }
+          20% { opacity: 1; }
+          80% { opacity: 1; }
+          100% { transform: translateY(128px); opacity: 0; }
+        }
+        .animate-scan-line {
+          animation: scan-line 1.2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      `}</style>
+
       <div className="flex flex-col gap-1">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Your Identity</h2>
         <p className="text-slate-500 text-sm font-medium">Manage your elite financial credentials.</p>
       </div>
 
-      {/* Titanium Membership Card */}
       <div className="relative group perspective-1000">
         <div className="relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-white/10 transition-all duration-700 hover:rotate-y-2">
           {/* Shimmer Effect */}
