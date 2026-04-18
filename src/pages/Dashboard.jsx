@@ -223,47 +223,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
-        </div>
-        {/* Financial Lifeblood Pulse */}
-        <div className="hidden sm:flex items-center gap-4 px-6 py-3 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
-           <div className="relative z-10 flex items-center gap-3">
-              <div className="flex flex-col items-end">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Pulse Rate</p>
-                <p className="text-sm font-black text-emerald-500 tracking-tighter">{(stats.today / (stats.month || 1) * 100).toFixed(1)} bpm</p>
-              </div>
-              <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
-              <svg width="80" height="30" viewBox="0 0 80 30" className="text-emerald-500">
-                <path 
-                  d="M0 15 Q 10 15, 15 15 L 20 15 L 25 5 L 30 25 L 35 15 L 40 15 Q 45 15, 50 15 L 80 15" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  className="animate-life-pulse"
-                  style={{ animationDuration: `${Math.max(0.5, 2 - (stats.today / 1000))}s` }}
-                />
-              </svg>
-           </div>
-           {/* Moving Glow */}
-           <div className="absolute inset-0 bg-linear-to-r from-transparent via-emerald-500/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
       </div>
-
-      <style>{`
-        @keyframes life-pulse {
-          0% { stroke-dasharray: 0 100; stroke-dashoffset: 0; }
-          50% { stroke-dasharray: 100 0; stroke-dashoffset: 0; }
-          100% { stroke-dasharray: 0 100; stroke-dashoffset: -100; }
-        }
-        .animate-life-pulse {
-          stroke-dasharray: 100;
-          animation: life-pulse 2s infinite linear;
-        }
-      `}</style>
 
       {/* Glassmorphic Command Center */}
       <div className="relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-900 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/20 border border-white/5">
