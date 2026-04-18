@@ -987,65 +987,66 @@ export default function Savings() {
             </button>
 
             {/* Scalloped Receipt Body */}
-            <div className="bg-white dark:bg-slate-900 mx-8 p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
-               {/* Scalloped Edges (Top & Bottom) */}
-               <div className="absolute top-0 left-0 right-0 flex overflow-hidden -translate-y-1/2">
-                 {Array.from({ length: 20 }).map((_, i) => (
-                   <div key={i} className="h-4 min-w-[16px] bg-slate-950/80 dark:bg-slate-950/90 rounded-full mx-[-2px]" />
+            <div className="bg-white dark:bg-slate-900 mx-8 p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 overflow-hidden">
+               {/* Clean Scalloped Edges (Top) */}
+               <div className="absolute top-0 left-0 right-0 flex justify-around px-2 -translate-y-1/2">
+                 {Array.from({ length: 15 }).map((_, i) => (
+                   <div key={i} className="h-5 w-5 bg-slate-950/90 rounded-full border-2 border-slate-900/10" />
                  ))}
                </div>
 
-               {/* Holographic Watermark */}
-               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-25deg]">
-                 <span className="text-8xl font-black tracking-tighter uppercase whitespace-nowrap">Verified Secure</span>
+               {/* Subliminal Watermark */}
+               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.015] rotate-[-25deg] select-none">
+                 <span className="text-8xl font-black tracking-tighter uppercase whitespace-nowrap">Verified Secure Protocol</span>
                </div>
 
-               <div className="relative z-10 text-center space-y-4">
-                  <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500 animate-pulse border border-emerald-500/20 mb-2">
-                    <CheckCircle className="h-10 w-10" />
+               <div className="relative z-10 text-center space-y-6">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-2">
+                    <CheckCircle className="h-8 w-8" />
                   </div>
+                  
                   <div className="space-y-1">
                     <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter italic">Transaction Receipt</h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Digital Asset Record</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Digital Asset Auth Record</p>
                   </div>
 
-                  <div className="py-8 bg-slate-50 dark:bg-slate-950/50 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Authorized Amount</p>
-                    <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">
+                  <div className="py-10 bg-slate-50 dark:bg-slate-950/40 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800/50">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Authorized Amount</p>
+                    <p className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
                       ₹{receiptData.amount.toLocaleString('en-IN')}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-8 text-left pt-4">
+                  <div className="grid grid-cols-2 gap-10 text-left pt-2">
                     <div className="space-y-1">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Origin</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Debit From</p>
                       <p className="font-black text-slate-900 dark:text-slate-200 text-sm tracking-tight">{receiptData.from}</p>
                     </div>
                     <div className="space-y-1 text-right">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Target</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Credit To</p>
                       <p className="font-black text-slate-900 dark:text-slate-200 text-sm tracking-tight">{receiptData.to}</p>
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
+                  <div className="pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-between items-end">
                     <div className="text-left space-y-1">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Credential ID</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Credential Ref</p>
                       <p className="text-[10px] font-mono font-bold text-slate-500 tracking-tight">{receiptData.txnId}</p>
                     </div>
                     <div className="text-right space-y-1">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Timestamp</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time Issued</p>
                       <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-tight">
                         {receiptData.date}
-                        <span className="block text-[8px] opacity-60">{receiptData.time}</span>
+                        <span className="block text-[8px] opacity-60 font-bold">{receiptData.time}</span>
                       </p>
                     </div>
                   </div>
                </div>
 
-               {/* Bottom Scalloped Edge */}
-               <div className="absolute bottom-0 left-0 right-0 flex overflow-hidden translate-y-1/2">
-                 {Array.from({ length: 20 }).map((_, i) => (
-                   <div key={i} className="h-4 min-w-[16px] bg-slate-950/80 dark:bg-slate-950/90 rounded-full mx-[-2px]" />
+               {/* Clean Scalloped Edges (Bottom) */}
+               <div className="absolute bottom-0 left-0 right-0 flex justify-around px-2 translate-y-1/2">
+                 {Array.from({ length: 15 }).map((_, i) => (
+                   <div key={i} className="h-5 w-5 bg-slate-950/90 rounded-full border-2 border-slate-900/10" />
                  ))}
                </div>
             </div>
