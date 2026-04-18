@@ -502,7 +502,7 @@ export default function Savings() {
                 <div 
                   key={acc.id} 
                   onClick={() => fetchActivity(acc.id)}
-                  className={`relative h-64 w-full overflow-hidden rounded-[2.5rem] p-8 shadow-xl transition-all duration-500 hover:-translate-y-3 hover:rotate-x-2 hover:rotate-y-[-2deg] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
+                  className={`relative h-64 w-full overflow-hidden rounded-[2.5rem] p-8 shadow-xl transition-all duration-500 hover:-translate-y-3 hover:rotate-x-2 hover:-rotate-y-2 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] cursor-pointer active:scale-[0.98] group bg-linear-to-br ${style} border border-white/10`}
                 >
                   {/* Glassmorphic Patterns */}
                   <div className="absolute -right-10 -bottom-10 h-32 w-32 rounded-full bg-white/5 blur-2xl group-hover:scale-150 transition-transform duration-700" />
@@ -763,7 +763,7 @@ export default function Savings() {
             
             <div className="px-10 pb-6 border-b border-white/5 flex justify-between items-start">
               <div className="flex items-center gap-5">
-                <div className="h-16 w-16 rounded-[1.5rem] bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <div className="h-16 w-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                   <HistoryIcon className="h-8 w-8" />
                 </div>
                 <div>
@@ -1008,7 +1008,7 @@ export default function Savings() {
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Digital Asset Auth Record</p>
                   </div>
 
-                  <div className="py-10 bg-slate-50 dark:bg-slate-950/40 rounded-[2rem] border-2 border-dashed border-slate-200 dark:border-slate-800/50">
+                  <div className="py-10 bg-slate-50 dark:bg-slate-950/40 rounded-4xl border-2 border-dashed border-slate-200 dark:border-slate-800/50">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Authorized Amount</p>
                     <p className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">
                       ₹{receiptData.amount.toLocaleString('en-IN')}

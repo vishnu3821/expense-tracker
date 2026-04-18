@@ -103,13 +103,13 @@ export default function YearBreakdown() {
       ) : (
         <>
           {/* Main Hero Card with Dynamic Intensity Glow */}
-          <div className={`rounded-[2rem] p-8 text-white relative overflow-hidden shadow-2xl transition-all duration-700 ${
+          <div className={`rounded-4xl p-8 text-white relative overflow-hidden shadow-2xl transition-all duration-700 ${
             yearTotal > 100000 ? 'bg-linear-to-br from-indigo-900 via-purple-900 to-fuchsia-900' : 
             yearTotal > 50000 ? 'bg-linear-to-br from-indigo-700 to-indigo-900' :
             'bg-linear-to-br from-teal-600 to-emerald-800'
           }`}>
             <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-[60px] animate-pulse" />
-            <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-white/5 blur-[40px]" />
+            <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
             
             <div className="relative z-10 flex flex-col justify-between min-h-[120px]">
                <div className="flex items-center gap-2 mb-1">
