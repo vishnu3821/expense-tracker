@@ -127,7 +127,7 @@ export default function Profile() {
                 <div className="flex justify-between items-end">
                    <div className="space-y-1">
                       <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Member Since</p>
-                      <p className="text-xs font-bold tracking-widest">EST. 2024</p>
+                      <p className="text-xs font-bold tracking-widest">EST. {user?.created_at ? new Date(user.created_at).getFullYear() : new Date().getFullYear()}</p>
                    </div>
                    <div className="text-right">
                       <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Network Status</p>

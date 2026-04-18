@@ -272,7 +272,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-2 mt-2">
                  <TrendingUp className="h-3 w-3 text-emerald-500" />
-                 <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year 2024</span>
+                 <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year {new Date().getFullYear()}</span>
               </div>
             </div>
           </div>
