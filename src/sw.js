@@ -33,6 +33,7 @@ onBackgroundMessage(messaging, (payload) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
+  // Handle POST requests to /add (Share Target)
   if (event.request.method === 'POST' && url.pathname === '/add') {
     event.respondWith((async () => {
       try {
@@ -42,18 +43,27 @@ self.addEventListener('fetch', (event) => {
         if (file) {
           // Store the file in IndexedDB using idb-keyval
           await set('shared-image', file);
+          console.log('[sw.js] Shared image stored in IndexedDB');
         }
         
-        // Instead of a 303 redirect which can be flaky for POST, 
-        // return a tiny HTML bridge that redirects via JS
-        return new Response(
-          '<html><head><meta http-equiv="refresh" content="0; url=/add"></head><body><script>window.location.href="/add";</script></body></html>',
-          { headers: { 'Content-Type': 'text/html' } }
-        );
+        // Redirect to /add to process the shared file
+        // We use a 303 See Other redirect which is the standard for POST-to-GET
+        return Response.redirect('/add', 303);
       } catch (error) {
-        console.error('Error handling share target POST:', error);
+        console.error('[sw.js] Error handling share target POST:', error);
+        // Fallback: try to redirect anyway
         return Response.redirect('/add', 303);
       }
     })());
+    return;
+  }
+  
+  // Standard navigation/asset fetching
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match('/');
+      })
+    );
   }
 });
