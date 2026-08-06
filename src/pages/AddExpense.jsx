@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { 
   Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, 
-  ReceiptText, ShieldCheck, CreditCard, ArrowRight, FileSpreadsheet, Download,
+  ReceiptText, ShieldCheck, CreditCard, ArrowRight, FileSpreadsheet, Download, Database,
   Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -65,6 +65,9 @@ export default function AddExpense() {
   const [parsedExpenses, setParsedExpenses] = useState([]);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
   const [bulkError, setBulkError] = useState(null);
+  const [showBulkUploadOverlay, setShowBulkUploadOverlay] = useState(false);
+  const [bulkProgressCount, setBulkProgressCount] = useState(0);
+  const [bulkTotalCount, setBulkTotalCount] = useState(0);
 
   // Animation State
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
@@ -367,6 +370,10 @@ export default function AddExpense() {
     if (parsedExpenses.length === 0) return;
     setIsBulkUploading(true);
     setBulkError(null);
+    setShowBulkModal(false); // Hide the modal to show overlay
+    setShowBulkUploadOverlay(true);
+    setBulkTotalCount(parsedExpenses.length);
+    setBulkProgressCount(0);
 
     try {
       const rowsToInsert = parsedExpenses.map(exp => ({
@@ -381,6 +388,17 @@ export default function AddExpense() {
       const { error: dbError } = await supabase.from('expenses').insert(rowsToInsert);
       if (dbError) throw dbError;
 
+      // Animate progress fast
+      const total = rowsToInsert.length;
+      for (let i = 1; i <= total; i++) {
+        setBulkProgressCount(i);
+        // Add a small delay for visualization (quicker if there are many rows)
+        if (i % (Math.max(1, Math.ceil(total / 25))) === 0) {
+           await new Promise(r => setTimeout(r, 40));
+        }
+      }
+      setBulkProgressCount(total);
+
       // Play success chime
       try {
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
@@ -388,12 +406,14 @@ export default function AddExpense() {
         audio.play();
       } catch (err) {}
 
-      setShowBulkModal(false);
       setParsedExpenses([]);
-      setSuccessName(`Bulk added ${rowsToInsert.length} expenses!`);
+      setSuccessName(`Bulk added ${total} expenses!`);
       setTimeout(() => setSuccessName(null), 4000);
     } catch (err) {
       console.error('Bulk save error:', err);
+      // If error occurs, go back to modal and show error
+      setShowBulkUploadOverlay(false);
+      setShowBulkModal(true);
       setBulkError(err.message || 'Failed to save bulk expenses.');
     } finally {
       setIsBulkUploading(false);
@@ -514,7 +534,7 @@ export default function AddExpense() {
 
           <div className="grid gap-6 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <label htmlFor="name" className="text-sm font-medium text-slate-700">Expense Name</label>
+              <label htmlFor="name" className="text-sm font-medium text-slate-700">Expense Name / Merchant Name / Receiver Name</label>
               <input
                 id="name"
                 name="name"
@@ -662,7 +682,7 @@ export default function AddExpense() {
 
             <div className="space-y-2">
               <label htmlFor="savings_account_id" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Paid From (Account)
+                Paid From (Account) <span className="text-slate-400 font-normal">(Optional)</span>
               </label>
               <select
                 id="savings_account_id"
@@ -1053,6 +1073,79 @@ export default function AddExpense() {
                 )}
                 Save All Expenses
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bulk Upload Progress Overlay ─────────────────────────────────────── */}
+      {showBulkUploadOverlay && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
+            <div className="p-8 pb-4 flex flex-col items-center">
+              <div className="relative flex items-center justify-between w-64 mx-auto h-32 mb-8">
+                <div className="absolute top-1/2 left-8 right-8 h-px bg-slate-100 dark:bg-slate-800 -translate-y-1/2 overflow-hidden">
+                   {bulkProgressCount < bulkTotalCount && (
+                     <div className="absolute inset-0 bg-teal-500 animate-money-flow" />
+                   )}
+                </div>
+
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                   <div className="h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center shadow-sm">
+                      <FileSpreadsheet className="h-8 w-8 text-slate-400" />
+                   </div>
+                   <div className="absolute -bottom-6 flex flex-col items-center w-32">
+                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Data Source</span>
+                   </div>
+                </div>
+
+                <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div className={`h-16 w-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center transition-all duration-500 ${bulkProgressCount === bulkTotalCount ? 'bg-teal-50 dark:bg-teal-900/30 ring-4 ring-teal-500/20 scale-110 shadow-lg' : 'shadow-sm'}`}>
+                       {bulkProgressCount === bulkTotalCount ? (
+                         <div className="animate-chime">
+                           <CheckCircle className="h-8 w-8 text-teal-600" />
+                         </div>
+                       ) : (
+                         <Database className="h-8 w-8 text-teal-600 animate-pulse" />
+                       )}
+                       <div className="absolute -bottom-6 flex flex-col items-center w-24">
+                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Ledger</span>
+                       </div>
+                    </div>
+                </div>
+              </div>
+
+              <div className="w-full space-y-4">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
+                   {bulkProgressCount < bulkTotalCount ? (
+                     <div className="animate-in fade-in slide-in-from-bottom-2">
+                        <Loader2 className="h-5 w-5 text-teal-600 animate-spin mx-auto mb-2" />
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
+                          {bulkProgressCount}/{bulkTotalCount} expense added successfully...
+                        </p>
+                     </div>
+                   ) : (
+                     <div className="animate-in zoom-in duration-300">
+                        <div className="h-10 w-10 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-teal-500/30">
+                          <ShieldCheck className="h-6 w-6 text-white" />
+                        </div>
+                         <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">Batch Protocol Complete!</p>
+                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium px-6 leading-relaxed">
+                            Added <span className="text-teal-600 dark:text-teal-400 font-black">{bulkTotalCount}</span> expenses to ledger.
+                         </p>
+                     </div>
+                   )}
+                </div>
+
+                {bulkProgressCount === bulkTotalCount && (
+                  <button 
+                    onClick={() => setShowBulkUploadOverlay(false)}
+                    className="w-full h-14 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-[1.25rem] shadow-xl shadow-teal-500/20 transition-all active:scale-[0.98]"
+                  >
+                    Done
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

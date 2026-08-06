@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 export default function Topbar() {
   const { user, signOut } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -25,7 +26,7 @@ export default function Topbar() {
         </div>
         
         <div className="flex items-center gap-2 sm:gap-3">
-          <div className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block truncate max-w-[150px]">
+          <div className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block">
             {user?.email}
           </div>
 
@@ -41,7 +42,7 @@ export default function Topbar() {
             {user?.email?.[0] || 'U'}
           </div>
           <button
-            onClick={signOut}
+            onClick={() => setShowLogoutConfirm(true)}
             className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
             title="Logout"
           >
@@ -78,6 +79,34 @@ export default function Topbar() {
             <div className="space-y-3">
               <h3 className="text-2xl font-bold text-white tracking-tight animate-pulse">Syncing App</h3>
               <p className="text-slate-400 text-sm font-medium tracking-wide">Fetching latest configurations...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 px-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 text-center p-8">
+            <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm">
+              <LogOut className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Secure Logout</h3>
+            <p className="text-sm text-slate-500 mb-8 font-medium">Are you sure you want to end your session?</p>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={signOut}
+                className="flex-1 py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-xl shadow-red-500/20 transition-all active:scale-[0.98]"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>

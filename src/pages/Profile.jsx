@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap, Shield } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap, Shield, Activity, Wallet, BookOpen, Landmark, Laptop, Monitor, Smartphone, HardDrive, Bell, ToggleRight, ToggleLeft } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
@@ -20,6 +20,40 @@ export default function Profile() {
     password: '',
     confirmPassword: ''
   });
+
+  const [stats, setStats] = useState({
+    totalTransactions: 0,
+    totalExpenses: 0,
+    academicRecords: 0,
+    savingsAccounts: 0
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchStats();
+    }
+  }, [user]);
+
+  const fetchStats = async () => {
+    try {
+      const [expensesRes, eduRes, savingsRes] = await Promise.all([
+        supabase.from('expenses').select('amount', { count: 'exact' }).eq('user_id', user.id),
+        supabase.from('education_fees').select('id', { count: 'exact' }).eq('user_id', user.id),
+        supabase.from('user_savings').select('id', { count: 'exact' }).eq('user_id', user.id),
+      ]);
+      
+      const totalAmt = (expensesRes.data || []).reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+      setStats({
+        totalTransactions: expensesRes.count || 0,
+        totalExpenses: totalAmt,
+        academicRecords: eduRes.count || 0,
+        savingsAccounts: savingsRes.count || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -106,7 +140,7 @@ export default function Profile() {
                 <div className="space-y-1">
                    <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-emerald-400 fill-emerald-400" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">Titanium Member</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">Verified Member</p>
                    </div>
                    <h3 className="text-2xl font-black tracking-tight mt-2">EXPENSE MONITOR</h3>
                 </div>
@@ -144,6 +178,46 @@ export default function Profile() {
           <div className="absolute top-0 right-0 h-64 w-64 bg-emerald-500/5 blur-[80px] rounded-full pointer-events-none" />
           <div className="absolute bottom-0 left-0 h-40 w-40 bg-teal-500/5 blur-[60px] rounded-full pointer-events-none" />
         </div>
+      </div>
+
+      {/* Account Statistics */}
+      <div className="grid grid-cols-2 gap-4">
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+               <Activity className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Transactions</p>
+               <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{stats.totalTransactions}</p>
+            </div>
+         </div>
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+               <Wallet className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Expenses</p>
+               <p className="text-lg font-black text-slate-900 dark:text-white mt-1">₹{stats.totalExpenses.toLocaleString('en-IN')}</p>
+            </div>
+         </div>
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+               <BookOpen className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Academic Records</p>
+               <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{stats.academicRecords}</p>
+            </div>
+         </div>
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+               <Landmark className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Savings Accounts</p>
+               <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{stats.savingsAccounts}</p>
+            </div>
+         </div>
       </div>
 
       <div className="grid gap-8">
@@ -232,6 +306,92 @@ export default function Profile() {
             </div>
           </form>
         </div>
+
+        {/* Device Management */}
+        <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8 group">
+          <div className="flex items-center gap-4 mb-8">
+             <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg">
+                <Laptop className="h-6 w-6 text-emerald-400" />
+             </div>
+             <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Device Management</h3>
+                <p className="text-xs text-slate-500 font-medium">Active sessions across your devices.</p>
+             </div>
+          </div>
+          
+          <div className="space-y-4">
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 gap-4">
+                <div className="flex items-center gap-4">
+                   <Monitor className="h-8 w-8 text-slate-400 shrink-0" />
+                   <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">MacBook Air M4</h4>
+                      <p className="text-[10px] font-bold text-slate-500">Firefox <span className="text-emerald-500 ml-1">• Active now</span></p>
+                   </div>
+                </div>
+                <button className="text-[10px] font-bold text-red-500 uppercase tracking-wider hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2 rounded-xl transition-colors sm:ml-auto border border-red-500/20">Logout this device</button>
+             </div>
+             
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 gap-4">
+                <div className="flex items-center gap-4">
+                   <Smartphone className="h-8 w-8 text-slate-400 shrink-0" />
+                   <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">Poco F6</h4>
+                      <p className="text-[10px] font-bold text-slate-500">PWA Installed <span className="ml-1">• Last Active 2 minutes ago</span></p>
+                   </div>
+                </div>
+                <button className="text-[10px] font-bold text-red-500 uppercase tracking-wider hover:bg-red-50 dark:hover:bg-red-500/10 px-4 py-2 rounded-xl transition-colors sm:ml-auto border border-red-500/20">Logout this device</button>
+             </div>
+          </div>
+          
+          <div className="mt-6">
+             <button className="w-full py-4 rounded-2xl border-2 border-red-500/20 text-red-500 text-xs font-black uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">Logout all devices</button>
+          </div>
+        </div>
+
+        {/* Storage Usage */}
+        <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8 group">
+          <div className="flex items-center gap-4 mb-6">
+             <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg">
+                <HardDrive className="h-6 w-6 text-emerald-400" />
+             </div>
+             <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Storage Usage</h3>
+                <p className="text-xs text-slate-500 font-medium">Receipts and documents allocation.</p>
+             </div>
+          </div>
+          <div className="space-y-3">
+             <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-900 dark:text-white">4.3 GB Used</span>
+                <span className="text-slate-500">50 GB Available</span>
+             </div>
+             <div className="h-3 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 w-[8.6%] rounded-full shadow-[0_0_10px_#10b981]" />
+             </div>
+          </div>
+        </div>
+
+        {/* Notification Settings */}
+        <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8 group">
+          <div className="flex items-center gap-4 mb-8">
+             <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg">
+                <Bell className="h-6 w-6 text-emerald-400" />
+             </div>
+             <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Notification Settings</h3>
+                <p className="text-xs text-slate-500 font-medium">Manage your alerting preferences.</p>
+             </div>
+          </div>
+          
+          <div className="space-y-4">
+             {[{label: 'Daily Summary', state: true}, {label: 'Budget Alerts', state: true}, {label: 'Fee Reminders', state: true}, {label: 'Educational Alerts', state: false}].map((item, idx) => (
+               <div key={idx} className="flex items-center justify-between p-5 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:border-emerald-500/30 transition-colors">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">{item.label}</span>
+                  {item.state ? <ToggleRight className="h-8 w-8 text-emerald-500" /> : <ToggleLeft className="h-8 w-8 text-slate-400" />}
+               </div>
+             ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
