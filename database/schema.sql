@@ -11,14 +11,19 @@ CREATE TABLE public.expenses (
     CONSTRAINT expenses_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE CASCADE
 );
 
--- Enable RLS
+-- Enable RLS for expenses
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 
--- Create policies
+-- Create policies for expenses
 CREATE POLICY "Users can view their own expenses" ON public.expenses FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own expenses" ON public.expenses FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own expenses" ON public.expenses FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own expenses" ON public.expenses FOR DELETE USING (auth.uid() = user_id);
+
+-- user_savings table and policies (if not already existing in other schema files)
+-- CREATE TABLE IF NOT EXISTS public.user_savings (...);
+-- ALTER TABLE public.user_savings ENABLE ROW LEVEL SECURITY;
+-- ...
 
 -- Create storage bucket for receipts
 INSERT INTO storage.buckets (id, name, public) VALUES ('receipts', 'receipts', true);
@@ -35,6 +40,7 @@ CREATE POLICY "Allow public select"
 ON storage.objects 
 FOR SELECT 
 USING (bucket_id = 'receipts');
+
 -- Allow delete access to 'receipts' bucket for authenticated users
 CREATE POLICY "Allow authenticated delete" 
 ON storage.objects 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Loader2, Image as ImageIcon, X, Trash2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Image as ImageIcon, X, Trash2, FileText } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
 const MONTH_NAMES = [
@@ -24,6 +24,7 @@ export default function MonthDetail() {
   
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPdfExporting, setIsPdfExporting] = useState(false);
 
   useEffect(() => {
     if (user && year && month) fetchMonthData();
@@ -99,6 +100,106 @@ export default function MonthDetail() {
     }
   };
 
+  const handleExportPDF = async () => {
+    if (expenses.length === 0) {
+      alert('No expenses found for this month.');
+      return;
+    }
+    setIsPdfExporting(true);
+    try {
+      const { default: jsPDF } = await import('jspdf');
+      const { default: autoTable } = await import('jspdf-autotable');
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const now = new Date();
+      const generatedOn = format(now, 'dd MMM yyyy, hh:mm a');
+      const monthName = MONTH_NAMES[selectedMonthIndex];
+
+      // ── Header Banner ──────────────────────────────────────────────
+      doc.setFillColor(13, 148, 136); // teal-600
+      doc.rect(0, 0, pageWidth, 38, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${monthName} ${selectedYear} Expense Report`, pageWidth / 2, 16, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Prepared for: ${user.email}`, pageWidth / 2, 24, { align: 'center' });
+      doc.text(`Generated on: ${generatedOn}`, pageWidth / 2, 30, { align: 'center' });
+
+      // ── Compute Totals ─────────────────────────────────────────────
+      const categoryMap = {};
+      expenses.forEach(e => {
+        const cat = e.category || 'Other';
+        categoryMap[cat] = (categoryMap[cat] || 0) + Number(e.amount);
+      });
+      const topCategory = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0];
+
+      // ── Summary Cards ──────────────────────────────────────────────
+      const cardY = 46;
+      const cardH = 22;
+      const cards = [
+        { label: 'Total Expenses', value: `Rs. ${monthTotal.toFixed(2)}` },
+        { label: 'Total Transactions', value: `${expenses.length}` },
+        { label: 'Top Category', value: topCategory ? topCategory[0] : '—' },
+      ];
+      const cardW = (pageWidth - 30) / 3;
+      cards.forEach((card, i) => {
+        const x = 10 + i * (cardW + 5);
+        doc.setFillColor(240, 253, 250);
+        doc.roundedRect(x, cardY, cardW, cardH, 3, 3, 'F');
+        doc.setDrawColor(13, 148, 136);
+        doc.roundedRect(x, cardY, cardW, cardH, 3, 3, 'S');
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(8);
+        doc.text(card.label, x + cardW / 2, cardY + 7, { align: 'center' });
+        doc.setTextColor(15, 23, 42);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text(card.value, x + cardW / 2, cardY + 16, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+      });
+
+      // ── Transaction Table ──────────────────────────────────────────
+      const tableColumn = ["Date", "Expense Name", "Category", "Payment Mode", "Amount"];
+      const tableRows = expenses.map(e => [
+        format(parseISO(e.date), 'dd MMM yyyy'),
+        e.name,
+        e.category || 'Other',
+        e.payment_mode || 'UPI',
+        `Rs. ${Number(e.amount).toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        startY: cardY + cardH + 10,
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [13, 148, 136], textColor: 255, fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        margin: { top: 10, bottom: 15, left: 10, right: 10 }
+      });
+
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setTextColor(148, 163, 184);
+        doc.setFontSize(8);
+        doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+      }
+
+      doc.save(`${monthName}_${selectedYear}_Expenses_${format(now, 'yyyy-MM-dd')}.pdf`);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+      alert('Failed to generate PDF.');
+    } finally {
+      setIsPdfExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 max-w-2xl mx-auto pb-6 relative min-h-[80vh]">
       {/* Header */}
@@ -117,9 +218,20 @@ export default function MonthDetail() {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Archive Detail {selectedYear}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Scan</span>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportPDF}
+            disabled={isPdfExporting || expenses.length === 0}
+            className="flex items-center gap-2 bg-slate-900 dark:bg-slate-800 text-white px-3 py-2 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors shadow-sm disabled:opacity-50"
+            title="Download Monthly Report"
+          >
+            {isPdfExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+            <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Export PDF</span>
+          </button>
+          <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 hidden sm:flex">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Scan</span>
+          </div>
         </div>
       </div>
 

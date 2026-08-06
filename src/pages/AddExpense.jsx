@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
 import { 
   Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, 
-  ReceiptText, ShieldCheck, CreditCard, ArrowRight,
+  ReceiptText, ShieldCheck, CreditCard, ArrowRight, FileSpreadsheet, Download,
   Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { get, del } from 'idb-keyval';
 
 import { createWorker } from 'tesseract.js';
@@ -58,6 +59,12 @@ export default function AddExpense() {
   const [accounts, setAccounts] = useState([]);
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const imagePreviewUrl = useRef(null);
+
+  // Bulk Upload State
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [parsedExpenses, setParsedExpenses] = useState([]);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [bulkError, setBulkError] = useState(null);
 
   // Animation State
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
@@ -282,13 +289,134 @@ export default function AddExpense() {
     }
   };
 
+  // ─── Bulk Upload Logic ────────────────────────────────────────────────────────
+  const handleDownloadSample = () => {
+    const ws = XLSX.utils.json_to_sheet([
+      { Date: '2026-08-01', 'Expense Name': 'Office Supplies', Amount: 150.50, Category: 'Other', 'Payment Mode': 'UPI' },
+      { Date: '2026-08-02', 'Expense Name': 'Electricity Bill', Amount: 80.00, Category: 'Utilities', 'Payment Mode': 'UPI' }
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sample Expenses");
+    XLSX.writeFile(wb, "Expense_Monitor_Sample.xlsx");
+  };
+
+  const handleBulkFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setBulkError(null);
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (jsonData.length === 0) {
+        throw new Error('The uploaded file is empty.');
+      }
+
+      // Map dynamic columns to expected structure
+      const processedData = jsonData.map((row, index) => {
+        // Try to find matching columns case-insensitively
+        const getVal = (possibleKeys) => {
+          const key = Object.keys(row).find(k => possibleKeys.some(pk => k.toLowerCase().includes(pk)));
+          return key ? row[key] : '';
+        };
+
+        const name = getVal(['name', 'desc', 'item']);
+        const amount = parseFloat(getVal(['amount', 'cost', 'price', 'value'])) || 0;
+        let dateVal = getVal(['date', 'time']);
+        const category = getVal(['category', 'type']) || 'Other';
+        const paymentMode = getVal(['payment', 'mode']) || 'UPI';
+
+        // Parse Excel dates if it's a number
+        let parsedDate = null;
+        if (typeof dateVal === 'number') {
+          // Excel epoch is 1899-12-30
+          parsedDate = new Date((dateVal - (25567 + 2)) * 86400 * 1000);
+        } else if (dateVal) {
+          const parsed = new Date(dateVal);
+          if (!isNaN(parsed.valueOf())) parsedDate = parsed;
+        }
+
+        return {
+          id: index,
+          name,
+          amount,
+          date: parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null,
+          category,
+          payment_mode: paymentMode
+        };
+      }).filter(row => row.name && row.amount > 0 && row.date);
+
+      if (processedData.length === 0) {
+        throw new Error('No valid expenses found. Ensure your file has Expense Name, Amount, and Date columns.');
+      }
+
+      setParsedExpenses(processedData);
+    } catch (err) {
+      console.error('File parsing error:', err);
+      setBulkError(err.message || 'Failed to read the file.');
+    }
+    // reset input
+    e.target.value = null;
+  };
+
+  const handleBulkSave = async () => {
+    if (parsedExpenses.length === 0) return;
+    setIsBulkUploading(true);
+    setBulkError(null);
+
+    try {
+      const rowsToInsert = parsedExpenses.map(exp => ({
+        user_id: user.id,
+        name: exp.name,
+        amount: exp.amount,
+        category: exp.category || 'Other',
+        date: new Date(exp.date).toISOString(),
+        payment_mode: exp.payment_mode || 'UPI'
+      }));
+
+      const { error: dbError } = await supabase.from('expenses').insert(rowsToInsert);
+      if (dbError) throw dbError;
+
+      // Play success chime
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+        audio.volume = 0.5;
+        audio.play();
+      } catch (err) {}
+
+      setShowBulkModal(false);
+      setParsedExpenses([]);
+      setSuccessName(`Bulk added ${rowsToInsert.length} expenses!`);
+      setTimeout(() => setSuccessName(null), 4000);
+    } catch (err) {
+      console.error('Bulk save error:', err);
+      setBulkError(err.message || 'Failed to save bulk expenses.');
+    } finally {
+      setIsBulkUploading(false);
+    }
+  };
+  // ──────────────────────────────────────────────────────────────────────────────
+
   const imagePreview = formData.image ? URL.createObjectURL(formData.image) : null;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Add New Expense</h2>
-        <p className="text-slate-500 text-sm mt-1">Upload a payment screenshot and let AI auto-fill the details.</p>
+    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Add New Expense</h2>
+          <p className="text-slate-500 text-sm mt-1">Upload a payment screenshot and let AI auto-fill the details.</p>
+        </div>
+        <button
+          onClick={() => setShowBulkModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-colors shadow-sm"
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Bulk Upload
+        </button>
       </div>
 
       <div className="card pt-1 shadow-sm">
@@ -786,6 +914,145 @@ export default function AddExpense() {
                  <ShieldCheck className="h-3 w-3 text-slate-400" />
                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Secure Ledger Protocol 2.0</p>
                </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Bulk Upload Modal ────────────────────────────────────────────────── */}
+      {showBulkModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 px-8">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                  <FileSpreadsheet className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Bulk Upload Expenses</h3>
+                  <p className="text-xs text-slate-500">Upload CSV or Excel file</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setShowBulkModal(false); setParsedExpenses([]); setBulkError(null); }}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <X className="h-6 w-6 text-slate-400" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-6">
+              {bulkError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-800">
+                  <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+                  <p className="text-sm font-medium">{bulkError}</p>
+                </div>
+              )}
+
+              {parsedExpenses.length === 0 ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-4 text-sm text-slate-600 dark:text-slate-300 flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold mb-2">Instructions:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-1 text-xs">
+                        <li>Your file should contain <span className="font-bold">Date</span>, <span className="font-bold">Expense Name</span>, and <span className="font-bold">Amount</span> columns.</li>
+                        <li>Optional columns: Category, Payment Mode.</li>
+                        <li>Formats accepted: .csv, .xlsx, .xls</li>
+                      </ul>
+                    </div>
+                    <button 
+                      onClick={handleDownloadSample}
+                      className="px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-100 hover:bg-teal-200 rounded-lg transition-colors flex items-center gap-1.5 shrink-0"
+                    >
+                      <Download className="h-3 w-3" />
+                      Download Sample
+                    </button>
+                  </div>
+
+                  <div className="flex justify-center rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 px-6 py-12 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <div className="text-center">
+                      <UploadCloud className="mx-auto h-12 w-12 text-slate-400 group-hover:text-teal-500 transition-colors" />
+                      <div className="mt-4 flex text-sm leading-6 text-slate-600 dark:text-slate-400 justify-center">
+                        <label
+                          htmlFor="bulk-upload"
+                          className="relative cursor-pointer rounded-md font-semibold text-teal-600 focus-within:outline-none hover:text-teal-500"
+                        >
+                          <span>Select a file</span>
+                          <input
+                            id="bulk-upload"
+                            type="file"
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                            className="sr-only"
+                            onChange={handleBulkFileUpload}
+                          />
+                        </label>
+                        <p className="pl-1">or drag and drop</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-slate-900 dark:text-white">
+                      Found {parsedExpenses.length} valid expenses
+                    </h4>
+                    <button 
+                      onClick={() => setParsedExpenses([])}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+                    >
+                      Clear & Upload Another
+                    </button>
+                  </div>
+                  
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+                    <div className="overflow-x-auto max-h-[300px]">
+                      <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
+                          <tr>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3">Name</th>
+                            <th className="px-4 py-3">Category</th>
+                            <th className="px-4 py-3 text-right">Amount (₹)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                          {parsedExpenses.map((exp) => (
+                            <tr key={exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                              <td className="px-4 py-3 whitespace-nowrap text-slate-500">{exp.date}</td>
+                              <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{exp.name}</td>
+                              <td className="px-4 py-3 text-slate-500">{exp.category}</td>
+                              <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-white">{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 px-8 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setShowBulkModal(false); setParsedExpenses([]); setBulkError(null); }}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkSave}
+                disabled={parsedExpenses.length === 0 || isBulkUploading}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isBulkUploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                Save All Expenses
+              </button>
             </div>
           </div>
         </div>
