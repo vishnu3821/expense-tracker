@@ -462,7 +462,7 @@ export default function AddExpense() {
                   <img
                     src={imagePreview}
                     alt="Receipt Preview"
-                    className="w-full h-auto max-h-[300px] object-contain rounded-xl"
+                    className="w-full h-auto max-h-75 object-contain rounded-xl"
                   />
                   <button
                     type="button"
@@ -879,7 +879,7 @@ export default function AddExpense() {
               </div>
 
               <div className="w-full space-y-4">
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-25 flex flex-col items-center justify-center text-center">
                    {transferStatus === 'processing' ? (
                      <div className="animate-in fade-in slide-in-from-bottom-2">
                         <Loader2 className="h-5 w-5 text-teal-600 animate-spin mx-auto mb-2" />
@@ -941,7 +941,7 @@ export default function AddExpense() {
 
       {/* ─── Bulk Upload Modal ────────────────────────────────────────────────── */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 px-8">
               <div className="flex items-center gap-3">
@@ -1026,7 +1026,7 @@ export default function AddExpense() {
                   </div>
                   
                   <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
-                    <div className="overflow-x-auto max-h-[300px]">
+                    <div className="overflow-x-auto max-h-75">
                       <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50 sticky top-0 z-10">
                           <tr>
@@ -1080,7 +1080,7 @@ export default function AddExpense() {
 
       {/* ─── Bulk Upload Progress Overlay ─────────────────────────────────────── */}
       {showBulkUploadOverlay && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-110 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
             <div className="p-8 pb-4 flex flex-col items-center">
               <div className="relative flex items-center justify-between w-64 mx-auto h-32 mb-8">
@@ -1116,7 +1116,7 @@ export default function AddExpense() {
               </div>
 
               <div className="w-full space-y-4">
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-25 flex flex-col items-center justify-center text-center">
                    {bulkProgressCount < bulkTotalCount ? (
                      <div className="animate-in fade-in slide-in-from-bottom-2">
                         <Loader2 className="h-5 w-5 text-teal-600 animate-spin mx-auto mb-2" />
