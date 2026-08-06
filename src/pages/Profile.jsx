@@ -156,7 +156,7 @@ export default function Profile() {
              <div className="space-y-4">
                 <div className="space-y-1">
                    <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">Digital Identifier</p>
-                   <p className="text-lg font-black tracking-tight truncate max-w-[280px]">{user?.email}</p>
+                   <p className="text-lg font-black tracking-tight truncate max-w-70">{user?.email}</p>
                 </div>
                 <div className="flex justify-between items-end">
                    <div className="space-y-1">
@@ -182,7 +182,7 @@ export default function Profile() {
 
       {/* Account Statistics */}
       <div className="grid grid-cols-2 gap-4">
-         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-4xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                <Activity className="h-5 w-5 text-emerald-400" />
             </div>
@@ -191,7 +191,7 @@ export default function Profile() {
                <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{stats.totalTransactions}</p>
             </div>
          </div>
-         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-4xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                <Wallet className="h-5 w-5 text-emerald-400" />
             </div>
@@ -200,7 +200,7 @@ export default function Profile() {
                <p className="text-lg font-black text-slate-900 dark:text-white mt-1">₹{stats.totalExpenses.toLocaleString('en-IN')}</p>
             </div>
          </div>
-         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-4xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                <BookOpen className="h-5 w-5 text-emerald-400" />
             </div>
@@ -209,7 +209,7 @@ export default function Profile() {
                <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{stats.academicRecords}</p>
             </div>
          </div>
-         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-[2rem] border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+         <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-4xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="h-10 w-10 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                <Landmark className="h-5 w-5 text-emerald-400" />
             </div>

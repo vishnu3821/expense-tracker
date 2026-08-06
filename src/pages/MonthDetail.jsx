@@ -228,7 +228,7 @@ export default function MonthDetail() {
             {isPdfExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
             <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Export PDF</span>
           </button>
-          <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 hidden sm:flex">
+          <div className="items-center gap-2 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 hidden sm:flex">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Active Scan</span>
           </div>

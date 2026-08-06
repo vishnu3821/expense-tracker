@@ -86,7 +86,7 @@ export default function Topbar() {
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 px-4">
+        <div className="fixed inset-0 z-120 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 px-4">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 text-center p-8">
             <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm">
               <LogOut className="h-8 w-8 text-red-600 dark:text-red-400" />
