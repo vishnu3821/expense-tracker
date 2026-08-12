@@ -3,11 +3,13 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon } from 'lucide-react';
+import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon, GripHorizontal } from 'lucide-react';
 
 import { requestNotificationPermission } from '../lib/firebase';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 
 export default function Dashboard() {
+  usePageGreeting("Welcome to Expense Monitor Dashboard");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ today: 0, month: 0, year: 0 });
@@ -16,7 +18,37 @@ export default function Dashboard() {
   const [categoryData, setCategoryData] = useState([]);
   const [calendarData, setCalendarData] = useState({}); // { 'YYYY-MM-DD': amount }
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+
+  // Widget Drag and Drop State
+  const [widgetOrder, setWidgetOrder] = useState(() => {
+    const saved = localStorage.getItem('dashboard-widget-order');
+    return saved ? JSON.parse(saved) : ['command-center', 'calendar', 'category-chart', 'recent-transactions'];
+  });
+
+  const handleDragStart = (e, id) => {
+    e.dataTransfer.setData('widget-id', id);
+  };
+
+  const handleDrop = (e, dropId) => {
+    const dragId = e.dataTransfer.getData('widget-id');
+    if (!dragId || dragId === dropId) return;
+
+    const newOrder = [...widgetOrder];
+    const dragIndex = newOrder.indexOf(dragId);
+    const dropIndex = newOrder.indexOf(dropId);
+    
+    newOrder.splice(dragIndex, 1);
+    newOrder.splice(dropIndex, 0, dragId);
+    
+    setWidgetOrder(newOrder);
+    localStorage.setItem('dashboard-widget-order', JSON.stringify(newOrder));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
 
   useEffect(() => {
     if (user) {
@@ -184,20 +216,6 @@ export default function Dashboard() {
     );
   }
 
-  const StatCard = ({ title, amount, icon: Icon, colorClass }) => (
-    <div className="card p-6 flex flex-col gap-4 hover:-translate-y-1 transition-transform duration-200">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</h3>
-        <div className={`p-2.5 rounded-xl ${colorClass}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div>
-        <p className="text-3xl font-bold text-slate-900 dark:text-white">₹{amount.toFixed(2)}</p>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-8 pb-8 animate-in fade-in duration-500">
       {showNotificationPrompt && (
@@ -228,175 +246,217 @@ export default function Dashboard() {
         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
       </div>
 
-      {/* Glassmorphic Command Center */}
-      <div className="relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-900 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/20 border border-white/5">
-        <div className="relative z-10 space-y-8">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-1.5 w-6 bg-emerald-500 rounded-full animate-pulse" />
-                <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Financial Intelligence</p>
-              </div>
-              <h2 className="text-4xl font-black tracking-tighter">Command Center</h2>
-            </div>
-            <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-50">Live Analytics</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Today's Flow</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-white">₹{stats.today.toLocaleString('en-IN')}</span>
-                <span className="text-[10px] font-bold text-emerald-400">{(stats.today / (stats.month || 1) * 100).toFixed(0)}% of month</span>
-              </div>
-              <div className="h-1 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
-                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min((stats.today / (stats.month || 1) * 100), 100)}%` }} />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Monthly Spending</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-emerald-400">₹{stats.month.toLocaleString('en-IN')}</span>
-              </div>
-              <p className="text-[10px] font-bold text-white/20 italic">Cumulative Month Activity</p>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Annual Outflow</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-white">₹{stats.year.toLocaleString('en-IN')}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                 <TrendingUp className="h-3 w-3 text-emerald-500" />
-                 <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year {new Date().getFullYear()}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dynamic Background Blurs */}
-        <div className="absolute top-0 right-0 h-40 w-40 bg-emerald-500/10 blur-[80px] rounded-full -mr-10 -mt-10" />
-        <div className="absolute bottom-0 left-0 h-32 w-32 bg-teal-500/5 blur-[60px] rounded-full -ml-10 -mb-10" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
-      </div>
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Expense Calendar */}
-        <div className="card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Expense Calendar</h3>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 w-28 text-center">
-                {format(calendarMonth, 'MMMM yyyy')}
-              </span>
-              <button
-                onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-                disabled={isSameMonth(calendarMonth, new Date())}
-                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          {renderCalendar()}
-          {/* Legend */}
-          <div className="flex items-center gap-2 mt-4 justify-end">
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">Less</span>
-            {[0.15, 0.35, 0.55, 0.75, 0.90].map(op => (
-              <div key={op} className="w-4 h-4 rounded" style={{ backgroundColor: `rgba(13,148,136,${op})` }} />
-            ))}
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">More</span>
-          </div>
-        </div>
-        
-        {/* Category Breakdown (Doughnut Chart) */}
-        <div className="card p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-              Spending by Category
-            </h3>
-          </div>
-          <div className="flex-1 flex items-center justify-center min-h-[250px]">
-            {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <RechartsTooltip 
-                    formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
-                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontWeight: 'bold' }}
-                    itemStyle={{ color: '#fff' }}
-                  />
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={90}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => {
-                      const colors = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1', '#0f766e', '#115e59'];
-                      return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />;
-                    })}
-                  </Pie>
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36} 
-                    iconType="circle"
-                    formatter={(value) => <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{value}</span>}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-slate-400 text-sm">No expenses to analyze yet.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="card p-0 overflow-hidden flex flex-col lg:col-span-2">
-          <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Transactions</h3>
-          </div>
-          <div className="flex-1 p-6 pt-4 space-y-5">
-            {recent.length > 0 ? (
-              recent.map((expense) => (
-                <div key={expense.id} className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3.5">
-                    <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400">
-                      <CreditCard className="h-4 w-4" />
+      {/* Draggable Widgets Container */}
+      <div className="flex flex-wrap gap-5 w-full">
+        {widgetOrder.map(id => {
+          let widgetContent = null;
+          let wrapperClasses = "w-full transition-all duration-300 group";
+          
+          if (id === 'command-center') {
+            widgetContent = (
+              <div className="w-full h-full relative overflow-hidden bg-linear-to-br from-slate-900 via-slate-900 to-teal-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/20 border border-white/5 cursor-grab active:cursor-grabbing">
+                <div className="absolute top-6 right-6 z-20 text-white/40 hover:text-white bg-black/20 p-2 rounded-xl backdrop-blur-md transition-colors" title="Drag to rearrange">
+                  <GripHorizontal className="h-5 w-5" />
+                </div>
+                <div className="relative z-10 space-y-8">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-1.5 w-6 bg-emerald-500 rounded-full animate-pulse" />
+                        <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em]">Financial Intelligence</p>
+                      </div>
+                      <h2 className="text-4xl font-black tracking-tighter">Command Center</h2>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{expense.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        {format(parseISO(expense.date), 'MMM dd, yyyy')} • {(expense.created_at ? new Date(expense.created_at) : parseISO(expense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                      </p>
+                    <div className="bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-3">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_#10b981]" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-50">Live Analytics</p>
                     </div>
                   </div>
-                  <div className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">
-                    ₹{Number(expense.amount).toFixed(2)}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pointer-events-none">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Today's Flow</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-white">₹{stats.today.toLocaleString('en-IN')}</span>
+                        <span className="text-[10px] font-bold text-emerald-400">{(stats.today / (stats.month || 1) * 100).toFixed(0)}% of month</span>
+                      </div>
+                      <div className="h-1 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
+                         <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min((stats.today / (stats.month || 1) * 100), 100)}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Monthly Spending</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-emerald-400">₹{stats.month.toLocaleString('en-IN')}</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white/20 italic">Cumulative Month Activity</p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Annual Outflow</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-white">₹{stats.year.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                         <TrendingUp className="h-3 w-3 text-emerald-500" />
+                         <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year {new Date().getFullYear()}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center text-slate-500 dark:text-slate-400 text-sm py-8">
-                No recent transactions
+
+                {/* Dynamic Background Blurs */}
+                <div className="absolute top-0 right-0 h-40 w-40 bg-emerald-500/10 blur-[80px] rounded-full -mr-10 -mt-10 pointer-events-none" />
+                <div className="absolute bottom-0 left-0 h-32 w-32 bg-teal-500/5 blur-[60px] rounded-full -ml-10 -mb-10 pointer-events-none" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
               </div>
-            )}
-          </div>
-        </div>
+            );
+          } else if (id === 'calendar') {
+            wrapperClasses = "w-full lg:w-[calc(50%-10px)] transition-all duration-300 group";
+            widgetContent = (
+              <div className="w-full h-full card p-6 relative cursor-grab active:cursor-grabbing">
+                <div className="absolute top-4 right-4 z-20 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg transition-colors" title="Drag to rearrange">
+                  <GripHorizontal className="h-4 w-4" />
+                </div>
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white pointer-events-none">Expense Calendar</h3>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 w-28 text-center pointer-events-none">
+                      {format(calendarMonth, 'MMMM yyyy')}
+                    </span>
+                    <button
+                      onClick={() => setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+                      disabled={isSameMonth(calendarMonth, new Date())}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <div className="pointer-events-none">
+                  {renderCalendar()}
+                </div>
+                {/* Legend */}
+                <div className="flex items-center gap-2 mt-4 justify-end pointer-events-none">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">Less</span>
+                  {[0.15, 0.35, 0.55, 0.75, 0.90].map(op => (
+                    <div key={op} className="w-4 h-4 rounded" style={{ backgroundColor: `rgba(13,148,136,${op})` }} />
+                  ))}
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">More</span>
+                </div>
+              </div>
+            );
+          } else if (id === 'category-chart') {
+            wrapperClasses = "w-full lg:w-[calc(50%-10px)] transition-all duration-300 group";
+            widgetContent = (
+              <div className="w-full h-full card p-6 flex flex-col relative cursor-grab active:cursor-grabbing">
+                <div className="absolute top-4 right-4 z-20 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg transition-colors" title="Drag to rearrange">
+                  <GripHorizontal className="h-4 w-4" />
+                </div>
+                <div className="flex items-center justify-between mb-2 pointer-events-none">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                    <PieChartIcon className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    Spending by Category
+                  </h3>
+                </div>
+                <div className="flex-1 flex items-center justify-center min-h-62.5 pointer-events-none">
+                  {categoryData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <RechartsTooltip 
+                          formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                          contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white', fontWeight: 'bold' }}
+                          itemStyle={{ color: '#fff' }}
+                        />
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={65}
+                          outerRadius={90}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {categoryData.map((entry, index) => {
+                            const colors = ['#0d9488', '#14b8a6', '#2dd4bf', '#5eead4', '#99f6e4', '#ccfbf1', '#0f766e', '#115e59'];
+                            return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />;
+                          })}
+                        </Pie>
+                        <Legend 
+                          verticalAlign="bottom" 
+                          height={36} 
+                          iconType="circle"
+                          formatter={(value) => <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{value}</span>}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p className="text-slate-400 text-sm">No expenses to analyze yet.</p>
+                  )}
+                </div>
+              </div>
+            );
+          } else if (id === 'recent-transactions') {
+            widgetContent = (
+              <div className="w-full h-full card p-0 overflow-hidden flex flex-col relative cursor-grab active:cursor-grabbing">
+                <div className="absolute top-4 right-4 z-20 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-lg transition-colors" title="Drag to rearrange">
+                  <GripHorizontal className="h-4 w-4" />
+                </div>
+                <div className="p-6 pb-4 border-b border-slate-100 dark:border-slate-800 pointer-events-none">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Transactions</h3>
+                </div>
+                <div className="flex-1 p-6 pt-4 space-y-5">
+                  {recent.length > 0 ? (
+                    recent.map((expense) => (
+                      <div key={expense.id} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3.5">
+                          <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors flex items-center justify-center text-slate-500 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400">
+                            <CreditCard className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{expense.name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                              {format(parseISO(expense.date), 'MMM dd, yyyy')} • {(expense.created_at ? new Date(expense.created_at) : parseISO(expense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                          ₹{Number(expense.amount).toFixed(2)}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-slate-500 dark:text-slate-400 text-sm py-8 pointer-events-none">
+                      No recent transactions
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div 
+              key={id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, id)}
+              onDrop={(e) => handleDrop(e, id)}
+              onDragOver={handleDragOver}
+              className={wrapperClasses}
+            >
+              {widgetContent}
+            </div>
+          );
+        })}
       </div>
+
     </div>
   );
 }

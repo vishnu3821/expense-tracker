@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 import { format, parseISO } from 'date-fns';
 import { ChevronRight, Calendar, UserCircle, Download, 
   Loader2, 
@@ -24,11 +25,13 @@ import { ChevronRight, Calendar, UserCircle, Download,
   CheckSquare,
   Square,
   Users,
-  GraduationCap
+  GraduationCap,
+  HandCoins
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
+  usePageGreeting("Welcome to More options.");
   const { user, signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
@@ -561,6 +564,22 @@ export default function More() {
           </Link>
 
           <Link 
+            to="/splits" 
+            className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-orange-50 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 transition-colors group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50">
+                <HandCoins className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Friends & Splits</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Track money you are owed and settle debts</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
+          </Link>
+
+          <Link 
             to="/profile" 
             className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
           >
@@ -880,7 +899,7 @@ export default function More() {
 
               {/* Status Text & Progress */}
               <div className="w-full space-y-4">
-                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-[100px] flex flex-col items-center justify-center text-center">
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 min-h-25 flex flex-col items-center justify-center text-center">
                    {broadcastStatus === 'processing' ? (
                      <div className="animate-in fade-in slide-in-from-bottom-2">
                         <Loader2 className="h-5 w-5 text-teal-600 animate-spin mx-auto mb-2" />

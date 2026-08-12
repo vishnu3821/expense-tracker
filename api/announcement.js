@@ -114,35 +114,35 @@ export default async function handler(req, res) {
   <div class="container">
     <div class="header">
       <img src="https://expensemonitor.tech/logo.png" alt="Expense Monitor" class="logo">
-      <div class="hero-text">The Evolution is Here.</div>
-      <div class="sub-hero">Welcome to the all-new <b>Expense Monitor</b> experience.</div>
+      <div class="hero-text">Huge New Features 🎉</div>
+      <div class="sub-hero">Check out what we just built for <b>Expense Monitor</b>.</div>
     </div>
     <div class="content">
       <p style="font-size: 16px;">Hello ${userName},</p>
-      <p style="font-size: 16px;">We've completely transformed the way you track your finances. From a brand new identity to powerful modules, Expense Monitor is now faster, sleeker, and more capable than ever.</p>
+      <p style="font-size: 16px;">We've been hard at work adding your most requested features. Expense Monitor is now smarter and more customizable than ever before.</p>
       
       ${customNoteHtml}
 
       <div class="feature-card">
-        <span class="badge">Rebranding</span>
-        <div class="feature-title">✨ A New Identity</div>
-        <div class="feature-desc">We've evolved from Expense Tracker to <b>Expense Monitor</b>, featuring a refined logo and a premium visual language.</div>
+        <span class="badge">New Feature</span>
+        <div class="feature-title">👯‍♂️ Split with Friends</div>
+        <div class="feature-desc">Easily split bills with friends. Log your share, track who has to pay you, and settle debts with one click!</div>
       </div>
 
       <div style="height: 16px;"></div>
 
       <div class="feature-card">
-        <span class="badge">New Module</span>
-        <div class="feature-title">🎓 Educational Fee Management</div>
-        <div class="feature-desc">Dedicated section to track academic payments, store receipts, and manage your education-related expenses with ease.</div>
+        <span class="badge">Customization</span>
+        <div class="feature-title">🧩 Drag & Drop Dashboard</div>
+        <div class="feature-desc">Your Dashboard, your rules. Rearrange the layout exactly how you want it with intuitive drag-and-drop customization.</div>
       </div>
 
       <div style="height: 16px;"></div>
 
       <div class="feature-card">
-        <span class="badge">UI/UX</span>
-        <div class="feature-title">💎 Premium Experience</div>
-        <div class="feature-desc">Enjoy a state-of-the-art interface with glassmorphic elements, smooth animations, and a high-impact 1.5s startup sequence.</div>
+        <span class="badge">Enhancement</span>
+        <div class="feature-title">🧠 AI Smart Categorization</div>
+        <div class="feature-desc">The app now learns your spending habits! We automatically select the right category and payment mode based on your past history.</div>
       </div>
 
       <a href="https://expensemonitor.tech" class="btn">Experience Expense Monitor</a>
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
       .map(user => ({
         from: resendFromEmail,
         to: user.email,
-        subject: '🚀 Introducing Expense Monitor: A New Financial Chapter',
+        subject: '🚀 Expense Monitor: Splits, Custom Dashboards & More!',
         html: getEmailHtml(user.email, customMessage),
       }));
 

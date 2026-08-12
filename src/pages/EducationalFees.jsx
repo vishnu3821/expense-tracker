@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 import { 
   GraduationCap, 
   ArrowLeft, 
@@ -32,6 +33,7 @@ import DownloadStatementModal from '../components/Education/DownloadStatementMod
 import { generatePDF, generateExcel, numVal } from '../components/Education/exportUtils';
 
 export default function EducationalFees() {
+  usePageGreeting("Welcome to Educational fee .");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [fees, setFees] = useState([]);
@@ -564,7 +566,7 @@ export default function EducationalFees() {
                 <div className="text-right">
                   <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">₹{formatCurrency(totalYear)}</span>
                   <p
-                    className="text-[10px] font-bold text-slate-400 italic leading-relaxed truncate max-w-[150px]"
+                    className="text-[10px] font-bold text-slate-400 italic leading-relaxed truncate max-w-37.5"
                     title={numberToWords(totalYear)}
                   >{numberToWords(totalYear)}</p>
                 </div>
@@ -941,7 +943,7 @@ export default function EducationalFees() {
                </div>
              </div>
 
-             <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
+             <div className="bg-white dark:bg-slate-900 rounded-4xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <tr>
@@ -986,10 +988,10 @@ export default function EducationalFees() {
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter truncate max-w-[120px]">
+                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter truncate max-w-30">
                                 {record.year} &bull; {record.semester}
                               </div>
-                              <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate max-w-[120px]">
+                              <div className="text-xs font-bold text-slate-900 dark:text-white mt-0.5 truncate max-w-30">
                                 {record.category}
                               </div>
                             </td>
@@ -999,12 +1001,12 @@ export default function EducationalFees() {
                               </div>
                               <div className="text-[10px] font-bold text-slate-400 mt-0.5 flex items-center gap-2">
                                 {record.receipt_no && <span># {record.receipt_no}</span>}
-                                {record.amount_info && <span className="text-emerald-600 dark:text-emerald-500 italic max-w-[100px] truncate">{record.amount_info}</span>}
+                                {record.amount_info && <span className="text-emerald-600 dark:text-emerald-500 italic max-w-25 truncate">{record.amount_info}</span>}
                               </div>
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="text-sm font-black text-slate-900 dark:text-white">₹{formatCurrency(record.amount)}</div>
-                              <div className="text-[9px] font-bold text-slate-400 italic truncate max-w-[100px] block ml-auto">{numberToWords(record.amount)}</div>
+                              <div className="text-[9px] font-bold text-slate-400 italic truncate max-w-25 block ml-auto">{numberToWords(record.amount)}</div>
                             </td>
                             <td className="px-6 py-4">
                               <div className="flex items-center gap-2">
@@ -1062,7 +1064,7 @@ export default function EducationalFees() {
       {/* Custom Tailwind Input Prompt Modal */}
       {promptConfig && (
         <div className="fixed inset-0 z-30 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-200 dark:ring-slate-800">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ring-1 ring-slate-200 dark:ring-slate-800">
             <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
               <h3 className="text-xl font-black text-slate-900 dark:text-white">
                 {promptConfig.title}
@@ -1114,7 +1116,7 @@ export default function EducationalFees() {
       {/* Custom Tailwind CONFIRMATION Modal */}
       {confirmConfig && (
         <div className="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-2 border-red-500/10">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-4xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 border-2 border-red-500/10">
             <div className={`p-6 flex flex-col items-center text-center ${confirmConfig.isDangerous ? 'bg-red-50/50 dark:bg-red-900/10' : 'bg-slate-50/50 dark:bg-slate-800/50'}`}>
               <div className={`h-16 w-16 rounded-3xl flex items-center justify-center mb-4 ${confirmConfig.isDangerous ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400' : 'bg-emerald-100 text-emerald-600'}`}>
                 <AlertCircle className="h-8 w-8" />
@@ -1175,7 +1177,7 @@ export default function EducationalFees() {
               {/* Receipt Image */}
               {selectedRecord.image_url ? (
                 <div
-                  className="group relative rounded-[32px] border-4 border-slate-50 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-black shadow-2xl cursor-zoom-in"
+                  className="group relative rounded-4xl border-4 border-slate-50 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-black shadow-2xl cursor-zoom-in"
                   onClick={() => setLightboxUrl(selectedRecord.image_url)}
                   title="Click to view full screen"
                 >
@@ -1187,7 +1189,7 @@ export default function EducationalFees() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-[32px] border-4 border-dashed border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center h-48 text-slate-400">
+                <div className="rounded-4xl border-4 border-dashed border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center h-48 text-slate-400">
                   <ImageIcon className="h-12 w-12 mb-3 opacity-20" />
                   <p className="text-sm font-bold uppercase tracking-widest opacity-40">No Snapshot attached</p>
                 </div>
@@ -1206,7 +1208,7 @@ export default function EducationalFees() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-inner">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-950 p-6 rounded-4xl border border-slate-100 dark:border-slate-800 shadow-inner">
                 {selectedRecord.receipt_no && (
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Receipt ID</p>
@@ -1234,7 +1236,7 @@ export default function EducationalFees() {
               </div>
               
               {selectedRecord.amount_info && (
-                <div className="p-6 rounded-[32px] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
+                <div className="p-6 rounded-4xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Audit Remarks</p>
                   <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed italic">"{selectedRecord.amount_info}"</p>
                 </div>

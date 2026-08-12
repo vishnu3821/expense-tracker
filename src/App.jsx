@@ -14,6 +14,7 @@ import Savings from './pages/Savings'
 import AdminDashboard from './pages/AdminDashboard'
 import EducationalFees from './pages/EducationalFees'
 import SplashScreen from './components/Common/SplashScreen'
+import Splits from './pages/Splits'
 import { Analytics } from '@vercel/analytics/react'
 import { useState, useEffect } from 'react'
 
@@ -45,6 +46,7 @@ function App() {
               <Route path="more/savings" element={<Savings />} />
               <Route path="more/education-fees" element={<EducationalFees />} />
               <Route path="more/admin-breakdown" element={<AdminDashboard />} />
+              <Route path="splits" element={<Splits />} />
             </Route>
           </Routes>
         </Router>

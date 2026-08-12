@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap, Shield, Activity, Wallet, BookOpen, Landmark, Laptop, Monitor, Smartphone, HardDrive, Bell, ToggleRight, ToggleLeft } from 'lucide-react';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 
 export default function Profile() {
+  usePageGreeting("Welcome to your profile .");
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

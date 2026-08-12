@@ -1,11 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, PlusCircle, History, X, Menu } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, History, X, Menu, HandCoins } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard, end: true },
   { name: 'Add Expense', path: '/add', icon: PlusCircle, end: false },
   { name: 'History', path: '/history', icon: History, end: false },
+  { name: 'Splits', path: '/splits', icon: HandCoins, end: false },
   { name: 'More', path: '/more', icon: Menu, end: false },
 ];
 

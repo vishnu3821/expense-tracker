@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 import { 
   Wallet, 
   Plus, 
@@ -35,6 +36,7 @@ import { Link } from 'react-router-dom';
 
 
 export default function Savings() {
+  usePageGreeting("Welcome to savings.");
   const { user } = useAuth();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);

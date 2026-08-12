@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
-import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search, Edit3, Save } from 'lucide-react';
+import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search, Edit3, Save, AlertTriangle } from 'lucide-react';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 
 
 export default function History() {
+  usePageGreeting("Welcome to history page.");
   const { user } = useAuth();
   const [expenses, setExpenses] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -16,6 +18,7 @@ export default function History() {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', amount: '', date: '', category: 'Other' });
+  const [expenseToDelete, setExpenseToDelete] = useState(null);
 
   const filteredExpenses = expenses.filter(expense => {
     if (!searchQuery) return true;
@@ -144,41 +147,49 @@ export default function History() {
     setIsEditing(false);
   };
 
-  const handleDelete = async (id, e) => {
+  const handleDelete = (id, e) => {
     e.stopPropagation();
-    if (!window.confirm("Are you sure you want to delete this expense?")) return;
+    setExpenseToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!expenseToDelete) return;
     
     setIsDeleting(true);
     try {
       // Find expense to potentially delete image
-      const expense = expenses.find(exp => exp.id === id);
+      const expense = expenses.find(exp => exp.id === expenseToDelete);
       
       const { error } = await supabase
         .from('expenses')
         .delete()
-        .eq('id', id)
+        .eq('id', expenseToDelete)
         .eq('user_id', user.id);
 
       if (error) throw error;
       
-      // Attempt to delete image from storage if it exists
+      // If there was an image, try to delete it from storage
       if (expense?.image_url) {
-        // We'll extract the filename from the URL, but if it fails we just catch and ignore
         try {
-          const urlParts = expense.image_url.split('/');
-          const fileName = urlParts[urlParts.length - 1];
-          const path = `${user.id}/${fileName}`;
-          await supabase.storage.from('receipts').remove([path]);
-        } catch (storageErr) {
-          console.error("Failed to delete associated storage file:", storageErr);
+          // Extract filename from URL (assumes basic path structure)
+          const fileName = expense.image_url.split('/').pop();
+          if (fileName) {
+            await supabase.storage.from('receipts').remove([`${user.id}/${fileName}`]);
+          }
+        } catch (imgErr) {
+          console.error("Error deleting image, ignoring:", imgErr);
         }
       }
 
-      setExpenses(expenses.filter(exp => exp.id !== id));
-      if (selectedExpense?.id === id) setSelectedExpense(null);
+      setExpenses(prev => prev.filter(e => e.id !== expenseToDelete));
+      setExpenseToDelete(null);
+      
+      // If the deleted expense was currently viewed in the modal, close it
+      if (selectedExpense?.id === expenseToDelete) {
+        closeDetailsModal();
+      }
     } catch (err) {
       console.error('Error deleting expense:', err);
-      alert('Failed to delete expense.');
     } finally {
       setIsDeleting(false);
     }
@@ -279,7 +290,7 @@ export default function History() {
 
       <div className="relative mt-8">
         {/* The Activity Line (Timeline) */}
-        <div className="absolute left-4.5 top-2 bottom-0 w-[2px] bg-linear-to-b from-emerald-500/50 via-teal-500/20 to-transparent pointer-events-none" />
+        <div className="absolute left-4.5 top-2 bottom-0 w-0.5 bg-linear-to-b from-emerald-500/50 via-teal-500/20 to-transparent pointer-events-none" />
 
         {Object.keys(groupedByDay).length > 0 ? (
           <div className="space-y-12">
@@ -310,7 +321,7 @@ export default function History() {
                       onClick={() => setSelectedExpense(expense)}
                     >
                       {/* Connector Dot */}
-                      <div className="absolute -left-[1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:border-emerald-500 group-hover:bg-emerald-500 transition-all z-10 shadow-sm" />
+                      <div className="absolute left-[-1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:border-emerald-500 group-hover:bg-emerald-500 transition-all z-10 shadow-sm" />
 
                       <div className="bg-white dark:bg-slate-900/40 backdrop-blur-xl border border-slate-100 dark:border-slate-800 rounded-3xl p-5 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5 transition-all duration-300">
                         <div className="flex items-center justify-between gap-4">
@@ -621,6 +632,36 @@ export default function History() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {expenseToDelete && (
+        <div className="fixed inset-0 z-120 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 px-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 text-center p-8">
+            <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm">
+              <Trash2 className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Delete Expense</h3>
+            <p className="text-sm text-slate-500 mb-8 font-medium">Are you sure you want to permanently delete this expense? This action cannot be undone.</p>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setExpenseToDelete(null)}
+                disabled={isDeleting}
+                className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 py-3.5 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-xl shadow-red-500/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

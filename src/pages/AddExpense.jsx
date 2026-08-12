@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { get, del } from 'idb-keyval';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 
 import { createWorker } from 'tesseract.js';
 
@@ -22,6 +23,37 @@ const CATEGORIES = [
   { name: 'Housing', icon: Home, color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
   { name: 'Other', icon: MoreHorizontal, color: 'bg-slate-50 text-slate-600 border-slate-100' }
 ];
+
+const SMART_CATEGORIES = {
+  'zomato': 'Food & Dining',
+  'swiggy': 'Food & Dining',
+  'kfc': 'Food & Dining',
+  'mcdonalds': 'Food & Dining',
+  'restaurant': 'Food & Dining',
+  'uber': 'Transport',
+  'ola': 'Transport',
+  'rapido': 'Transport',
+  'petrol': 'Transport',
+  'fuel': 'Transport',
+  'netflix': 'Entertainment',
+  'spotify': 'Entertainment',
+  'prime': 'Entertainment',
+  'movie': 'Entertainment',
+  'amazon': 'Shopping',
+  'flipkart': 'Shopping',
+  'myntra': 'Shopping',
+  'cloth': 'Shopping',
+  'electricity': 'Utilities',
+  'wifi': 'Utilities',
+  'jio': 'Utilities',
+  'airtel': 'Utilities',
+  'hospital': 'Health',
+  'pharmacy': 'Health',
+  'medical': 'Health',
+  'medicine': 'Health',
+  'rent': 'Housing',
+  'maintenance': 'Housing'
+};
 
 async function analyzeReceiptImage(imageFile) {
   const worker = await createWorker('eng');
@@ -50,6 +82,7 @@ async function analyzeReceiptImage(imageFile) {
 
 
 export default function AddExpense() {
+  usePageGreeting("Add your Expense.");
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -92,7 +125,10 @@ export default function AddExpense() {
     transaction_id: '',
     payment_mode: 'UPI',
     savings_account_id: '',
-    image: null
+    image: null,
+    isSplit: false,
+    friendName: '',
+    splitAmount: ''
   });
 
   // Cleanup blob URL on unmount
@@ -103,6 +139,66 @@ export default function AddExpense() {
       }
     };
   }, []);
+
+  const [pastHabits, setPastHabits] = useState({});
+
+  useEffect(() => {
+    const learnHabits = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase
+          .from('expenses')
+          .select('name, category, payment_mode')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        
+        if (data) {
+          const habits = {};
+          data.forEach(exp => {
+             const name = exp.name.toLowerCase().trim();
+             if (!habits[name]) {
+               habits[name] = { category: exp.category, payment_mode: exp.payment_mode };
+             }
+          });
+          setPastHabits(habits);
+        }
+      } catch (err) {
+        console.error('Failed to load habits:', err);
+      }
+    };
+    learnHabits();
+  }, [user]);
+
+  // Smart Categorization Effect
+  useEffect(() => {
+    const name = formData.name.toLowerCase().trim();
+    if (name.length > 2) {
+      // 1. Try to find in past habits first
+      const habitKey = Object.keys(pastHabits).find(k => name.includes(k) || k.includes(name));
+      if (habitKey && pastHabits[habitKey]) {
+        const habit = pastHabits[habitKey];
+        if (formData.category !== habit.category || formData.payment_mode !== habit.payment_mode) {
+          setFormData(prev => ({ 
+            ...prev, 
+            category: habit.category,
+            payment_mode: habit.payment_mode 
+          }));
+        }
+        return;
+      }
+
+      // 2. Fallback to hardcoded keywords
+      for (const [key, category] of Object.entries(SMART_CATEGORIES)) {
+        if (name.includes(key)) {
+          if (formData.category !== category) {
+            setFormData(prev => ({ ...prev, category }));
+          }
+          break;
+        }
+      }
+    }
+  }, [formData.name]);
 
   useEffect(() => {
     async function checkSharedImage() {
@@ -176,6 +272,16 @@ export default function AddExpense() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.savings_account_id) {
+      const selectedAccount = accounts.find(a => a.id === formData.savings_account_id);
+      if (selectedAccount && parseFloat(formData.amount) > Number(selectedAccount.balance)) {
+        setError(`Insufficient funds in ${selectedAccount.bank_name}. Current balance is ₹${Number(selectedAccount.balance).toLocaleString('en-IN', {minimumFractionDigits: 2})}.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
     setSuccessName(null);
@@ -210,13 +316,22 @@ export default function AddExpense() {
         await new Promise(r => setTimeout(r, 600));
       }
 
+      const totalAmount = parseFloat(formData.amount);
+      let userAmount = totalAmount;
+      let splitDebtAmount = 0;
+      
+      if (formData.isSplit) {
+        splitDebtAmount = formData.splitAmount ? parseFloat(formData.splitAmount) : (totalAmount / 2);
+        userAmount = totalAmount - splitDebtAmount;
+      }
+
       const { data: newExpense, error: dbError } = await supabase
         .from('expenses')
         .insert([
           {
             user_id: user.id,
             name: formData.name,
-            amount: parseFloat(formData.amount),
+            amount: userAmount,
             category: formData.category,
             date: (() => {
               const d = new Date(formData.date);
@@ -233,13 +348,25 @@ export default function AddExpense() {
 
       if (dbError) throw dbError;
 
+      // Log the split debt
+      if (formData.isSplit && newExpense) {
+        const { error: splitError } = await supabase.from('splits').insert([{
+          user_id: user.id,
+          expense_id: newExpense.id,
+          friend_name: formData.friendName || 'Friend',
+          amount: splitDebtAmount,
+          status: 'pending'
+        }]);
+        if (splitError) console.error("Error saving split:", splitError);
+      }
+
       setSuccessName(savedName);
 
       // Deduct balance from the selected account
       if (formData.savings_account_id) {
         const selectedAccount = accounts.find(a => a.id === formData.savings_account_id);
         if (selectedAccount) {
-          const newBalance = Number(selectedAccount.balance) - parseFloat(formData.amount);
+          const newBalance = Number(selectedAccount.balance) - totalAmount;
           const { error: updateError } = await supabase
             .from('user_savings')
             .update({ balance: newBalance })
@@ -255,13 +382,62 @@ export default function AddExpense() {
       setTransferStep(4); // Finalizing
       await new Promise(r => setTimeout(r, 800));
       
-      // Play Premium Success Chime
+      // Voice feedback instead of chime
       try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
-        audio.volume = 0.5;
-        audio.play();
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel(); // Stop any ongoing speech (like the page greeting)
+          
+          const amountToSpeak = formData.amount || '0';
+          const text = `${amountToSpeak} rupees added to your expenses`;
+          const utterance = new SpeechSynthesisUtterance(text);
+          
+          let voices = window.speechSynthesis.getVoices();
+          
+          const setVoiceAndSpeak = (voicesList) => {
+            let selectedVoice = voicesList.find(voice => 
+              voice.lang.includes('en-IN') && 
+              (voice.name.toLowerCase().includes('female') || voice.name.toLowerCase().includes('veena'))
+            );
+            
+            if (!selectedVoice) {
+              selectedVoice = voicesList.find(voice => 
+                voice.name.toLowerCase().includes('female') || 
+                voice.name.toLowerCase().includes('samantha') || 
+                voice.name.toLowerCase().includes('victoria') || 
+                voice.name.toLowerCase().includes('karen') ||
+                voice.name.toLowerCase().includes('zira') ||
+                voice.name.toLowerCase().includes('moira') ||
+                voice.name.toLowerCase().includes('google uk english female')
+              );
+            }
+            
+            if (selectedVoice) {
+              utterance.voice = selectedVoice;
+            }
+            
+            utterance.pitch = 1.1; 
+            utterance.rate = 1.0; 
+            
+            // Keep a reference to prevent garbage collection bugs in Safari/iOS
+            window._currentUtterance = utterance;
+            window.speechSynthesis.speak(utterance);
+          };
+
+          if (voices.length === 0) {
+            const onVoicesChanged = () => {
+              voices = window.speechSynthesis.getVoices();
+              if (voices.length > 0) {
+                setVoiceAndSpeak(voices);
+                window.speechSynthesis.removeEventListener('voiceschanged', onVoicesChanged);
+              }
+            };
+            window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
+          } else {
+            setVoiceAndSpeak(voices);
+          }
+        }
       } catch (err) {
-        console.error('Audio playback failed:', err);
+        console.error('Speech playback failed:', err);
       }
 
       setRewardMessage(REWARDS[Math.floor(Math.random() * REWARDS.length)]);
@@ -275,7 +451,10 @@ export default function AddExpense() {
         transaction_id: '',
         payment_mode: 'UPI',
         savings_account_id: '',
-        image: null
+        image: null,
+        isSplit: false,
+        friendName: '',
+        splitAmount: ''
       });
 
       const fileInput = document.getElementById('image-upload');
@@ -563,6 +742,53 @@ export default function AddExpense() {
                 value={formData.amount}
                 onChange={handleChange}
               />
+            </div>
+
+            <div className="sm:col-span-2 space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer group w-max">
+                <div className="relative">
+                  <input 
+                    type="checkbox" 
+                    className="sr-only"
+                    checked={formData.isSplit}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isSplit: e.target.checked }))}
+                  />
+                  <div className={`w-11 h-6 rounded-full transition-colors ${formData.isSplit ? 'bg-teal-500' : 'bg-slate-200 dark:bg-slate-700'}`}></div>
+                  <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.isSplit ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </div>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Split this expense</span>
+              </label>
+
+              {formData.isSplit && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-2xl border border-teal-100 dark:border-teal-800 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-teal-800 dark:text-teal-400">Friend's Name</label>
+                    <input
+                      type="text"
+                      placeholder="E.g. Rahul"
+                      className="input-field bg-white! dark:bg-slate-900!"
+                      value={formData.friendName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, friendName: e.target.value }))}
+                      required={formData.isSplit}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-teal-800 dark:text-teal-400">Friend's Share (₹)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder={formData.amount ? String((parseFloat(formData.amount) / 2).toFixed(2)) : "0.00"}
+                      className="input-field bg-white! dark:bg-slate-900!"
+                      value={formData.splitAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, splitAmount: e.target.value }))}
+                    />
+                  </div>
+                  <div className="sm:col-span-2 text-xs text-teal-600 dark:text-teal-500 mt-1">
+                    Your personal tracking will only log ₹{formData.amount ? (parseFloat(formData.amount) - (parseFloat(formData.splitAmount) || parseFloat(formData.amount) / 2)).toFixed(2) : "0.00"} as your expense.
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 sm:col-span-2">

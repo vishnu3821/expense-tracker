@@ -47,3 +47,25 @@ ON storage.objects
 FOR DELETE 
 TO authenticated 
 USING (bucket_id = 'receipts');
+
+-- Create splits table for tracking owed money
+CREATE TABLE public.splits (
+    id uuid NOT NULL DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    expense_id uuid REFERENCES public.expenses(id) ON DELETE CASCADE,
+    friend_name text NOT NULL,
+    amount numeric NOT NULL,
+    status text NOT NULL DEFAULT 'pending',
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT splits_pkey PRIMARY KEY (id),
+    CONSTRAINT splits_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users (id) ON DELETE CASCADE
+);
+
+-- Enable RLS for splits
+ALTER TABLE public.splits ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for splits
+CREATE POLICY "Users can view their own splits" ON public.splits FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their own splits" ON public.splits FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update their own splits" ON public.splits FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete their own splits" ON public.splits FOR DELETE USING (auth.uid() = user_id);

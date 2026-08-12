@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar, Loader2 } from 'lucide-react';
+import { usePageGreeting } from '../hooks/usePageGreeting';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June', 
@@ -10,6 +11,7 @@ const MONTH_NAMES = [
 ];
 
 export default function YearBreakdown() {
+  usePageGreeting("Welcome to your year breakdown.");
   const { user } = useAuth();
   const navigate = useNavigate();
   
@@ -111,7 +113,7 @@ export default function YearBreakdown() {
             <div className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-white/10 blur-[60px] animate-pulse" />
             <div className="absolute -bottom-16 -left-16 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
             
-            <div className="relative z-10 flex flex-col justify-between min-h-[120px]">
+            <div className="relative z-10 flex flex-col justify-between min-h-30">
                <div className="flex items-center gap-2 mb-1">
                  <div className="h-1.5 w-6 bg-white/40 rounded-full" />
                  <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.3em]">Annual Outflow Protocol</p>
