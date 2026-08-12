@@ -125,6 +125,22 @@ export default async function handler(req, res) {
 
       <div class="feature-card">
         <span class="badge">New Feature</span>
+        <div class="feature-title">🏦 Universal Bank Statement Upload</div>
+        <div class="feature-desc">Upload your bank statement directly (PDF, Excel, or CSV) from ANY major bank (SBI, HDFC, ICICI, etc.). The AI automatically skips the junk, parses your debits, decrypts password-protected PDFs, and bulk imports your expenses instantly!</div>
+      </div>
+
+      <div style="height: 16px;"></div>
+
+      <div class="feature-card">
+        <span class="badge">New Feature</span>
+        <div class="feature-title">📸 AI Receipt Scanner</div>
+        <div class="feature-desc">Scan a photo of your UPI payment receipt. Our built-in AI vision engine will instantly extract the Transaction ID for your records!</div>
+      </div>
+
+      <div style="height: 16px;"></div>
+
+      <div class="feature-card">
+        <span class="badge">Enhancement</span>
         <div class="feature-title">👯‍♂️ Split with Friends</div>
         <div class="feature-desc">Easily split bills with friends. Log your share, track who has to pay you, and settle debts with one click!</div>
       </div>
@@ -132,7 +148,7 @@ export default async function handler(req, res) {
       <div style="height: 16px;"></div>
 
       <div class="feature-card">
-        <span class="badge">Customization</span>
+        <span class="badge">Enhancement</span>
         <div class="feature-title">🧩 Drag & Drop Dashboard</div>
         <div class="feature-desc">Your Dashboard, your rules. Rearrange the layout exactly how you want it with intuitive drag-and-drop customization.</div>
       </div>
@@ -166,7 +182,7 @@ export default async function handler(req, res) {
       .map(user => ({
         from: resendFromEmail,
         to: user.email,
-        subject: '🚀 Expense Monitor: Splits, Custom Dashboards & More!',
+        subject: '🚀 Expense Monitor: Universal Bank Uploads, AI Scanning & More!',
         html: getEmailHtml(user.email, customMessage),
       }));
 

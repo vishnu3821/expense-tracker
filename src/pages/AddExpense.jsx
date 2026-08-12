@@ -13,6 +13,11 @@ import { usePageGreeting } from '../hooks/usePageGreeting';
 
 import { createWorker } from 'tesseract.js';
 
+import * as pdfjsLib from 'pdfjs-dist';
+// Vite handles the worker URL
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
 const CATEGORIES = [
   { name: 'Food & Dining', icon: Utensils, color: 'bg-orange-50 text-orange-600 border-orange-100' },
   { name: 'Transport', icon: Car, color: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -472,6 +477,82 @@ export default function AddExpense() {
   };
 
   // ─── Bulk Upload Logic ────────────────────────────────────────────────────────
+
+  const parseBankStatementPDF = async (fileBuffer, password = null) => {
+    try {
+      const loadingTask = pdfjsLib.getDocument({
+        data: new Uint8Array(fileBuffer),
+        password: password
+      });
+      const pdf = await loadingTask.promise;
+      let fullText = "";
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(" ");
+        fullText += pageText + "\\n";
+      }
+
+      const rows = fullText.split('\\n');
+      const expenses = [];
+      let idCounter = 1;
+
+      const dateRegex = /\b(\d{1,2}[\/\-](?:[A-Za-z]{3}|\d{1,2})[\/\-]\d{2,4})\b/;
+      const amountRegex = /([\d,]+\.\d{2})|(\b\d+\b)(?=\s*(Cr|Dr)?$)/i;
+
+      for (let line of rows) {
+        if (!line) continue;
+        const dateMatch = line.match(dateRegex);
+        if (dateMatch) {
+          const dateStr = dateMatch[1];
+          const cleanDate = dateStr.replace(/\//g, '-');
+          let parsedDate = new Date(cleanDate);
+          
+          if (isNaN(parsedDate.getTime())) {
+            parsedDate = new Date(dateStr);
+          }
+
+          if (!isNaN(parsedDate.getTime())) {
+            const amountMatches = [...line.matchAll(/([\d,]+(?:\.\d{2})?)/g)];
+            if (amountMatches.length > 0) {
+              let amount = 0;
+              for (let i = amountMatches.length - 1; i >= 0; i--) {
+                 let val = parseFloat(amountMatches[i][1].replace(/,/g, ''));
+                 if (val > 0) {
+                   amount = val;
+                   break;
+                 }
+              }
+
+              if (amount > 0) {
+                let desc = line.replace(dateMatch[0], '').replace(amountMatches[amountMatches.length - 1][0], '').trim();
+                desc = desc.replace(/^[\s-]+|[\s-]+$/g, '').substring(0, 50);
+                if (desc.length < 3) desc = 'Bank Transaction';
+
+                expenses.push({
+                  id: idCounter++,
+                  date: format(parsedDate, 'yyyy-MM-dd'),
+                  name: desc,
+                  amount: amount,
+                  category: 'Other',
+                  payment_mode: 'Bank'
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return expenses;
+    } catch (err) {
+      if (err.name === 'PasswordException') {
+        throw new Error('PASSWORD_REQUIRED');
+      }
+      throw new Error('Failed to parse PDF statement: ' + err.message);
+    }
+  };
+
   const handleDownloadSample = () => {
     const ws = XLSX.utils.json_to_sheet([
       { Date: '2026-08-01', 'Expense Name': 'Office Supplies', Amount: 150.50, Category: 'Other', 'Payment Mode': 'UPI' },
@@ -482,6 +563,9 @@ export default function AddExpense() {
     XLSX.writeFile(wb, "Expense_Monitor_Sample.xlsx");
   };
 
+  const [pdfPasswordPrompt, setPdfPasswordPrompt] = useState({ show: false, fileBuffer: null });
+  const [pdfPasswordInput, setPdfPasswordInput] = useState('');
+
   const handleBulkFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -489,51 +573,145 @@ export default function AddExpense() {
     setBulkError(null);
     try {
       const data = await file.arrayBuffer();
+
+      if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
+        try {
+          const expenses = await parseBankStatementPDF(data);
+          if (expenses.length === 0) throw new Error('No valid transactions found in PDF.');
+          setParsedExpenses(expenses);
+          e.target.value = null;
+          return;
+        } catch (err) {
+          if (err.message === 'PASSWORD_REQUIRED') {
+            setPdfPasswordPrompt({ show: true, fileBuffer: data });
+            e.target.value = null;
+            return;
+          }
+          throw err;
+        }
+      }
+
       const workbook = XLSX.read(data);
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-      if (jsonData.length === 0) {
+      if (rawData.length === 0) {
         throw new Error('The uploaded file is empty.');
       }
 
-      // Map dynamic columns to expected structure
-      const processedData = jsonData.map((row, index) => {
-        // Try to find matching columns case-insensitively
-        const getVal = (possibleKeys) => {
-          const key = Object.keys(row).find(k => possibleKeys.some(pk => k.toLowerCase().includes(pk)));
-          return key ? row[key] : '';
-        };
+      let headerRowIndex = -1;
+      let dateCol = -1;
+      let descCol = -1;
+      let amountCol = -1;
+      let typeCol = -1;
 
-        const name = getVal(['name', 'desc', 'item']);
-        const amount = parseFloat(getVal(['amount', 'cost', 'price', 'value'])) || 0;
-        let dateVal = getVal(['date', 'time']);
-        const category = getVal(['category', 'type']) || 'Other';
-        const paymentMode = getVal(['payment', 'mode']) || 'UPI';
+      // Scan up to the first 50 rows to find the actual table headers
+      for (let i = 0; i < Math.min(rawData.length, 50); i++) {
+        const row = rawData[i];
+        if (!row || !Array.isArray(row)) continue;
+        
+        const rowString = row.map(c => String(c).toLowerCase()).join(' ');
+        
+        if ((rowString.includes('date') || rowString.includes('txn')) && 
+            (rowString.includes('amount') || rowString.includes('withdrawal') || rowString.includes('debit') || rowString.includes('dr') || rowString.includes('particulars') || rowString.includes('narration') || rowString.includes('details'))) {
+          
+          headerRowIndex = i;
+          
+          for (let j = 0; j < row.length; j++) {
+            const cellText = String(row[j]).toLowerCase().trim();
+            if (cellText === 'date' || cellText.includes('txn date') || cellText.includes('tran date') || cellText.includes('value date') || cellText.includes('transaction date')) {
+              dateCol = j;
+            } else if (cellText.includes('name') || cellText.includes('desc') || cellText.includes('particulars') || cellText.includes('narration') || cellText.includes('remarks') || cellText.includes('details')) {
+              descCol = j;
+            } else if (cellText === 'transaction type' || cellText === 'type' || cellText === 'dr/cr') {
+              typeCol = j;
+            } else if ((cellText.includes('withdrawal') || cellText.includes('debit') || cellText === 'dr' || cellText.includes('dr amount') || cellText.includes('withdrawal (dr)')) && !cellText.includes('instrument') && !cellText.includes('type')) {
+              amountCol = j;
+            } else if (amountCol === -1 && (cellText === 'amount' || cellText.includes('cost') || cellText.includes('value'))) {
+              amountCol = j;
+            }
+          }
+          break; // Stop scanning once we find the headers
+        }
+      }
 
-        // Parse Excel dates if it's a number
-        let parsedDate = null;
-        if (typeof dateVal === 'number') {
-          // Excel epoch is 1899-12-30
-          parsedDate = new Date((dateVal - (25567 + 2)) * 86400 * 1000);
-        } else if (dateVal) {
-          const parsed = new Date(dateVal);
-          if (!isNaN(parsed.valueOf())) parsedDate = parsed;
+      // Fallbacks if exact match fails
+      if (dateCol === -1 || amountCol === -1) {
+         for (let j = 0; j < rawData[headerRowIndex].length; j++) {
+            const cellText = String(rawData[headerRowIndex][j]).toLowerCase();
+            if (dateCol === -1 && cellText.includes('date')) dateCol = j;
+            if (amountCol === -1 && cellText.includes('amount')) amountCol = j;
+         }
+      }
+
+      if (headerRowIndex === -1 || dateCol === -1 || amountCol === -1) {
+        let debugText = rawData.slice(0, 15).map(r => JSON.stringify(r)).join(' | ');
+        throw new Error('Could not find standard bank statement columns. ' + debugText);
+      }
+
+      const processedData = [];
+      let idCounter = 1;
+
+      // Read rows below the header
+      for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+        const row = rawData[i];
+        if (!row || !row[dateCol]) continue; // Skip empty rows
+
+        // If there's a type column (like "Transaction Type"), filter out Credits
+        if (typeCol !== -1) {
+           const tType = String(row[typeCol]).toLowerCase();
+           if (tType.includes('credit') || tType === 'cr' || tType.includes('deposit') || tType.includes('received')) {
+              continue; 
+           }
         }
 
-        return {
-          id: index,
-          name,
-          amount,
-          date: parsedDate ? format(parsedDate, 'yyyy-MM-dd') : null,
-          category,
-          payment_mode: paymentMode
-        };
-      }).filter(row => row.name && row.amount > 0 && row.date);
+        let name = descCol !== -1 ? String(row[descCol]) : 'Bank Transaction';
+        if (!name.trim()) name = 'Bank Transaction';
+
+        let amountStr = row[amountCol];
+        let amount = 0;
+        
+        if (typeof amountStr === 'number') {
+          amount = amountStr;
+        } else if (typeof amountStr === 'string') {
+          amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
+        }
+
+        if (amount < 0) amount = Math.abs(amount);
+        
+        if (amount === 0) continue; // Skip deposits or zero amounts if this is a withdrawal column
+
+        let dateVal = row[dateCol];
+        let parsedDate = null;
+
+        if (typeof dateVal === 'number') {
+          parsedDate = new Date((dateVal - (25567 + 2)) * 86400 * 1000);
+        } else if (dateVal) {
+          let cleanDate = String(dateVal).replace(/\//g, '-');
+          const p1 = new Date(cleanDate);
+          if (!isNaN(p1.valueOf())) parsedDate = p1;
+          else {
+             const p2 = new Date(dateVal);
+             if (!isNaN(p2.valueOf())) parsedDate = p2;
+          }
+        }
+
+        if (parsedDate && !isNaN(parsedDate.getTime())) {
+          processedData.push({
+            id: idCounter++,
+            name: name,
+            amount: amount,
+            date: format(parsedDate, 'yyyy-MM-dd'),
+            category: 'Other',
+            payment_mode: 'Bank'
+          });
+        }
+      }
 
       if (processedData.length === 0) {
-        throw new Error('No valid expenses found. Ensure your file has Expense Name, Amount, and Date columns.');
+        let debugText = rawData.slice(0, 15).map(r => JSON.stringify(r)).join(' | ');
+        throw new Error('No valid expenses found. Ensure your file has correct columns. ' + debugText);
       }
 
       setParsedExpenses(processedData);
@@ -1227,7 +1405,7 @@ export default function AddExpense() {
                           <input
                             id="bulk-upload"
                             type="file"
-                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                            accept=".csv, .pdf, application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                             className="sr-only"
                             onChange={handleBulkFileUpload}
                           />
@@ -1298,6 +1476,54 @@ export default function AddExpense() {
                   <CheckCircle className="h-4 w-4" />
                 )}
                 Save All Expenses
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── PDF Password Modal ────────────────────────────────────────────────── */}
+      {pdfPasswordPrompt.show && (
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl p-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Encrypted PDF</h3>
+            <p className="text-sm text-slate-500 mb-4">This bank statement is password protected. Please enter the password (usually your DOB or account number).</p>
+            <input
+              type="password"
+              value={pdfPasswordInput}
+              onChange={(e) => setPdfPasswordInput(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl mb-4"
+              placeholder="Enter PDF password"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setPdfPasswordPrompt({ show: false, fileBuffer: null }); setPdfPasswordInput(''); }}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    setBulkError(null);
+                    const expenses = await parseBankStatementPDF(pdfPasswordPrompt.fileBuffer, pdfPasswordInput);
+                    if (expenses.length === 0) throw new Error('No valid transactions found in PDF.');
+                    setParsedExpenses(expenses);
+                    setPdfPasswordPrompt({ show: false, fileBuffer: null });
+                    setPdfPasswordInput('');
+                  } catch (err) {
+                    if (err.message === 'PASSWORD_REQUIRED' || err.message.includes('PasswordException')) {
+                      setBulkError('Incorrect password. Please try again.');
+                    } else {
+                      setBulkError(err.message);
+                      setPdfPasswordPrompt({ show: false, fileBuffer: null });
+                      setPdfPasswordInput('');
+                    }
+                  }
+                }}
+                className="px-4 py-2 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors"
+              >
+                Unlock
               </button>
             </div>
           </div>
