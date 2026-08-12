@@ -26,7 +26,8 @@ import { ChevronRight, Calendar, UserCircle, Download,
   Square,
   Users,
   GraduationCap,
-  HandCoins
+  HandCoins,
+  MessageSquarePlus
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -42,6 +43,7 @@ export default function More() {
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [customMessage, setCustomMessage] = useState('');
+  const [broadcastSubject, setBroadcastSubject] = useState('');
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
@@ -75,47 +77,22 @@ export default function More() {
     setShowBroadcastModal(true);
     setIsFetchingUsers(true);
     try {
-      // 🕵️ Aggressive User Discovery (Multi-Source)
-      const userMap = {};
-
-      // Source 1: The Secure Admin View (Best source for emails)
-      const { data: viewData } = await supabase.from('admin_user_emails').select('*');
-      if (viewData) {
-        viewData.forEach(v => {
-          userMap[v.id] = { id: v.id, email: v.email };
-        });
-      }
-
-      // Source 2: The Expenses Table (Discovery via usage)
-      const { data: usageData } = await supabase.from('expenses').select('user_id');
-      if (usageData) {
-        usageData.forEach(exp => {
-          if (!userMap[exp.user_id]) {
-            userMap[exp.user_id] = { id: exp.user_id, email: 'User (Found via Expense)' };
-          }
-        });
-      }
-
-      // Source 3: Yourself
-      if (user && !userMap[user.id]) {
-        userMap[user.id] = { id: user.id, email: user.email + ' (You)' };
-      }
-
-      const discoveryResults = Object.values(userMap);
-      if (discoveryResults.length > 0) {
-        setAllUsers(discoveryResults);
-        setSelectedUserIds(discoveryResults.map(u => u.id));
+      const res = await fetch(`/api/admin?action=listUsers&adminEmail=${user.email}`);
+      const data = await res.json();
+      
+      if (data.users && data.users.length > 0) {
+        setAllUsers(data.users);
+        setSelectedUserIds(data.users.map(u => u.id));
       } else {
-        // Source 4: Final API fallback
-        const response = await fetch('/api/announcement');
-        const apiData = await response.json();
-        if (apiData.users && apiData.users.length > 0) {
-          setAllUsers(apiData.users);
-          setSelectedUserIds(apiData.users.map(u => u.id));
-        }
+        // Fallback to yourself if absolutely no users are found
+        setAllUsers([{ id: user.id, email: user.email }]);
+        setSelectedUserIds([user.id]);
       }
     } catch (err) {
-      console.error('Aggressive Discovery Error:', err);
+      console.error('API User Fetch Error:', err);
+      // Fallback
+      setAllUsers([{ id: user.id, email: user.email }]);
+      setSelectedUserIds([user.id]);
     } finally {
       setIsFetchingUsers(false);
     }
@@ -164,7 +141,8 @@ export default function More() {
         },
         body: JSON.stringify({
           selectedUserIds,
-          customMessage
+          customMessage,
+          subject: broadcastSubject || 'Important Update from Expense Monitor'
         })
       });
 
@@ -175,6 +153,27 @@ export default function More() {
         setBroadcastResult(data);
         setBroadcastStatus('success');
         setCustomMessage('');
+        // Speak the success message with a natural voice
+        if ('speechSynthesis' in window) {
+          const msg = new SpeechSynthesisUtterance(`Broadcast message sent successfully to ${selectedUserIds.length} users`);
+          
+          // Try to find a premium, natural sounding voice
+          const voices = window.speechSynthesis.getVoices();
+          const naturalVoice = voices.find(v => 
+            v.name.includes('Samantha') || // Mac premium female
+            v.name.includes('Daniel') || // Mac premium male
+            v.name.includes('Google US English') || // Google premium
+            v.name.includes('Google UK English Female') // Google premium
+          );
+          
+          if (naturalVoice) {
+            msg.voice = naturalVoice;
+          }
+          
+          msg.rate = 0.95; // Slightly slower for a more human feel
+          msg.pitch = 1.0;
+          window.speechSynthesis.speak(msg);
+        }
       } else {
         setBroadcastStatus('error');
         setBroadcastResult({ error: data.error || 'Batch delivery failed' });
@@ -686,6 +685,8 @@ export default function More() {
               <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
             </div>
           </button>
+
+
         </div>
       </div>
 
@@ -771,10 +772,19 @@ export default function More() {
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
                   <div className="h-6 w-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px]">1</div>
-                  Custom Announcement Text
+                  Email Subject & Message
                 </div>
+                
+                <input
+                  type="text"
+                  placeholder="Subject (e.g. Exciting New Features!)"
+                  className="w-full p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition-all shadow-sm font-semibold"
+                  value={broadcastSubject}
+                  onChange={(e) => setBroadcastSubject(e.target.value)}
+                />
+
                 <textarea
-                  placeholder="Tell your users something exciting... (e.g. Happy Holidays! Checkout the new Savings feature.)"
+                  placeholder="Tell your users something exciting..."
                   className="w-full h-32 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:ring-2 focus:ring-teal-500 transition-all resize-none shadow-sm"
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}

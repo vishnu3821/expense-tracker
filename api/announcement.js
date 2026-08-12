@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     if (!supabaseUrl || !supabaseKey) throw new Error('SUPABASE configuration is incomplete.');
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { selectedUserIds, customMessage } = req.body;
+    const { selectedUserIds, customMessage, subject } = req.body;
     
     // Fetch users for matching (same robust logic)
     let allUsers = [];
@@ -79,11 +79,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'No target users matched.' });
     }
 
-    // 🏆 Premium "Expense Monitor" Template
-    const getEmailHtml = (userEmail, customNote) => {
+    // 🏆 Clean Custom Message Template with Features
+    const getEmailHtml = (userEmail, messageText) => {
       const userName = userEmail.split('@')[0];
-      const customNoteHtml = customNote 
-        ? '<div style="background: #f0fdfa; border-left: 4px solid #10b981; padding: 20px; margin-bottom: 24px; border-radius: 0 16px 16px 0; color: #047857; font-weight: 500; font-size: 15px;">' + customNote + '</div>'
+      const customNoteHtml = messageText 
+        ? '<div style="background: #f0fdfa; border-left: 4px solid #10b981; padding: 20px; margin-bottom: 32px; border-radius: 0 16px 16px 0; color: #047857; font-weight: 500; font-size: 15px; white-space: pre-wrap;">' + messageText + '</div>'
         : '';
       
       return `
@@ -93,79 +93,88 @@ export default async function handler(req, res) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f8fafc; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; margin: 0; padding: 0; background-color: #f1f5f9; }
     .container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
     .header { text-align: center; margin-bottom: 32px; }
-    .logo { width: 120px; height: auto; margin-bottom: 16px; }
-    .content { background: #ffffff; border-radius: 32px; padding: 48px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-    .hero-text { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 12px; text-align: center; letter-spacing: -0.025em; }
+    .logo-text { font-size: 24px; font-weight: 900; color: #0f172a; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 24px; letter-spacing: -0.5px; }
+    .content { background: #ffffff; border-radius: 24px; padding: 40px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+    .hero-text { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 12px; text-align: center; letter-spacing: -0.025em; }
     .sub-hero { font-size: 16px; color: #64748b; text-align: center; margin-bottom: 32px; }
-    .feature-grid { display: grid; gap: 16px; margin: 32px 0; }
-    .feature-card { background: #f1f5f9; border-radius: 20px; padding: 24px; border: 1px solid #f8fafc; }
-    .feature-icon { font-size: 24px; margin-bottom: 12px; display: block; }
-    .feature-title { font-weight: 700; color: #0f172a; font-size: 16px; margin-bottom: 4px; }
+    .feature-card { background: #f8fafc; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #f1f5f9; border-left: 4px solid #0ea5e9; }
+    .feature-card.old { border-left: 4px solid #94a3b8; opacity: 0.9; }
+    .feature-title { font-weight: 700; color: #0f172a; font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
     .feature-desc { font-size: 14px; color: #475569; }
-    .btn { display: block; background: #10b981; color: #ffffff !important; padding: 18px 32px; border-radius: 16px; text-decoration: none; font-weight: 700; text-align: center; margin-top: 32px; font-size: 16px; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2); }
-    .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #94a3b8; }
     .badge { background: #d1fae5; color: #065f46; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 99px; text-transform: uppercase; margin-bottom: 8px; display: inline-block; }
+    .badge.old { background: #f1f5f9; color: #64748b; }
+    .message-body { font-size: 16px; color: #334155; line-height: 1.8; margin-bottom: 32px; }
+    .btn { display: block; background: #0f172a; color: #ffffff !important; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 700; text-align: center; margin-top: 32px; font-size: 16px; transition: all 0.2s; }
+    .footer { text-align: center; margin-top: 32px; font-size: 13px; color: #94a3b8; }
+    .highlight { color: #0ea5e9; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <img src="https://expensemonitor.tech/logo.png" alt="Expense Monitor" class="logo">
-      <div class="hero-text">Huge New Features 🎉</div>
-      <div class="sub-hero">Check out what we just built for <b>Expense Monitor</b>.</div>
+      <div class="logo-text">💸 Expense Monitor</div>
     </div>
     <div class="content">
-      <p style="font-size: 16px;">Hello ${userName},</p>
-      <p style="font-size: 16px;">We've been hard at work adding your most requested features. Expense Monitor is now smarter and more customizable than ever before.</p>
+      <div class="hero-text">Exciting New Updates 🎉</div>
+      <div class="sub-hero">See what's new in your financial dashboard.</div>
+      
+      <p style="font-size: 16px; margin-bottom: 24px;">Hello <strong class="highlight">${userName}</strong>,</p>
       
       ${customNoteHtml}
 
       <div class="feature-card">
         <span class="badge">New Feature</span>
+        <div class="feature-title">💬 In-App Direct Feedback</div>
+        <div class="feature-desc">You can now report bugs, suggest features, or reach out to the admin directly from the top navigation bar!</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="badge">New Feature</span>
+        <div class="feature-title">⚡ Performance Upgrades</div>
+        <div class="feature-desc">Your dashboard now loads faster than ever. We've optimized the financial intelligence engine so your metrics appear instantly.</div>
+      </div>
+
+      <div class="feature-card">
+        <span class="badge">New Feature</span>
+        <div class="feature-title">🎨 Beautiful New UI</div>
+        <div class="feature-desc">Enjoy a more polished, modern, and seamless user interface with micro-animations and a stunning dark mode.</div>
+      </div>
+
+      <!-- Previously added features -->
+      <div class="feature-card old">
+        <span class="badge old">Enhancement</span>
         <div class="feature-title">🏦 Universal Bank Statement Upload</div>
         <div class="feature-desc">Upload your bank statement directly (PDF, Excel, or CSV) from ANY major bank (SBI, HDFC, ICICI, etc.). The AI automatically skips the junk, parses your debits, decrypts password-protected PDFs, and bulk imports your expenses instantly!</div>
       </div>
 
-      <div style="height: 16px;"></div>
-
-      <div class="feature-card">
-        <span class="badge">New Feature</span>
+      <div class="feature-card old">
+        <span class="badge old">Enhancement</span>
         <div class="feature-title">📸 AI Receipt Scanner</div>
         <div class="feature-desc">Scan a photo of your UPI payment receipt. Our built-in AI vision engine will instantly extract the Transaction ID for your records!</div>
       </div>
 
-      <div style="height: 16px;"></div>
-
-      <div class="feature-card">
-        <span class="badge">Enhancement</span>
+      <div class="feature-card old">
+        <span class="badge old">Enhancement</span>
         <div class="feature-title">👯‍♂️ Split with Friends</div>
         <div class="feature-desc">Easily split bills with friends. Log your share, track who has to pay you, and settle debts with one click!</div>
       </div>
 
-      <div style="height: 16px;"></div>
-
-      <div class="feature-card">
-        <span class="badge">Enhancement</span>
+      <div class="feature-card old">
+        <span class="badge old">Enhancement</span>
         <div class="feature-title">🧩 Drag & Drop Dashboard</div>
         <div class="feature-desc">Your Dashboard, your rules. Rearrange the layout exactly how you want it with intuitive drag-and-drop customization.</div>
       </div>
 
-      <div style="height: 16px;"></div>
-
-      <div class="feature-card">
-        <span class="badge">Enhancement</span>
+      <div class="feature-card old">
+        <span class="badge old">Enhancement</span>
         <div class="feature-title">🧠 AI Smart Categorization</div>
         <div class="feature-desc">The app now learns your spending habits! We automatically select the right category and payment mode based on your past history.</div>
       </div>
 
-      <a href="https://expensemonitor.tech" class="btn">Experience Expense Monitor</a>
-      
-      <p style="text-align: center; font-size: 13px; color: #64748b; margin-top: 24px;">
-        Log in now to see your upgraded dashboard.
-      </p>
+      <a href="https://expensemonitor.tech" class="btn">Open Your Dashboard</a>
     </div>
     <div class="footer">
       <p>&copy; 2026 Expense Monitor. All rights reserved.</p>
@@ -182,7 +191,7 @@ export default async function handler(req, res) {
       .map(user => ({
         from: resendFromEmail,
         to: user.email,
-        subject: '🚀 Expense Monitor: Universal Bank Uploads, AI Scanning & More!',
+        subject: subject || 'Important Update from Expense Monitor',
         html: getEmailHtml(user.email, customMessage),
       }));
 

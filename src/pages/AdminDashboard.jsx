@@ -15,7 +15,10 @@ import {
   Wallet,
   MoreVertical,
   Download,
-  Filter
+  Filter,
+  MessageSquarePlus,
+  CheckCircle,
+  Inbox
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 
@@ -28,81 +31,88 @@ export default function AdminDashboard() {
   const [loadingExpenses, setLoadingExpenses] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [activeTab, setActiveTab] = useState('users'); // 'users' or 'feedback'
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
 
   const isAdmin = user?.email === 'p.vishnuprabhakar@gmail.com';
 
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
+      fetchFeedbacks();
     }
   }, [isAdmin]);
+
+
+
+  const fetchFeedbacks = async () => {
+    setLoadingFeedbacks(true);
+    try {
+      const { data, error } = await supabase
+        .from('feedbacks')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setFeedbacks(data || []);
+    } catch (err) {
+      console.error('Error fetching feedbacks:', err);
+    } finally {
+      setLoadingFeedbacks(false);
+    }
+  };
+
+  const markFeedbackAsRead = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('feedbacks')
+        .update({ status: 'read' })
+        .eq('id', id);
+      if (error) throw error;
+      
+      setFeedbacks(prev => prev.map(f => 
+        f.id === id ? { ...f, status: 'read' } : f
+      ));
+    } catch (err) {
+      console.error('Error updating feedback:', err);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      // 🕵️ Query unique users from the expenses table directly
-      // This works if you have the Admin RLS policy enabled
-      const { data: expenses, error } = await supabase
-        .from('expenses')
-        .select('user_id, amount');
-
-      if (error) throw error;
-
-      // Group by user_id to find all users who have logged expenses
-      const userMap = {};
+      const res = await fetch(`/api/admin?action=listUsers&adminEmail=${user.email}`);
+      const data = await res.json();
       
-      // Always include the current admin in the list
-      userMap[user.id] = {
-        id: user.id,
-        email: user.email,
-        transaction_count: 0,
-        total_spend: 0,
-        created_at: new Date().toISOString()
-      };
-
-      if (expenses) {
-        expenses.forEach(e => {
-          if (!userMap[e.user_id]) {
-            userMap[e.user_id] = { 
-              id: e.user_id, 
-              transaction_count: 0, 
-              total_spend: 0,
-              email: 'Unknown User',
-              created_at: new Date().toISOString() // Fallback
-            };
-          }
-          userMap[e.user_id].transaction_count++;
-          userMap[e.user_id].total_spend += Number(e.amount);
-        });
+      if (data.users) {
+        const sortedUsers = data.users.sort((a, b) => (b.transaction_count || 0) - (a.transaction_count || 0));
+        setUsers(sortedUsers);
+      } else {
+        throw new Error(data.error || 'Failed to fetch users');
       }
-
-      // To get real emails and join dates directly from the Auth system via our new secure view
-      const { data: userData, error: userError } = await supabase
-        .from('admin_user_emails')
-        .select('*');
-
-      if (userData) {
-        userData.forEach(v => {
-          if (!userMap[v.id]) {
-            // Include users even if they haven't logged any expenses yet
-            userMap[v.id] = {
-              id: v.id,
-              email: v.email,
-              transaction_count: 0,
-              total_spend: 0,
-              created_at: v.created_at
-            };
-          } else {
-            // Update existing user from expense mapping
-            userMap[v.id].email = v.email;
-            if (v.created_at) userMap[v.id].created_at = v.created_at;
-          }
-        });
-      }
-
-      setUsers(Object.values(userMap));
     } catch (err) {
-      console.error('Error fetching users:', err);
+      console.error('Error fetching users via API:', err);
+      // Fallback if API fails: try to build from expenses
+      try {
+        const { data: expenses } = await supabase.from('expenses').select('user_id, amount');
+        if (expenses) {
+          const userMap = {};
+          expenses.forEach(e => {
+            if (!userMap[e.user_id]) {
+              userMap[e.user_id] = { 
+                id: e.user_id, 
+                email: 'Unknown User',
+                transaction_count: 0,
+                created_at: new Date().toISOString()
+              };
+            }
+            userMap[e.user_id].transaction_count++;
+          });
+          setUsers(Object.values(userMap));
+        }
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+      }
     } finally {
       setLoading(false);
     }
@@ -306,7 +316,7 @@ export default function AdminDashboard() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input 
               type="text"
-              placeholder="Search by email or ID..."
+              placeholder={activeTab === 'users' ? "Search by email or ID..." : "Search feedback..."}
               className="pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm w-full md:w-80 shadow-sm focus:ring-2 focus:ring-teal-500 transition-all outline-none"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -315,7 +325,103 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {!selectedUser ? (
+      {!selectedUser && (
+        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-2xl w-full max-w-sm mb-6 border border-slate-200 dark:border-slate-800">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${
+              activeTab === 'users' 
+                ? 'bg-white dark:bg-slate-700 text-teal-600 dark:text-teal-400 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            User Mgmt
+          </button>
+          <button
+            onClick={() => setActiveTab('feedback')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl transition-all duration-300 ${
+              activeTab === 'feedback' 
+                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <Inbox className="h-4 w-4" />
+            Feedback
+            {feedbacks.filter(f => f.status === 'unread').length > 0 && (
+              <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                {feedbacks.filter(f => f.status === 'unread').length}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'feedback' && !selectedUser ? (
+        <div className="space-y-4">
+          {loadingFeedbacks ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            </div>
+          ) : feedbacks.length > 0 ? (
+            feedbacks
+              .filter(f => f.message?.toLowerCase().includes(searchTerm.toLowerCase()) || f.user_email?.toLowerCase().includes(searchTerm.toLowerCase()))
+              .map(feedback => (
+              <div 
+                key={feedback.id} 
+                className={`card p-6 border-l-4 transition-all duration-300 ${
+                  feedback.status === 'unread' 
+                    ? 'border-l-indigo-500 dark:bg-indigo-900/10' 
+                    : 'border-l-slate-200 dark:border-l-slate-700'
+                }`}
+              >
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex gap-4">
+                    <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                      feedback.status === 'unread'
+                        ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-400'
+                        : 'bg-slate-100 text-slate-500 dark:bg-slate-800'
+                    }`}>
+                      <MessageSquarePlus className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                        {feedback.user_email}
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {format(parseISO(feedback.created_at), 'MMM dd, yyyy - hh:mm a')}
+                      </p>
+                      <p className="text-sm text-slate-700 dark:text-slate-300 mt-4 whitespace-pre-wrap">
+                        {feedback.message}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {feedback.status === 'unread' && (
+                    <button
+                      onClick={() => markFeedbackAsRead(feedback.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 rounded-lg text-xs font-bold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors shrink-0"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Mark Read
+                    </button>
+                  )}
+                  {feedback.status === 'read' && (
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider shrink-0 flex items-center gap-1 border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-md">
+                      <CheckCircle className="h-3 w-3" /> Read
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 border-dashed border-slate-100 dark:border-slate-800">
+              <Inbox className="h-12 w-12 mx-auto text-slate-200 dark:text-slate-800 mb-4" />
+              <p className="text-slate-500">No feedback received yet.</p>
+            </div>
+          )}
+        </div>
+      ) : !selectedUser ? (
         /* USER LIST VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredUsers.length > 0 ? (
@@ -457,7 +563,7 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="p-4">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-37.5">
                             {exp?.name || 'Untitled Entry'}
                           </p>
                         </td>
@@ -477,7 +583,7 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="p-4">
-                          <p className="text-[10px] font-mono text-slate-400 truncate max-w-[80px]">
+                          <p className="text-[10px] font-mono text-slate-400 truncate max-w-20">
                             {exp?.transaction_id || '—'}
                           </p>
                         </td>

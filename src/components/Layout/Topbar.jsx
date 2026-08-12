@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Menu, RefreshCw, Cloud, Zap, ArrowRightCircle } from 'lucide-react';
+import { LogOut, Menu, RefreshCw, Cloud, Zap, ArrowRightCircle, MessageSquarePlus, X, Send, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 export default function Topbar() {
   const { user, signOut } = useAuth();
@@ -13,6 +14,43 @@ export default function Topbar() {
     // Hold for 1.5 seconds to show the premium animation
     await new Promise(r => setTimeout(r, 1500));
     window.location.reload();
+  };
+
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState('Dashboard');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+
+  const feedbackCategories = [
+    'Dashboard', 'Add Expense', 'History', 'Splits', 'More', 'Year Breakdown', 'Other'
+  ];
+
+  const handleFeedbackSubmit = async () => {
+    if (!feedbackMessage.trim() || !user) return;
+    
+    setIsSubmittingFeedback(true);
+    try {
+      const fullMessage = `[${feedbackCategory}] ${feedbackMessage.trim()}`;
+      
+      const { error } = await supabase.from('feedbacks').insert([{
+        user_id: user.id,
+        user_email: user.email,
+        message: fullMessage,
+        status: 'unread'
+      }]);
+      
+      if (error) throw error;
+      
+      alert('Thank you! Your feedback has been sent directly to the developer.');
+      setFeedbackMessage('');
+      setFeedbackCategory('Dashboard');
+      setShowFeedbackModal(false);
+    } catch (err) {
+      console.error('Feedback error:', err);
+      alert('Failed to send feedback. Please try again.');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
   };
 
   return (
@@ -29,6 +67,15 @@ export default function Topbar() {
           <div className="text-sm font-medium text-slate-600 dark:text-slate-300 hidden sm:block">
             {user?.email}
           </div>
+
+          <button
+            onClick={() => setShowFeedbackModal(true)}
+            className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-xs font-bold"
+            title="Submit Feedback"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+            <span className="hidden sm:inline">Feedback</span>
+          </button>
 
           <button
             onClick={handleRefresh}
@@ -108,6 +155,75 @@ export default function Topbar() {
                 Logout
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-120 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowFeedbackModal(false)} />
+          <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 w-full max-w-md relative z-10 border border-slate-100 dark:border-slate-800 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowFeedbackModal(false)}
+              className="absolute top-6 right-6 h-8 w-8 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            
+            <div className="mb-6">
+              <div className="h-12 w-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-4">
+                <MessageSquarePlus className="h-6 w-6" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Submit Feedback</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Found a bug? Have a feature request? Let the admin know directly!
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Which area?</label>
+              <div className="flex flex-wrap gap-2">
+                {feedbackCategories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setFeedbackCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      feedbackCategory === cat
+                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <textarea
+              value={feedbackMessage}
+              onChange={(e) => setFeedbackMessage(e.target.value)}
+              placeholder="Describe your issue or suggestion in detail..."
+              className="w-full h-32 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-none text-sm"
+            />
+
+            <button
+              onClick={handleFeedbackSubmit}
+              disabled={isSubmittingFeedback || !feedbackMessage.trim()}
+              className="mt-6 w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmittingFeedback ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-5 w-5" />
+                  Submit Feedback
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
