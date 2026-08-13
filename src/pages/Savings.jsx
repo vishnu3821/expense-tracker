@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { usePageGreeting } from '../hooks/usePageGreeting';
@@ -148,6 +149,13 @@ export default function Savings() {
       await new Promise(r => setTimeout(r, 800));
 
       setTransferStatus('success');
+      
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6']
+      });
       
       // Auto-close after success animation
       setTimeout(() => {

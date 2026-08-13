@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format } from 'date-fns';
@@ -204,6 +205,17 @@ export default function AddExpense() {
       }
     }
   }, [formData.name]);
+
+  // Auto-split amount in half when toggled or amount changes
+  useEffect(() => {
+    if (formData.isSplit && formData.amount && !isNaN(formData.amount)) {
+      const half = (parseFloat(formData.amount) / 2).toFixed(2);
+      // Only update if it's different to prevent loops
+      if (formData.splitAmount !== half) {
+        setFormData(prev => ({ ...prev, splitAmount: half }));
+      }
+    }
+  }, [formData.isSplit, formData.amount]);
 
   useEffect(() => {
     async function checkSharedImage() {
@@ -1242,7 +1254,7 @@ export default function AddExpense() {
         </div>
       )}
       
-      {(transferStatus !== 'idle') && (
+      {(transferStatus !== 'idle') && createPortal(
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
             <div className="p-8 pb-4 flex flex-col items-center">
@@ -1340,11 +1352,12 @@ export default function AddExpense() {
                </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── Bulk Upload Modal ────────────────────────────────────────────────── */}
-      {showBulkModal && (
+      {showBulkModal && createPortal(
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50 px-8">
@@ -1483,7 +1496,7 @@ export default function AddExpense() {
       )}
 
       {/* ─── PDF Password Modal ────────────────────────────────────────────────── */}
-      {pdfPasswordPrompt.show && (
+      {pdfPasswordPrompt.show && createPortal(
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl p-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Encrypted PDF</h3>
@@ -1527,11 +1540,12 @@ export default function AddExpense() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── Bulk Upload Progress Overlay ─────────────────────────────────────── */}
-      {showBulkUploadOverlay && (
+      {showBulkUploadOverlay && createPortal(
         <div className="fixed inset-0 z-110 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
             <div className="p-8 pb-4 flex flex-col items-center">

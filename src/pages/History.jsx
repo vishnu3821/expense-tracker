@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
@@ -219,6 +220,17 @@ export default function History() {
     document.body.removeChild(link);
   };
 
+  const categoryIcons = {
+    'Food & Dining': { icon: '🍔', color: 'bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.6)]' },
+    'Transport': { icon: '🚗', color: 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.6)]' },
+    'Shopping': { icon: '🛍️', color: 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.6)]' },
+    'Entertainment': { icon: '🎬', color: 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.6)]' },
+    'Utilities': { icon: '💡', color: 'bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.6)]' },
+    'Health': { icon: '💊', color: 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.6)]' },
+    'Housing': { icon: '🏠', color: 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)]' },
+    'Other': { icon: '💳', color: 'bg-slate-700 shadow-[0_0_15px_rgba(51,65,85,0.6)] dark:bg-slate-600' }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6 pb-8 animate-in fade-in duration-500">
@@ -290,61 +302,66 @@ export default function History() {
 
       <div className="relative mt-8">
         {/* The Activity Line (Timeline) */}
-        <div className="absolute left-4.5 top-2 bottom-0 w-0.5 bg-linear-to-b from-emerald-500/50 via-teal-500/20 to-transparent pointer-events-none" />
+        <div className="absolute left-4.5 top-2 bottom-0 w-0.5 bg-linear-to-b from-slate-200 dark:from-slate-800 to-transparent pointer-events-none" />
 
         {Object.keys(groupedByDay).length > 0 ? (
-          <div className="space-y-12">
+          <div className="space-y-10">
             {Object.entries(groupedByDay).map(([dateKey, { expenses: dayExpenses, total: dayTotal }]) => (
               <div key={dateKey} className="relative pl-10">
                 {/* Sticky Date Bubble */}
                 <div className="sticky top-4 z-20 -ml-10 mb-6 flex items-center gap-3">
-                   <div className="h-9 w-9 rounded-full bg-slate-900 border-2 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] relative z-30">
-                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                   <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-[#030712] border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center relative z-30">
+                      <div className="h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-600" />
                    </div>
                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-100 dark:border-slate-800 px-4 py-2 rounded-2xl shadow-sm flex items-center gap-4 group">
                       <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">{dayLabel(dateKey)}</span>
                       <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-                      <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">₹{dayTotal.toLocaleString('en-IN')}</span>
+                      <span className="text-[10px] font-black text-slate-600 dark:text-slate-400">₹{dayTotal.toLocaleString('en-IN')}</span>
                    </div>
                 </div>
 
                 {/* Expense Cards for this day */}
-                <div className="space-y-4 relative">
+                <div className="space-y-3 relative">
                   {dayExpenses.map((expense) => {
                     const realTimeSource = expense.created_at ? new Date(expense.created_at) : new Date(expense.date);
                     const timeStr = realTimeSource.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+                    const categoryData = categoryIcons[expense.category] || categoryIcons['Other'];
                     
                     return (
                     <div
                       key={expense.id}
-                      className="relative group cursor-pointer active:scale-[0.99] transition-all"
+                      className="relative group cursor-pointer active:scale-[0.98] transition-all duration-200 ease-out"
                       onClick={() => setSelectedExpense(expense)}
                     >
-                      {/* Connector Dot */}
-                      <div className="absolute left-[-1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:border-emerald-500 group-hover:bg-emerald-500 transition-all z-10 shadow-sm" />
+                      {/* Connector Line/Dot */}
+                      <div className="absolute left-[-1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#030712] transition-all z-10 shadow-sm" />
 
-                      <div className="bg-white dark:bg-slate-900/40 backdrop-blur-xl border border-slate-100 dark:border-slate-800 rounded-3xl p-5 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5 transition-all duration-300">
+                      {/* Apple Wallet Style Card */}
+                      <div className="bg-white dark:bg-[#080d1a] border border-slate-100 dark:border-slate-800/80 rounded-3xl p-4 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg dark:hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] transition-all duration-300 hover:-translate-y-0.5">
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-4 min-w-0">
-                            <div className="h-12 w-12 shrink-0 rounded-2xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-inner">
-                              {expense.image_url ? <ImageIcon className="h-5 w-5 text-emerald-500 group-hover:text-white" /> : <span className="text-xl">💳</span>}
+                            {/* Glowing Category Icon */}
+                            <div className={`h-12 w-12 shrink-0 rounded-2xl flex items-center justify-center text-xl text-white ${categoryData.color} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                              {expense.image_url ? <ImageIcon className="h-5 w-5 text-white" /> : categoryData.icon}
                             </div>
+                            
                             <div className="min-w-0">
-                              <p className="text-sm font-black text-slate-900 dark:text-white truncate pr-2 tracking-tight">{expense.name}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-emerald-500/70 transition-colors">{expense.category || 'Other'}</span>
+                              <p className="text-[15px] font-bold text-slate-900 dark:text-white truncate pr-2 tracking-tight">{expense.name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{expense.category || 'Other'}</span>
                                 <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
-                                <span className="text-[9px] font-bold text-slate-400">{timeStr}</span>
+                                <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{timeStr}</span>
                               </div>
                             </div>
                           </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <span className="text-lg font-black text-slate-900 dark:text-white tracking-tighter">₹{Number(expense.amount).toLocaleString('en-IN')}</span>
+                          
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[17px] font-black text-slate-900 dark:text-white tracking-tighter">₹{Number(expense.amount).toLocaleString('en-IN')}</span>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                <button
                                  onClick={(e) => handleDelete(expense.id, e)}
                                  disabled={isDeleting}
-                                 className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                 className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
                                >
                                  <Trash2 className="h-3.5 w-3.5" />
                                </button>
@@ -375,8 +392,8 @@ export default function History() {
       </div>
 
       {/* Modal for viewing / editing details */}
-      {selectedExpense && (
-        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-6 pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+      {selectedExpense && createPortal(
+        <div className="fixed inset-0 z-60 flex items-end sm:items-center justify-center sm:p-6 pb-0 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200" style={{ position: 'fixed' }}>
           <div 
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer transition-opacity duration-300"
             onClick={() => {
@@ -634,12 +651,13 @@ export default function History() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {expenseToDelete && (
-        <div className="fixed inset-0 z-120 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 px-4">
+      {expenseToDelete && createPortal(
+        <div className="fixed inset-0 z-120 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300 px-4" style={{ position: 'fixed' }}>
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-800 animate-in zoom-in-95 duration-300 text-center p-8">
             <div className="h-16 w-16 bg-red-100 dark:bg-red-900/30 rounded-3xl mx-auto flex items-center justify-center mb-6 shadow-sm">
               <Trash2 className="h-8 w-8 text-red-600 dark:text-red-400" />
@@ -664,7 +682,8 @@ export default function History() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

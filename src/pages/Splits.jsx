@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePageGreeting } from '../hooks/usePageGreeting';
 import { Loader2, ArrowRightLeft, CheckCircle, HandCoins } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import confetti from 'canvas-confetti';
 
 export default function Splits() {
   usePageGreeting("Here is the money your friends have to pay you.");
@@ -82,6 +83,13 @@ export default function Splits() {
 
       fetchSplits();
       fetchAccounts();
+      
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6']
+      });
       
       try {
         window.speechSynthesis.cancel();
