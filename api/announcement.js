@@ -179,6 +179,7 @@ export default async function handler(req, res) {
     <div class="footer">
       <p>&copy; 2026 Expense Monitor. All rights reserved.</p>
       <p>Helping you master your finances, one transaction at a time.</p>
+      <p style="margin-top: 16px; font-size: 11px; font-style: italic; color: #cbd5e1;">This is a system-generated email. Please do not reply to this message.</p>
     </div>
   </div>
 </body>

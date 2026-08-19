@@ -19,22 +19,21 @@ export default async function handler(req, res) {
       const { data, error } = await supabase.auth.admin.listUsers();
       if (error) throw error;
 
-      // Also get transaction counts for each user to show in the list
-      const { data: expenses, error: expError } = await supabase
-        .from('expenses')
-        .select('user_id');
-      
-      if (expError) throw expError;
+      const userStatsPromises = (data.users || []).map(async (u) => {
+        const { count, error: countError } = await supabase
+          .from('expenses')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', u.id);
 
-      const userStats = (data.users || []).map(u => {
-        const count = expenses.filter(e => e.user_id === u.id).length;
         return {
           id: u.id,
           email: u.email,
           created_at: u.created_at,
-          transaction_count: count
+          transaction_count: countError ? 0 : count
         };
       });
+
+      const userStats = await Promise.all(userStatsPromises);
 
       return res.status(200).json({ users: userStats });
     } catch (err) {

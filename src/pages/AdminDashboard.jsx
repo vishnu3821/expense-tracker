@@ -122,14 +122,33 @@ export default function AdminDashboard() {
     setLoadingExpenses(true);
     // Don't set selected user until we're sure we have the data or at least the state is safe
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', targetUser.id)
-        .order('date', { ascending: false });
+      let allExpenses = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) throw error;
-      setUserExpenses(data || []);
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('user_id', targetUser.id)
+          .order('date', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allExpenses = [...allExpenses, ...data];
+          page++;
+          if (data.length < pageSize) {
+            hasMore = false;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setUserExpenses(allExpenses);
       setSelectedUser(targetUser); // Change view only after data is loaded for smoothness
     } catch (err) {
       console.error('Error fetching user expenses:', err);

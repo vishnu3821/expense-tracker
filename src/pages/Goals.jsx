@@ -711,7 +711,7 @@ export default function Goals() {
             </h3>
             <p className="text-sm font-semibold text-slate-500 mb-6">{selectedGoal.name}</p>
             
-            <div className="overflow-y-auto pr-2 space-y-3 flex-1 min-h-[200px]">
+            <div className="overflow-y-auto pr-2 space-y-3 flex-1 min-h-50">
               {jarTransactions.length === 0 ? (
                 <div className="text-center py-10 text-slate-400">
                   <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />

@@ -13,7 +13,7 @@ export default function Dashboard() {
   usePageGreeting("Welcome to Expense Monitor Dashboard");
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ today: 0, month: 0, year: 0 });
+  const [stats, setStats] = useState({ today: 0, month: 0, year: 0, totalTransactions: 0 });
   const [recent, setRecent] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
@@ -82,6 +82,14 @@ export default function Dashboard() {
 
       if (error) throw error;
 
+      // Get exact total count regardless of 1000 row limit
+      const { count: totalCount, error: countError } = await supabase
+        .from('expenses')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+        
+      if (countError) throw countError;
+
       const now = new Date();
       const today = startOfDay(now);
       const monthStart = startOfMonth(now);
@@ -129,7 +137,7 @@ export default function Dashboard() {
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value);
 
-      setStats({ today: todayTotal, month: monthTotal, year: yearTotal });
+      setStats({ today: todayTotal, month: monthTotal, year: yearTotal, totalTransactions: totalCount });
       setRecent(data.slice(0, 5));
       setChartData(formattedChartData);
       setCategoryData(formattedCategoryData);
@@ -292,7 +300,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 pointer-events-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 pointer-events-none">
                     <div className="space-y-1">
                       <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Today's Flow</p>
                       <div className="flex items-baseline gap-1">
@@ -321,6 +329,14 @@ export default function Dashboard() {
                          <TrendingUp className="h-3 w-3 text-emerald-500" />
                          <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year {new Date().getFullYear()}</span>
                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">All-Time Logs</p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black text-white">{stats.totalTransactions?.toLocaleString('en-IN') || 0}</span>
+                      </div>
+                      <p className="text-[10px] font-bold text-white/20 italic">Total Expenses Tracked</p>
                     </div>
                   </div>
                 </div>
