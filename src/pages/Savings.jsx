@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -117,7 +118,7 @@ export default function Savings() {
     setTransferStep(1); // Step 1: Initializing
 
     try {
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 100));
       setTransferStep(2); // Step 2: Validating
       
       if (editingId) {
@@ -144,9 +145,9 @@ export default function Savings() {
         if (error) throw error;
       }
 
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 200));
       setTransferStep(3); // Step 3: Success
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 200));
 
       setTransferStatus('success');
       
@@ -208,7 +209,7 @@ export default function Savings() {
       const timestamp = now.toISOString();
       const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 100));
       setTransferStep(2); // Step 2: Debiting
 
       // Perform updates in DB
@@ -219,7 +220,7 @@ export default function Savings() {
 
       if (error1) throw error1;
 
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 100));
       setTransferStep(3); // Step 3: Transferring
 
       const { error: error2 } = await supabase
@@ -253,9 +254,9 @@ export default function Savings() {
         }
       ]);
 
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 100));
       setTransferStep(4); // Step 4: Finalizing
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 100));
 
       setReceiptData({
         from: source.bank_name,
@@ -575,8 +576,8 @@ export default function Savings() {
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      {showModal && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200" style={{ position: 'fixed' }}>
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -657,12 +658,13 @@ export default function Savings() {
                 </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Transfer Modal */}
-      {showTransferModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      {showTransferModal && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200" style={{ position: 'fixed' }}>
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
               <div className="flex items-center gap-3">
@@ -753,12 +755,13 @@ export default function Savings() {
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Activity Drawer */}
-      {selectedAccountId && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 touch-none">
+      {/* Transaction History Modal */}
+      {selectedAccountId && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 touch-none" style={{ position: 'fixed' }}>
           <div 
             className="absolute inset-0 cursor-pointer"
             onClick={() => setSelectedAccountId(null)}
@@ -886,12 +889,13 @@ export default function Savings() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 🎭 Transfer Animation Overlay */}
-      {transferStatus === 'processing' && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-500">
+      {(transferStatus !== 'idle') && createPortal(
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/90 backdrop-blur-md animate-in fade-in duration-500" style={{ position: 'fixed' }}>
           <div className="text-center space-y-8 max-w-xs w-full px-6">
             <div className="flex justify-between items-center relative py-12">
               {/* Source Icon */}
@@ -976,12 +980,13 @@ export default function Savings() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 📜 Pro Success Receipt */}
-      {receiptData && (
-        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl animate-in fade-in duration-500">
+      {receiptData && createPortal(
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-2xl animate-in fade-in duration-500" style={{ position: 'fixed' }}>
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm shadow-[0_0_100px_rgba(0,0,0,0.8)] relative animate-receipt-pop overflow-visible rounded-3xl">
             
             {/* Top Scalloped Edge - True Cutouts */}
@@ -1086,7 +1091,8 @@ export default function Savings() {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <style>{`
         @keyframes liquid-flow {

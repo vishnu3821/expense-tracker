@@ -27,7 +27,8 @@ import { ChevronRight, Calendar, UserCircle, Download,
   Users,
   GraduationCap,
   HandCoins,
-  MessageSquarePlus
+  MessageSquarePlus,
+  Trophy
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -541,6 +542,22 @@ export default function More() {
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Your Savings</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Track balances across all your banks</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
+          </Link>
+
+          <Link 
+            to="/more/goals" 
+            className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 transition-colors group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50">
+                <Trophy className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Goal Savings Jars</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Visualize your financial targets</p>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />

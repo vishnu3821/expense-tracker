@@ -1010,8 +1010,8 @@ export default function AddExpense() {
               </button>
 
               {/* Floating Modal / Box Overlay */}
-              {isCategoryOpen && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+              {isCategoryOpen && createPortal(
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" style={{ position: 'fixed' }}>
                   <div 
                     className="absolute inset-0" 
                     onClick={() => setIsCategoryOpen(false)} 
@@ -1062,7 +1062,8 @@ export default function AddExpense() {
                       })}
                     </div>
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
             </div>
 

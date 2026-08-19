@@ -13,6 +13,7 @@ import MonthDetail from './pages/MonthDetail'
 import Savings from './pages/Savings'
 import AdminDashboard from './pages/AdminDashboard'
 import EducationalFees from './pages/EducationalFees'
+import Goals from './pages/Goals'
 import SplashScreen from './components/Common/SplashScreen'
 import Splits from './pages/Splits'
 import { Analytics } from '@vercel/analytics/react'
@@ -44,6 +45,7 @@ function App() {
               <Route path="more/year" element={<YearBreakdown />} />
               <Route path="more/year/:year/:month" element={<MonthDetail />} />
               <Route path="more/savings" element={<Savings />} />
+              <Route path="more/goals" element={<Goals />} />
               <Route path="more/education-fees" element={<EducationalFees />} />
               <Route path="more/admin-breakdown" element={<AdminDashboard />} />
               <Route path="splits" element={<Splits />} />

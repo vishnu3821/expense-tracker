@@ -3,7 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon, GripHorizontal } from 'lucide-react';
+import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon, GripHorizontal, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { requestNotificationPermission } from '../lib/firebase';
 import { usePageGreeting } from '../hooks/usePageGreeting';
@@ -241,10 +242,28 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Dashboard</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Overview of your expenses and financial activity.</p>
+        </div>
+        <Link 
+          to="/more/goals"
+          className="hidden sm:flex h-10 px-4 bg-linear-to-r from-amber-500 to-amber-400 hover:from-amber-600 hover:to-amber-500 text-white font-bold rounded-xl items-center gap-2 transition-all active:scale-95 shadow-lg shadow-amber-500/20"
+        >
+          <Trophy className="h-4 w-4" />
+          Savings Jars
+        </Link>
       </div>
+      
+      {/* Mobile only Jars button */}
+      <Link 
+        to="/more/goals"
+        className="sm:hidden w-full h-12 bg-linear-to-r from-amber-500 to-amber-400 text-white font-bold rounded-xl flex justify-center items-center gap-2 transition-all active:scale-95 shadow-lg shadow-amber-500/20"
+      >
+        <Trophy className="h-5 w-5" />
+        Goal Savings Jars
+      </Link>
 
       {/* Draggable Widgets Container */}
       <div className="flex flex-wrap gap-5 w-full">
