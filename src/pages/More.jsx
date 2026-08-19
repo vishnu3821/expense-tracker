@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,6 +52,15 @@ export default function More() {
   const [broadcastStatus, setBroadcastStatus] = useState('idle'); // idle, processing, success, error
   const [broadcastStep, setBroadcastStep] = useState(0);
   const [broadcastResult, setBroadcastResult] = useState(null);
+
+  // Deduplication state
+  const [showDedupeModal, setShowDedupeModal] = useState(false);
+  const [dedupeGroups, setDedupeGroups] = useState([]);
+  const [isScanningDupes, setIsScanningDupes] = useState(false);
+  const [mergingGroups, setMergingGroups] = useState({});
+  const [isMergingAll, setIsMergingAll] = useState(false);
+  const [expandedDedupeGroup, setExpandedDedupeGroup] = useState(null);
+  const [showConfirmMergeAll, setShowConfirmMergeAll] = useState(false);
 
   React.useEffect(() => {
     if (user) checkNotificationStatus();
@@ -299,8 +309,106 @@ export default function More() {
       } finally {
         // always runs
       }
+        setIsTogglingNotifications(false);
     }
-    setIsTogglingNotifications(false);
+  };
+
+  const handleScanDuplicates = async () => {
+    setShowDedupeModal(true);
+    setIsScanningDupes(true);
+    try {
+      let allExpenses = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('user_id', user.id)
+          .not('transaction_id', 'is', null)
+          .neq('transaction_id', '')
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allExpenses = [...allExpenses, ...data];
+          page++;
+          if (data.length < pageSize) hasMore = false;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      const grouped = {};
+      allExpenses.forEach(exp => {
+        if (!grouped[exp.transaction_id]) grouped[exp.transaction_id] = [];
+        grouped[exp.transaction_id].push(exp);
+      });
+
+      const duplicates = Object.values(grouped).filter(g => g.length > 1);
+      duplicates.sort((a, b) => new Date(b[0].date) - new Date(a[0].date));
+      setDedupeGroups(duplicates);
+    } catch (error) {
+      console.error('Error scanning duplicates:', error);
+      alert('Failed to scan duplicates');
+    } finally {
+      setIsScanningDupes(false);
+    }
+  };
+
+  const handleMergeGroup = async (group) => {
+    const txnId = group[0].transaction_id;
+    setMergingGroups(prev => ({ ...prev, [txnId]: true }));
+    try {
+      const sortedGroup = [...group].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const deleteIds = sortedGroup.slice(1).map(r => r.id);
+
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .in('id', deleteIds);
+        
+      if (error) throw error;
+
+      setDedupeGroups(prev => prev.filter(g => g[0].transaction_id !== txnId));
+    } catch (error) {
+      console.error('Error merging:', error);
+      alert('Failed to merge records');
+    } finally {
+      setMergingGroups(prev => ({ ...prev, [txnId]: false }));
+    }
+  };
+
+  const executeMergeAll = async () => {
+    setShowConfirmMergeAll(false);
+    setIsMergingAll(true);
+    try {
+      let allDeleteIds = [];
+      dedupeGroups.forEach(group => {
+        const sortedGroup = [...group].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const deleteIds = sortedGroup.slice(1).map(r => r.id);
+        allDeleteIds = [...allDeleteIds, ...deleteIds];
+      });
+
+      if (allDeleteIds.length > 0) {
+        const { error } = await supabase
+          .from('expenses')
+          .delete()
+          .in('id', allDeleteIds);
+          
+        if (error) throw error;
+      }
+
+      setDedupeGroups([]);
+    } catch (error) {
+      console.error('Error merging all:', error);
+      alert('Failed to merge all records');
+    } finally {
+      setIsMergingAll(false);
+    }
   };
 
   const handleExportCSV = async () => {
@@ -639,6 +747,21 @@ export default function More() {
               <div>
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Export PDF Report</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Beautiful summary with totals & breakdown</p>
+              </div>
+            </div>
+          </button>
+
+          <button 
+            onClick={handleScanDuplicates}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 transition-colors group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50">
+                <Search className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Find & Merge Duplicates</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Clean up double-logged expenses</p>
               </div>
             </div>
           </button>
@@ -990,6 +1113,154 @@ export default function More() {
             </div>
           </div>
         </div>
+      )}
+      {/* Deduplication Modal */}
+      {showDedupeModal && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-teal-100 dark:bg-teal-900/50 rounded-full flex items-center justify-center">
+                  <Search className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Duplicate Records</h3>
+                  <p className="text-xs text-slate-500">
+                    {isScanningDupes 
+                      ? 'Scanning your database for duplicates...' 
+                      : `Found ${dedupeGroups.length} matching transaction groups`}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowDedupeModal(false)}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto bg-slate-50 dark:bg-slate-900 flex-1">
+              {isScanningDupes ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                  <Loader2 className="h-10 w-10 animate-spin text-teal-500 mb-4" />
+                  <p>Searching for matching Transaction IDs...</p>
+                </div>
+              ) : dedupeGroups.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="h-16 w-16 bg-teal-50 dark:bg-teal-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-8 w-8 text-teal-500" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">No Duplicates Found</h3>
+                  <p className="text-slate-500">Your records are perfectly clean! We didn't find any double-logged expenses.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-teal-50 dark:bg-teal-900/20 p-4 rounded-xl border border-teal-100 dark:border-teal-900/50 gap-4">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <strong>Note:</strong> Merging will keep the most complete record and delete the extra accidental copies from your database.
+                    </p>
+                    <button
+                      onClick={() => setShowConfirmMergeAll(true)}
+                      disabled={isMergingAll}
+                      className="shrink-0 text-sm font-bold bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+                    >
+                      {isMergingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                      Merge All {dedupeGroups.length} Groups
+                    </button>
+                  </div>
+                  
+                  {dedupeGroups.map((group, idx) => {
+                    const txnId = group[0].transaction_id;
+                    const isMerging = mergingGroups[txnId];
+                    const isExpanded = expandedDedupeGroup === idx;
+                    
+                    return (
+                      <div key={idx} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                        <div 
+                          className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                          onClick={() => setExpandedDedupeGroup(isExpanded ? null : idx)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Transaction ID</span>
+                            <code className="text-xs font-mono bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded text-slate-700 dark:text-slate-300">
+                              {txnId}
+                            </code>
+                            <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold ml-2">
+                              {group.length} duplicates
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleMergeGroup(group); }}
+                              disabled={isMerging}
+                              className="text-xs font-bold bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                            >
+                              {isMerging ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle className="h-3 w-3" />}
+                              Merge into one
+                            </button>
+                            <ChevronRight className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                          </div>
+                        </div>
+                        
+                        {isExpanded && (
+                          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                          {group.map((exp) => (
+                            <div key={exp.id} className="p-4 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                              <div>
+                                <h4 className="font-semibold text-slate-900 dark:text-white">{exp.name || 'Unnamed'}</h4>
+                                <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                  <span>{format(new Date(exp.date), 'dd MMM yyyy, h:mm a')}</span>
+                                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                  <span>{exp.category}</span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="font-bold text-slate-900 dark:text-white">₹{Number(exp.amount).toLocaleString('en-IN')}</span>
+                              </div>
+                            </div>
+                          ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Merge All Confirmation Modal */}
+      {showConfirmMergeAll && createPortal(
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col items-center text-center">
+            <div className="h-14 w-14 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="h-7 w-7 text-amber-600 dark:text-amber-500" />
+            </div>
+            <h3 className="font-bold text-xl text-slate-900 dark:text-white mb-2">Merge All Duplicates?</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+              Are you sure you want to merge all {dedupeGroups.length} duplicate groups? This action will permanently delete the extra copies from your database.
+            </p>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => setShowConfirmMergeAll(false)}
+                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeMergeAll}
+                className="flex-1 py-3 px-4 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-teal-500/30"
+              >
+                Yes, Merge All
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
