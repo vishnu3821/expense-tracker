@@ -975,7 +975,7 @@ export default function More() {
         </div>
       </div>
       {/* Broadcast Dashboard Modal */}
-      {showBroadcastModal && (
+      {showBroadcastModal && createPortal(
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
@@ -1095,10 +1095,11 @@ export default function More() {
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* 🎭 Broadcast Animation Overlay */}
-      {(broadcastStatus !== 'idle') && (
+      {(broadcastStatus !== 'idle') && createPortal(
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm mx-4 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border border-slate-100 dark:border-slate-800">
             
@@ -1202,7 +1203,8 @@ export default function More() {
                </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       {/* Deduplication Modal */}
       {showDedupeModal && createPortal(
