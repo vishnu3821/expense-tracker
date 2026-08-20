@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff, Fingerprint, ShieldCheck, Lock } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Fingerprint, ShieldCheck, Lock, AtSign } from 'lucide-react';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
@@ -30,7 +31,18 @@ export default function Auth() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
+        if (!username.trim()) throw new Error("Username is required");
+        const formattedUsername = username.startsWith('@') ? username.trim() : '@' + username.trim();
+        
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            data: {
+              username: formattedUsername
+            }
+          }
+        });
         if (error) throw error;
         alert('Check your email for the login link! Or if auto-confirm is enabled, you can now sign in.');
       }
@@ -76,9 +88,9 @@ export default function Auth() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
       {/* Premium Background Elements */}
-      <div className="absolute top-0 right-0 h-[500px] w-[500px] bg-emerald-600/10 blur-[120px] rounded-full -mr-48 -mt-48 animate-pulse" />
-      <div className="absolute bottom-0 left-0 h-[500px] w-[500px] bg-teal-600/10 blur-[120px] rounded-full -ml-48 -mb-48" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[800px] w-[800px] bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 right-0 h-125 w-125 bg-emerald-600/10 blur-[120px] rounded-full -mr-48 -mt-48 animate-pulse" />
+      <div className="absolute bottom-0 left-0 h-125 w-125 bg-teal-600/10 blur-[120px] rounded-full -ml-48 -mb-48" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-200 w-200 bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
         <div className={`w-full bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto transition-all duration-500 ${loading ? 'scale-95 opacity-80' : 'scale-100 opacity-100'}`}>
@@ -117,6 +129,25 @@ export default function Auth() {
           )}
 
           <form onSubmit={handleAuth} className="space-y-6">
+            {!isLogin && !isForgotPassword && (
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
+                  <AtSign className="h-3 w-3" />
+                  Username
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 pl-10 text-white text-sm font-bold placeholder:text-white/20 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all shadow-inner"
+                    placeholder="vishnu1720"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-bold">@</div>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
                 <ShieldCheck className="h-3 w-3" />

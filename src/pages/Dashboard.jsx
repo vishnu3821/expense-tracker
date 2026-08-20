@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { getExpenseNameWithEmoji } from '../lib/emojiUtils';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon, GripHorizontal, Trophy } from 'lucide-react';
@@ -456,7 +457,7 @@ export default function Dashboard() {
                             <CreditCard className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{expense.name}</p>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate pr-2">{getExpenseNameWithEmoji(expense.name)}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                               {format(parseISO(expense.date), 'MMM dd, yyyy')} • {(expense.created_at ? new Date(expense.created_at) : parseISO(expense.date)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </p>

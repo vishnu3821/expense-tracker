@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { format, parseISO, isToday, isYesterday } from 'date-fns';
-import { Loader2, Trash2, Download, ExternalLink, Image as ImageIcon, X, Search, Edit3, Save, AlertTriangle } from 'lucide-react';
+import { Trash2, Edit2, Search, Filter, Download, ArrowUpRight, ArrowDownRight, Coffee, ShoppingBag, Home, Zap, CreditCard, Wallet, Smartphone, Shield, AlertCircle, X, ChevronDown, CheckCircle, Upload, XCircle, LayoutGrid, List, Loader2, ExternalLink, Image as ImageIcon, Edit3, Save, AlertTriangle } from 'lucide-react';
+import { getExpenseNameWithEmoji } from '../lib/emojiUtils';
 import { usePageGreeting } from '../hooks/usePageGreeting';
 
 
@@ -346,7 +347,7 @@ export default function History() {
                             </div>
                             
                             <div className="min-w-0">
-                              <p className="text-[15px] font-bold text-slate-900 dark:text-white truncate pr-2 tracking-tight">{expense.name}</p>
+                              <p className="text-[15px] font-bold text-slate-900 dark:text-white truncate pr-2 tracking-tight">{getExpenseNameWithEmoji(expense.name)}</p>
                               <div className="flex items-center gap-2 mt-0.5">
                                 <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{expense.category || 'Other'}</span>
                                 <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-700" />
@@ -466,7 +467,7 @@ export default function History() {
                       required
                     />
                   ) : (
-                    <p className="text-slate-900 dark:text-white font-bold text-lg">{selectedExpense.name}</p>
+                    <p className="text-slate-900 dark:text-white font-bold text-lg">{getExpenseNameWithEmoji(selectedExpense.name)}</p>
                   )}
                 </div>
 

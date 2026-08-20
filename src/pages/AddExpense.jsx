@@ -200,8 +200,18 @@ export default function AddExpense() {
           if (formData.category !== category) {
             setFormData(prev => ({ ...prev, category }));
           }
-          break;
+          return;
         }
+      }
+
+      // 3. Fallback to 'Other' if nothing matches
+      if (formData.category !== 'Other') {
+        setFormData(prev => ({ ...prev, category: 'Other' }));
+      }
+    } else if (name.length === 0) {
+      // Revert to 'Other' if name is cleared
+      if (formData.category !== 'Other') {
+        setFormData(prev => ({ ...prev, category: 'Other' }));
       }
     }
   }, [formData.name]);
@@ -548,7 +558,7 @@ export default function AddExpense() {
                   name: desc,
                   amount: amount,
                   category: 'Other',
-                  payment_mode: 'Bank'
+                  payment_mode: 'UPI'
                 });
               }
             }
@@ -617,6 +627,7 @@ export default function AddExpense() {
       let descCol = -1;
       let amountCol = -1;
       let typeCol = -1;
+      let txnIdCol = -1;
 
       // Scan up to the first 50 rows to find the actual table headers
       for (let i = 0; i < Math.min(rawData.length, 50); i++) {
@@ -638,10 +649,12 @@ export default function AddExpense() {
               descCol = j;
             } else if (cellText === 'transaction type' || cellText === 'type' || cellText === 'dr/cr') {
               typeCol = j;
-            } else if ((cellText.includes('withdrawal') || cellText.includes('debit') || cellText === 'dr' || cellText.includes('dr amount') || cellText.includes('withdrawal (dr)')) && !cellText.includes('instrument') && !cellText.includes('type')) {
-              amountCol = j;
+            } else if (cellText.includes('withdrawal') || cellText.includes('debit') || cellText === 'dr' || cellText.includes('dr amount') || cellText.includes('withdrawal (dr)')) {
+              if (!cellText.includes('instrument') && !cellText.includes('type')) amountCol = j;
             } else if (amountCol === -1 && (cellText === 'amount' || cellText.includes('cost') || cellText.includes('value'))) {
               amountCol = j;
+            } else if (cellText.includes('transaction id') || cellText.includes('txn id') || cellText.includes('ref no') || cellText.includes('reference') || cellText.includes('chq')) {
+              txnIdCol = j;
             }
           }
           break; // Stop scanning once we find the headers
@@ -700,13 +713,25 @@ export default function AddExpense() {
         if (typeof dateVal === 'number') {
           parsedDate = new Date((dateVal - (25567 + 2)) * 86400 * 1000);
         } else if (dateVal) {
-          let cleanDate = String(dateVal).replace(/\//g, '-');
-          const p1 = new Date(cleanDate);
-          if (!isNaN(p1.valueOf())) parsedDate = p1;
-          else {
-             const p2 = new Date(dateVal);
-             if (!isNaN(p2.valueOf())) parsedDate = p2;
+          const strVal = String(dateVal).trim();
+          let tempDate = new Date(strVal);
+          if (!isNaN(tempDate.valueOf())) {
+             parsedDate = tempDate;
+          } else {
+             const parts = strVal.split(/[\/-]/);
+             if (parts.length === 3) {
+                // assume DD-MM-YYYY or DD/MM/YYYY
+                tempDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+                if (!isNaN(tempDate.valueOf())) {
+                  parsedDate = tempDate;
+                }
+             }
           }
+        }
+
+        let txn_id = null;
+        if (txnIdCol !== -1 && row[txnIdCol]) {
+          txn_id = String(row[txnIdCol]).trim();
         }
 
         if (parsedDate && !isNaN(parsedDate.getTime())) {
@@ -716,7 +741,8 @@ export default function AddExpense() {
             amount: amount,
             date: format(parsedDate, 'yyyy-MM-dd'),
             category: 'Other',
-            payment_mode: 'Bank'
+            payment_mode: 'UPI',
+            transaction_id: txn_id || null
           });
         }
       }
@@ -751,7 +777,8 @@ export default function AddExpense() {
         amount: exp.amount,
         category: exp.category || 'Other',
         date: new Date(exp.date).toISOString(),
-        payment_mode: exp.payment_mode || 'UPI'
+        payment_mode: exp.payment_mode || 'UPI',
+        transaction_id: exp.transaction_id || null
       }));
 
       const { error: dbError } = await supabase.from('expenses').insert(rowsToInsert);
@@ -1451,6 +1478,7 @@ export default function AddExpense() {
                             <th className="px-4 py-3">Date</th>
                             <th className="px-4 py-3">Name</th>
                             <th className="px-4 py-3">Category</th>
+                            <th className="px-4 py-3">Txn ID</th>
                             <th className="px-4 py-3 text-right">Amount (₹)</th>
                           </tr>
                         </thead>
@@ -1458,8 +1486,9 @@ export default function AddExpense() {
                           {parsedExpenses.map((exp) => (
                             <tr key={exp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                               <td className="px-4 py-3 whitespace-nowrap text-slate-500">{exp.date}</td>
-                              <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{exp.name}</td>
+                              <td className="px-4 py-3 font-medium text-slate-900 dark:text-white truncate max-w-30">{exp.name}</td>
                               <td className="px-4 py-3 text-slate-500">{exp.category}</td>
+                              <td className="px-4 py-3 text-slate-500 text-xs truncate max-w-25">{exp.transaction_id || '-'}</td>
                               <td className="px-4 py-3 text-right font-medium text-slate-900 dark:text-white">{exp.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>
                           ))}
@@ -1493,7 +1522,8 @@ export default function AddExpense() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ─── PDF Password Modal ────────────────────────────────────────────────── */}
@@ -1615,7 +1645,8 @@ export default function AddExpense() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

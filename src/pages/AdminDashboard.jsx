@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { getExpenseNameWithEmoji } from '../lib/emojiUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Users, 
@@ -453,8 +454,12 @@ export default function AdminDashboard() {
                 <div className="absolute top-0 right-0 w-24 h-24 bg-teal-500/5 -mr-8 -mt-8 rounded-full blur-2xl group-hover:bg-teal-500/10 transition-colors" />
                 
                 <div className="flex justify-between items-start mb-4">
-                  <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition-all duration-500">
-                    <span className="text-lg font-bold uppercase">{u.email?.[0] || 'U'}</span>
+                  <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition-all duration-500 overflow-hidden shrink-0">
+                    {u.raw_user_meta_data?.avatar_url || u.user_metadata?.avatar_url ? (
+                      <img src={u.raw_user_meta_data?.avatar_url || u.user_metadata?.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-lg font-bold uppercase">{u.email?.[0] || 'U'}</span>
+                    )}
                   </div>
                   <div className="text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2 py-1 rounded-md uppercase tracking-wider">
                     {u.id.substring(0, 8)}
@@ -463,8 +468,11 @@ export default function AdminDashboard() {
 
                 <div className="space-y-1">
                   <h3 className="font-bold text-slate-900 dark:text-white truncate pr-4">
-                    {u.email}
+                    {u.raw_user_meta_data?.username || u.user_metadata?.username || u.email}
                   </h3>
+                  {((u.raw_user_meta_data?.username || u.user_metadata?.username) && u.email) && (
+                    <p className="text-[10px] text-slate-500 truncate">{u.email}</p>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Calendar className="h-3 w-3" />
                     Joined {format(parseISO(u.created_at), 'MMM yyyy')}
@@ -583,7 +591,7 @@ export default function AdminDashboard() {
                         </td>
                         <td className="p-4">
                           <p className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-37.5">
-                            {exp?.name || 'Untitled Entry'}
+                            {getExpenseNameWithEmoji(exp?.name || 'Untitled Entry')}
                           </p>
                         </td>
                         <td className="p-4">

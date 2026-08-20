@@ -85,9 +85,13 @@ export default function Topbar() {
             <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
 
-          <div className="h-9 w-9 shrink-0 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-700 dark:text-teal-400 font-semibold border border-teal-200 dark:border-teal-800/50 shadow-sm uppercase select-none">
-            {user?.email?.[0] || 'U'}
-          </div>
+          <Link to="/profile" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-teal-900/40 border border-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-lg sm:text-xl uppercase shadow-lg hover:scale-105 transition-transform overflow-hidden cursor-pointer shrink-0">
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+            ) : (
+              user?.email?.[0] || 'U'
+            )}
+          </Link>
           <button
             onClick={() => setShowLogoutConfirm(true)}
             className="p-2 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"

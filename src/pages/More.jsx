@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePageGreeting } from '../hooks/usePageGreeting';
+import { getExpenseNameWithEmoji } from '../lib/emojiUtils';
 import { format, parseISO } from 'date-fns';
 import { ChevronRight, Calendar, UserCircle, Download, 
   Loader2, 
@@ -29,7 +30,9 @@ import { ChevronRight, Calendar, UserCircle, Download,
   GraduationCap,
   HandCoins,
   MessageSquarePlus,
-  Trophy
+  Trophy,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -56,6 +59,9 @@ export default function More() {
   // Deduplication state
   const [showDedupeModal, setShowDedupeModal] = useState(false);
   const [dedupeGroups, setDedupeGroups] = useState([]);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState(false);
+  const [includeProfilePicInPdf, setIncludeProfilePicInPdf] = useState(true);
+
   const [isScanningDupes, setIsScanningDupes] = useState(false);
   const [mergingGroups, setMergingGroups] = useState({});
   const [isMergingAll, setIsMergingAll] = useState(false);
@@ -458,13 +464,33 @@ export default function More() {
   const handleExportPDF = async () => {
     setIsPdfExporting(true);
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
+      let allData = [];
+      let from = 0;
+      let step = 1000;
+      let fetchMore = true;
+      while (fetchMore) {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+          .range(from, from + step - 1);
+        
+        if (error) throw error;
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          if (data.length < step) {
+            fetchMore = false;
+          } else {
+            from += step;
+          }
+        } else {
+          fetchMore = false;
+        }
+      }
+      
+      const data = allData;
 
-      if (error) throw error;
       if (!data || data.length === 0) {
         alert('No expenses found to export.');
         return;
@@ -479,17 +505,67 @@ export default function More() {
       const now = new Date();
       const generatedOn = format(now, 'dd MMM yyyy, hh:mm a');
 
+      // Fetch and crop avatar to a circle
+      let base64Avatar = null;
+      if (includeProfilePicInPdf && user?.user_metadata?.avatar_url) {
+        try {
+           const res = await fetch(user.user_metadata.avatar_url);
+           const blob = await res.blob();
+           base64Avatar = await new Promise((resolve) => {
+             const img = new Image();
+             const url = URL.createObjectURL(blob);
+             img.onload = () => {
+               const canvas = document.createElement('canvas');
+               canvas.width = 64;
+               canvas.height = 64;
+               const ctx = canvas.getContext('2d');
+               ctx.beginPath();
+               ctx.arc(32, 32, 32, 0, Math.PI * 2, true);
+               ctx.closePath();
+               ctx.clip();
+               ctx.drawImage(img, 0, 0, 64, 64);
+               resolve(canvas.toDataURL('image/png'));
+               URL.revokeObjectURL(url);
+             };
+             img.src = url;
+           });
+        } catch (e) {
+           console.error("Failed to load avatar for PDF", e);
+        }
+      }
+
       // ── Header Banner ──────────────────────────────────────────────
+      const headerHeight = base64Avatar ? 52 : 38;
       doc.setFillColor(13, 148, 136); // teal-600
-      doc.rect(0, 0, pageWidth, 38, 'F');
+      doc.rect(0, 0, pageWidth, headerHeight, 'F');
+      
+      let headerY = 16;
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
-      doc.text('Expense Summary Report', pageWidth / 2, 16, { align: 'center' });
-      doc.setFontSize(9);
+      doc.text('Expense Summary Report', pageWidth / 2, headerY, { align: 'center' });
+      
+      headerY += 8;
+      
+      const displayName = user?.user_metadata?.username || user?.email;
+      
+      if (base64Avatar) {
+         doc.addImage(base64Avatar, 'PNG', pageWidth / 2 - 5, headerY, 10, 10);
+         headerY += 15;
+      }
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(displayName, pageWidth / 2, headerY, { align: 'center' });
+      
+      headerY += 5;
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Prepared for: ${user.email}`, pageWidth / 2, 24, { align: 'center' });
-      doc.text(`Generated on: ${generatedOn}`, pageWidth / 2, 30, { align: 'center' });
+      if (user?.user_metadata?.username) {
+        doc.text(user.email, pageWidth / 2, headerY, { align: 'center' });
+        headerY += 4;
+      }
+      doc.text(`Generated on: ${generatedOn}`, pageWidth / 2, headerY, { align: 'center' });
 
       // ── Compute Totals ─────────────────────────────────────────────
       const totalAll = data.reduce((s, e) => s + Number(e.amount), 0);
@@ -501,7 +577,7 @@ export default function More() {
       const topCategory = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0];
 
       // ── Summary Cards ──────────────────────────────────────────────
-      const cardY = 46;
+      const cardY = headerHeight + 8;
       const cardH = 22;
       const cards = [
         { label: 'Total Expenses', value: `Rs. ${totalAll.toFixed(2)}` },
@@ -735,12 +811,12 @@ export default function More() {
             </div>
           </button>
 
-          <button 
-            onClick={handleExportPDF}
-            disabled={isPdfExporting}
-            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left disabled:opacity-50"
-          >
-            <div className="flex items-center gap-4">
+          <div className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group">
+            <button 
+              onClick={handleExportPDF}
+              disabled={isPdfExporting}
+              className="flex-1 flex items-center gap-4 text-left disabled:opacity-50"
+            >
               <div className="h-10 w-10 rounded-full bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400 transition-colors group-hover:bg-rose-100 dark:group-hover:bg-rose-900/50">
                 {isPdfExporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileText className="h-5 w-5" />}
               </div>
@@ -748,8 +824,22 @@ export default function More() {
                 <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Export PDF Report</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Beautiful summary with totals & breakdown</p>
               </div>
-            </div>
-          </button>
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIncludeProfilePicInPdf(!includeProfilePicInPdf); }}
+              className="ml-4 flex items-center gap-2 p-2 text-slate-400 hover:text-emerald-500 transition-colors"
+              title="Toggle Profile Picture in PDF"
+            >
+              <span className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${includeProfilePicInPdf ? 'text-emerald-500' : 'text-slate-400'}`}>
+                {includeProfilePicInPdf ? 'With Pic' : 'Without Pic'}
+              </span>
+              {includeProfilePicInPdf ? (
+                <ToggleRight className="h-6 w-6 text-emerald-500" />
+              ) : (
+                <ToggleLeft className="h-6 w-6 text-slate-400" />
+              )}
+            </button>
+          </div>
 
           <button 
             onClick={handleScanDuplicates}
@@ -1208,7 +1298,7 @@ export default function More() {
                           {group.map((exp) => (
                             <div key={exp.id} className="p-4 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                               <div>
-                                <h4 className="font-semibold text-slate-900 dark:text-white">{exp.name || 'Unnamed'}</h4>
+                                <h4 className="font-semibold text-slate-900 dark:text-white">{getExpenseNameWithEmoji(exp.name || 'Unnamed')}</h4>
                                 <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1">
                                   <span>{format(new Date(exp.date), 'dd MMM yyyy, h:mm a')}</span>
                                   <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />

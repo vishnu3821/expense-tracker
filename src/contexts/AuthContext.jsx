@@ -50,7 +50,38 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session)
-      setUser(session?.user || null)
+      
+      // Auto-assign username for Google sign-in if missing
+      if (event === 'SIGNED_IN' && session?.user) {
+        let currentUser = session.user;
+        if (!currentUser.user_metadata?.username) {
+          const email = currentUser.email;
+          const fullName = currentUser.user_metadata?.full_name || currentUser.user_metadata?.name;
+          
+          let baseName = '';
+          if (fullName) {
+             baseName = fullName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          } else if (email) {
+             baseName = email.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+          } else {
+             baseName = 'user';
+          }
+          
+          const randomSuffix = Math.floor(100 + Math.random() * 900);
+          const newUsername = `@${baseName}${randomSuffix}`;
+          
+          const { data, error } = await supabase.auth.updateUser({
+            data: { username: newUsername }
+          });
+          
+          if (!error && data?.user) {
+            currentUser = data.user;
+          }
+        }
+        setUser(currentUser);
+      } else {
+        setUser(session?.user || null)
+      }
       
       // Force a hard stop on loading for any significant auth event
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
@@ -103,7 +134,7 @@ export function AuthProvider({ children }) {
           {/* Minimal Brand Footer at bottom center */}
           <div className="fixed bottom-16 left-0 right-0 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-8 duration-1500">
             <h2 className="text-sm font-bold tracking-[0.4em] text-slate-400 uppercase">Expense Monitor</h2>
-            <div className="h-[3px] w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-0.75 w-24 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-teal-500 animate-[loading-bar_2.5s_infinite]" style={{ width: '100%', transformOrigin: 'left' }} />
             </div>
           </div>
