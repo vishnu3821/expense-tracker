@@ -272,7 +272,6 @@ export default function LandingPage() {
 
         renderer.render(scene, camera);
       }
-      }
       animate();
     } // end if(canvas)
 
@@ -376,7 +375,7 @@ export default function LandingPage() {
         <div className="panel dash-panel reveal-scale">
           <div className="dash-stats">
             <div className="stat-box"><div className="label">Total balance</div><div className="value counter" data-target="184320" data-prefix="₹">₹0</div></div>
-            <div class="stat-box"><div class="label">Monthly income</div><div class="value accent counter" data-target="96000" data-prefix="₹">₹0</div></div>
+            <div className="stat-box"><div className="label">Monthly income</div><div className="value accent counter" data-target="96000" data-prefix="₹">₹0</div></div>
             <div className="stat-box"><div className="label">Monthly expenses</div><div className="value counter" data-target="62150" data-prefix="₹">₹0</div></div>
             <div className="stat-box"><div className="label">Savings</div><div className="value gold counter" data-target="33850" data-prefix="₹">₹0</div></div>
           </div>
