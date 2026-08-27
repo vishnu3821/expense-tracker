@@ -83,6 +83,7 @@ export default function LandingPage() {
       });
     },{threshold:0.4});
     counters.forEach(c=>counterIo.observe(c));
+    }
 
     // budget ring fill
     const ring = document.getElementById('budget-ring');
@@ -276,6 +277,8 @@ export default function LandingPage() {
     } // end if(canvas)
 
     return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      
       // Disconnect Observers
       if (io) io.disconnect();
       if (barIo) barIo.disconnect();
