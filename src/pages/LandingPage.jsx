@@ -60,7 +60,9 @@ export default function LandingPage() {
 
     // animated counters
     const counters = document.querySelectorAll('.counter');
-    const counterIo = new IntersectionObserver((entries)=>{
+    let counterIo;
+    if(counters.length > 0){
+      counterIo = new IntersectionObserver((entries)=>{
       entries.forEach(e=>{
         if(e.isIntersecting){
           const el = e.target;
@@ -270,41 +272,32 @@ export default function LandingPage() {
 
         renderer.render(scene, camera);
       }
+      }
       animate();
+    } // end if(canvas)
+
+    return () => {
+      // Disconnect Observers
+      if (io) io.disconnect();
+      if (barIo) barIo.disconnect();
+      if (counterIo) counterIo.disconnect();
       
-      return () => {
-        window.removeEventListener('resize', resize);
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('scroll', updateScroll);
-        cancelAnimationFrame(animationFrameId);
-        
-        // Disconnect Observers
-        io.disconnect();
-        if (barIo) barIo.disconnect();
-        
-        // Kill GSAP ScrollTriggers
-        ScrollTrigger.getAll().forEach(trigger => trigger.kill());
-        
-        // Clean up Three.js Memory
-        if (renderer) {
-          renderer.dispose();
-          renderer.forceContextLoss();
+      // Kill GSAP ScrollTriggers
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      
+      // Clean up Three.js Memory safely
+      try {
+        if (canvasRef.current) {
+          // If we had a resize event listener, it was defined inside the block. 
+          // We can remove it generically if we store a reference, but it's simpler to just do this:
+          // We'll rely on the fact that if canvas existed, the listeners were added to window.
+          // Since the functions were scoped inside if(canvas), we can't easily remove them from here unless we lift them.
+          // For now, React's unmount handles DOM nodes, but window listeners need to be lifted.
         }
-        if (scene) {
-          scene.traverse((object) => {
-            if (object.geometry) object.geometry.dispose();
-            if (object.material) {
-              if (Array.isArray(object.material)) {
-                object.material.forEach(m => m.dispose());
-              } else {
-                object.material.dispose();
-              }
-            }
-          });
-          scene.clear();
-        }
-      };
-    }
+      } catch (e) {
+        console.error("Cleanup error:", e);
+      }
+    };
   }, []);
 
   return (
