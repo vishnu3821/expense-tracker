@@ -50,8 +50,9 @@ export default function LandingPage() {
 
     // bars animate
     const barsBox = document.querySelector('.bars');
+    let barIo;
     if(barsBox){
-      const barIo = new IntersectionObserver((entries)=>{
+      barIo = new IntersectionObserver((entries)=>{
         entries.forEach(e=>{ if(e.isIntersecting){ barsBox.classList.add('in'); barIo.disconnect(); } });
       },{threshold:0.3});
       barIo.observe(barsBox);
@@ -276,7 +277,32 @@ export default function LandingPage() {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('scroll', updateScroll);
         cancelAnimationFrame(animationFrameId);
-        renderer.dispose();
+        
+        // Disconnect Observers
+        io.disconnect();
+        if (barIo) barIo.disconnect();
+        
+        // Kill GSAP ScrollTriggers
+        ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+        
+        // Clean up Three.js Memory
+        if (renderer) {
+          renderer.dispose();
+          renderer.forceContextLoss();
+        }
+        if (scene) {
+          scene.traverse((object) => {
+            if (object.geometry) object.geometry.dispose();
+            if (object.material) {
+              if (Array.isArray(object.material)) {
+                object.material.forEach(m => m.dispose());
+              } else {
+                object.material.dispose();
+              }
+            }
+          });
+          scene.clear();
+        }
       };
     }
   }, []);
