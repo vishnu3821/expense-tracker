@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Eye, EyeOff, Fingerprint, ShieldCheck, Lock, AtSign } from 'lucide-react';
 
+import Background3D from '../components/Common/Background3D';
+
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,10 +89,8 @@ export default function Auth() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
-      {/* Premium Background Elements */}
-      <div className="absolute top-0 right-0 h-125 w-125 bg-emerald-600/10 blur-[120px] rounded-full -mr-48 -mt-48 animate-pulse" />
-      <div className="absolute bottom-0 left-0 h-125 w-125 bg-teal-600/10 blur-[120px] rounded-full -ml-48 -mb-48" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-200 w-200 bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
+      {/* 3D Animated Background */}
+      <Background3D fixedScrollFrac={0} />
 
       {/* Back Button */}
       <button 
