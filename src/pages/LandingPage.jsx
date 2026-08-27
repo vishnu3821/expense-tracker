@@ -277,6 +277,7 @@ export default function LandingPage() {
       animate();
 
       cleanupThree = () => {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
         window.removeEventListener('resize', resize);
         window.removeEventListener('mousemove', handleMouseMove);
         
@@ -307,8 +308,6 @@ export default function LandingPage() {
     } // end if(canvas)
 
     return () => {
-      if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      
       // Disconnect Observers
       if (io) io.disconnect();
       if (barIo) barIo.disconnect();
