@@ -92,6 +92,19 @@ export default function Auth() {
       <div className="absolute bottom-0 left-0 h-125 w-125 bg-teal-600/10 blur-[120px] rounded-full -ml-48 -mb-48" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-200 w-200 bg-emerald-500/5 blur-[150px] rounded-full pointer-events-none" />
 
+      {/* Back Button */}
+      <button 
+        onClick={() => navigate('/landing')} 
+        className="absolute top-6 left-6 md:top-8 md:left-8 flex items-center gap-3 text-white/50 hover:text-white transition-all z-20 group"
+      >
+        <div className="p-2.5 rounded-full bg-white/5 border border-white/10 group-hover:bg-emerald-500/20 group-hover:border-emerald-500/50 group-hover:scale-110 transition-all duration-300">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+            <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
+        <span className="text-[11px] font-black uppercase tracking-[0.2em] opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">Return to Orbit</span>
+      </button>
+
       <div className="w-full max-w-md relative z-10">
         <div className={`w-full bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto transition-all duration-500 ${loading ? 'scale-95 opacity-80' : 'scale-100 opacity-100'}`}>
           {/* Biometric Scanning Overlay */}
