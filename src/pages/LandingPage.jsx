@@ -122,6 +122,7 @@ export default function LandingPage() {
 
     // ---------- three.js: persistent scroll-driven 3D flythrough ----------
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let cleanupThree = () => {};
     const canvas = canvasRef.current;
     if(canvas){
       const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
@@ -274,6 +275,35 @@ export default function LandingPage() {
         renderer.render(scene, camera);
       }
       animate();
+
+      cleanupThree = () => {
+        window.removeEventListener('resize', resize);
+        window.removeEventListener('mousemove', handleMouseMove);
+        
+        scene.traverse((object) => {
+          if (!object.isMesh) return;
+          if (object.geometry) object.geometry.dispose();
+          if (object.material) {
+            if (object.material.isMaterial) {
+              cleanMaterial(object.material);
+            } else {
+              for (const material of object.material) cleanMaterial(material);
+            }
+          }
+        });
+        
+        function cleanMaterial(material) {
+          material.dispose();
+          if (material.map) material.map.dispose();
+          if (material.lightMap) material.lightMap.dispose();
+          if (material.bumpMap) material.bumpMap.dispose();
+          if (material.normalMap) material.normalMap.dispose();
+          if (material.specularMap) material.specularMap.dispose();
+          if (material.envMap) material.envMap.dispose();
+        }
+        
+        renderer.dispose();
+      };
     } // end if(canvas)
 
     return () => {
@@ -289,13 +319,7 @@ export default function LandingPage() {
       
       // Clean up Three.js Memory safely
       try {
-        if (canvasRef.current) {
-          // If we had a resize event listener, it was defined inside the block. 
-          // We can remove it generically if we store a reference, but it's simpler to just do this:
-          // We'll rely on the fact that if canvas existed, the listeners were added to window.
-          // Since the functions were scoped inside if(canvas), we can't easily remove them from here unless we lift them.
-          // For now, React's unmount handles DOM nodes, but window listeners need to be lifted.
-        }
+        cleanupThree();
       } catch (e) {
         console.error("Cleanup error:", e);
       }
