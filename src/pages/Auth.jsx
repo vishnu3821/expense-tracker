@@ -90,7 +90,7 @@ export default function Auth() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
       {/* 3D Animated Background */}
-      <Background3D fixedScrollFrac={0} />
+      <Background3D fixedScrollFrac={0.56} />
 
       {/* Back Button */}
       <button 
@@ -106,7 +106,7 @@ export default function Auth() {
       </button>
 
       <div className="w-full max-w-md relative z-10">
-        <div className={`w-full bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto transition-all duration-500 ${loading ? 'scale-95 opacity-80' : 'scale-100 opacity-100'}`}>
+        <div className={`w-full bg-slate-900/20 backdrop-blur-none rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto transition-all duration-500 ${loading ? 'scale-95 opacity-80' : 'scale-100 opacity-100'}`}>
           {/* Biometric Scanning Overlay */}
           {loading && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-md rounded-[2.5rem] animate-in fade-in duration-300">
