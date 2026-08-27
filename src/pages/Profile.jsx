@@ -160,7 +160,7 @@ export default function Profile() {
     setUsernameMessage('');
     
     try {
-      const res = await fetch(`/api/admin?action=checkUsername&username=${encodeURIComponent(formatted)}&adminEmail=p.vishnuprabhakar@gmail.com`);
+      const res = await fetch(`/api/check-username?username=${encodeURIComponent(formatted)}`);
       const data = await res.json();
       
       if (data.taken && formatted.toLowerCase() !== user?.user_metadata?.username?.toLowerCase()) {

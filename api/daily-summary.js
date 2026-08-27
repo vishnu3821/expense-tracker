@@ -6,6 +6,14 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
+  // 🛡️ Security Check: Prevent unauthorized manual triggering
+  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET;
+  
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid CRON_SECRET.' });
+  }
+
   try {
     const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
     if (!serviceAccountRaw) {

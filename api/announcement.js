@@ -6,14 +6,32 @@ export default async function handler(req, res) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // 🛡️ Security Check: Require and verify JWT token
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid token.' });
+  }
+
+  // 🛡️ Admin Verification
+  if (user.email !== 'p.vishnuprabhakar@gmail.com') {
+    return res.status(403).json({ error: 'Forbidden. Admin access only.' });
+  }
+
   // GET all users (list)
   if (req.method === 'GET') {
     try {
       if (!supabaseUrl || !supabaseKey) {
         return res.status(200).json({ users: [], error: 'Configuration missing (URL/Key).' });
       }
-      
-      const supabase = createClient(supabaseUrl, supabaseKey);
       
       // Attempt 1: Auth Admin API (Best for emails)
       try {

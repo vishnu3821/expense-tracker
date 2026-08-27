@@ -11,12 +11,12 @@ const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-  // Allow manual trigger via POST with secret check for testing
-  const isCron = req.headers['x-vercel-cron'] === 'true';
-  const isManual = req.method === 'POST';
-
-  if (!isCron && !isManual) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  // 🛡️ Security Check: Prevent unauthorized manual triggering
+  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET;
+  
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid CRON_SECRET.' });
   }
 
   try {

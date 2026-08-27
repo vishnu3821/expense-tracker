@@ -24,7 +24,7 @@ import {
 import { format, parseISO } from 'date-fns';
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -82,7 +82,11 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin?action=listUsers&adminEmail=${user.email}`);
+      const res = await fetch(`/api/admin?action=listUsers`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
       const data = await res.json();
       
       if (data.users) {

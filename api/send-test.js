@@ -15,6 +15,24 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'user_id is required' });
   }
 
+  // 🛡️ Security Check: Require and verify JWT token
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid token.' });
+  }
+
+  // Ensure users can only send test notifications to themselves (unless admin)
+  if (user.id !== user_id && user.email !== 'p.vishnuprabhakar@gmail.com') {
+    return res.status(403).json({ error: 'Forbidden. You can only test your own notifications.' });
+  }
+
   const isServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   try {

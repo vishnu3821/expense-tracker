@@ -38,7 +38,7 @@ import { requestNotificationPermission } from '../lib/firebase';
 
 export default function More() {
   usePageGreeting("Welcome to More options.");
-  const { user, signOut } = useAuth();
+  const { user, session, signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
@@ -94,7 +94,11 @@ export default function More() {
     setShowBroadcastModal(true);
     setIsFetchingUsers(true);
     try {
-      const res = await fetch(`/api/admin?action=listUsers&adminEmail=${user.email}`);
+      const res = await fetch(`/api/admin?action=listUsers`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
       const data = await res.json();
       
       if (data.users && data.users.length > 0) {
@@ -155,6 +159,7 @@ export default function More() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({
           selectedUserIds,
@@ -213,6 +218,7 @@ export default function More() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
         },
         body: JSON.stringify({ user_id: user.id }),
       });

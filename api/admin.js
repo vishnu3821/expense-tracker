@@ -6,11 +6,24 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-  const { action, userId, adminEmail } = req.query;
+  const { action, userId } = req.query;
 
-  // 🛡️ Security Check: Only allow the specific admin email
-  if (!adminEmail || adminEmail !== 'p.vishnuprabhakar@gmail.com') {
-    return res.status(403).json({ error: 'Unauthorized. Admin access only.' });
+  // 🛡️ Security Check: Require and verify JWT token
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Missing or invalid Authorization header' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Unauthorized. Invalid token.' });
+  }
+
+  // 🛡️ Admin Verification: Ensure the user's email matches the admin email
+  if (user.email !== 'p.vishnuprabhakar@gmail.com') {
+    return res.status(403).json({ error: 'Forbidden. Admin access only.' });
   }
 
   // 📂 ACTION: List all users
@@ -88,26 +101,6 @@ export default async function handler(req, res) {
         }
       }
       return res.status(200).json({ success: true, migratedCount });
-    } catch (err) {
-      return res.status(500).json({ error: err.message });
-    }
-  }
-
-  // 🔍 ACTION: Check if username is taken
-  if (action === 'checkUsername') {
-    const { username } = req.query;
-    if (!username) return res.status(400).json({ error: 'Username required' });
-    
-    try {
-      const { data, error } = await supabase.auth.admin.listUsers();
-      if (error) throw error;
-      
-      const requestedUsername = username.toLowerCase().trim();
-      const isTaken = data.users.some(u => 
-        u.user_metadata?.username?.toLowerCase() === requestedUsername
-      );
-      
-      return res.status(200).json({ taken: isTaken });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }

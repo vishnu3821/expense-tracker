@@ -16,6 +16,7 @@ import EducationalFees from './pages/EducationalFees'
 import Goals from './pages/Goals'
 import SplashScreen from './components/Common/SplashScreen'
 import Splits from './pages/Splits'
+import LandingPage from './pages/LandingPage'
 import { Analytics } from '@vercel/analytics/react'
 import { useState, useEffect } from 'react'
 
@@ -23,7 +24,7 @@ function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
   
   if (loading) return null; // Let AuthContext's internal loader handle it
-  return user ? children : <Navigate to="/auth" />
+  return user ? children : <Navigate to="/landing" />
 }
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
         {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
         <Router>
           <Routes>
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
               <Route index element={<Dashboard />} />
