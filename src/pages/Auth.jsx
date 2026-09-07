@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Eye, EyeOff, Fingerprint, ShieldCheck, Lock, AtSign } from 'lucide-react';
+import { Fingerprint, ShieldCheck, AtSign, Mail } from 'lucide-react';
 
 import Background3D from '../components/Common/Background3D';
+import OTPVerification from '../components/Auth/OTPVerification';
+import PasswordVerification from '../components/Auth/PasswordVerification';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -13,48 +15,101 @@ export default function Auth() {
   const [error, setError] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [otpMode, setOtpMode] = useState(false);     // true = show OTP verification screen
+  const [passwordStep, setPasswordStep] = useState(false); // true = show password verification screen
   const navigate = useNavigate();
 
-  const handleAuth = async (e) => {
+  const handleOtpRequest = async (e) => {
     e.preventDefault();
+    if (!email) { setError('Please enter your email first.'); return; }
     setLoading(true);
     setError(null);
-    
     try {
-      if (isForgotPassword) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/profile',
-        });
-        if (error) throw error;
-        alert('Check your email for the password reset link!');
-        setIsForgotPassword(false);
-      } else if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      } else {
-        if (!username.trim()) throw new Error("Username is required");
-        const formattedUsername = username.startsWith('@') ? username.trim() : '@' + username.trim();
-        
-        const { error } = await supabase.auth.signUp({ 
-          email, 
-          password,
-          options: {
-            data: {
-              username: formattedUsername
-            }
-          }
-        });
-        if (error) throw error;
-        alert('Check your email for the login link! Or if auto-confirm is enabled, you can now sign in.');
-      }
-      navigate('/');
+      const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+      if (error) throw error;
+      setOtpMode(true);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleOtpVerified = () => {
+    navigate('/');
+  };
+
+  const handleOtpCancel = () => {
+    setOtpMode(false);
+    setError(null);
+  };
+
+  // Step 1: email submitted → go to password step (login) or proceed (signup/forgot)
+  const handleEmailStep = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (!email) { setError('Please enter your email.'); return; }
+
+    if (isForgotPassword) {
+      setLoading(true);
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/profile',
+        });
+        if (error) throw error;
+        alert('Check your email for the password reset link!');
+        setIsForgotPassword(false);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (isLogin) {
+      // Go to cinematic password step
+      setPasswordStep(true);
+    } else {
+      // Sign up: collect password inline
+      handleSignUp();
+    }
+  };
+
+  // Sign-up flow (still uses inline form below)
+  const handleSignUp = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      if (!username.trim()) throw new Error('Username is required');
+      const formattedUsername = username.startsWith('@') ? username.trim() : '@' + username.trim();
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username: formattedUsername } },
+      });
+      if (error) throw error;
+      alert('Check your email for the login link!');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Called by PasswordVerification with the entered password — must throw on failure
+  const handlePasswordVerify = async (pw) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+    if (error) throw error;
+    // PasswordVerification component will call onAnimationComplete when its success animation finishes
+  };
+
+  const handleAnimationComplete = () => {
+    navigate('/');
+  };
+
+  // Legacy handleAuth kept for sign-up path
+  const handleAuth = handleSignUp;
 
   const handleGoogleLogin = async () => {
     try {
@@ -86,6 +141,56 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  // ── OTP Screen ──
+  if (otpMode) {
+    return (
+      <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
+        <Background3D fixedScrollFrac={0.56} />
+        <div className="w-full max-w-md relative z-10">
+          <div className="w-full bg-slate-900/20 backdrop-blur-none rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto">
+            <div className="text-center mb-6">
+              <div className="relative inline-block mb-4 group">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full group-hover:bg-emerald-500/40 transition-all duration-500" />
+                <img src="/website_logo.png" alt="Orbit" className="h-16 w-auto object-contain relative z-10" />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tighter">Check your inbox</h2>
+              <p className="text-white/40 mt-2 text-xs font-bold uppercase tracking-widest">6-digit code sent to your email</p>
+            </div>
+            <OTPVerification email={email} onVerify={handleOtpVerified} onCancel={handleOtpCancel} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Password Screen ──
+  if (passwordStep) {
+    return (
+      <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
+        <Background3D fixedScrollFrac={0.56} />
+        <div className="w-full max-w-md relative z-10">
+          <div className="w-full bg-slate-900/20 backdrop-blur-none rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto">
+            <div className="text-center mb-6">
+              <div className="relative inline-block mb-4 group">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full" />
+                <img src="/website_logo.png" alt="Orbit" className="h-16 w-auto object-contain relative z-10" />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tighter">Welcome Back</h2>
+              <p className="text-white/40 mt-2 text-xs font-bold uppercase tracking-widest">Enter your password to continue</p>
+            </div>
+            <PasswordVerification 
+              email={email} 
+              onVerify={handlePasswordVerify} 
+              onAnimationComplete={handleAnimationComplete}
+              onBack={() => setPasswordStep(false)}
+              onForgot={() => setIsForgotPassword(true)}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
@@ -141,7 +246,7 @@ export default function Auth() {
             </div>
           )}
 
-          <form onSubmit={handleAuth} className="space-y-6">
+          <form onSubmit={handleEmailStep} className="space-y-6">
             {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
@@ -175,49 +280,31 @@ export default function Auth() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            {!isForgotPassword && (
+
+            {/* Sign-up password field (login uses cinematic step) */}
+            {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
-                <div className="flex justify-between items-center ml-1">
-                  <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">
-                    <Lock className="h-3 w-3" />
-                    Password
-                  </label>
-                  {isLogin && (
-                    <button
-                      type="button"
-                      onClick={() => { setIsForgotPassword(true); setError(null); }}
-                      className="text-[10px] font-black text-emerald-500 hover:text-emerald-400 uppercase tracking-widest transition-colors"
-                    >
-                      Forgot?
-                    </button>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-bold placeholder:text-white/20 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all shadow-inner"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
+                <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-bold placeholder:text-white/20 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all shadow-inner"
+                  placeholder="Create a strong password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
             )}
-            <div className="pt-4">
+
+            <div className="pt-4 space-y-3">
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
               >
-                {isForgotPassword ? 'Send Link' : (isLogin ? 'Sign In' : 'Sign Up')}
+                {loading ? <span className="animate-pulse">Please wait...</span> : (isForgotPassword ? 'Send Reset Link' : (isLogin ? 'Continue →' : 'Create Account'))}
               </button>
             </div>
           </form>

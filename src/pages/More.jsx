@@ -47,8 +47,23 @@ export default function More() {
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
-  const [customMessage, setCustomMessage] = useState('');
-  const [broadcastSubject, setBroadcastSubject] = useState('');
+  const [customMessage, setCustomMessage] = useState(`Hey there! 👋
+
+We've been working hard behind the scenes and are excited to share what's new on Expense Monitor:
+
+🔐 Cinematic Login Experience
+Your password entry now comes alive! As you type, each character fills into individual animated boxes — just like OTP entry. When you hit login, the boxes orbit and spin around the lock icon in a mesmerising animation. A green ✅ tick appears on success, and a red ❌ mark on failure.
+
+📧 Streamlined Sign-In
+We've simplified the login flow — just enter your email, then your password. Clean, fast, and beautiful.
+
+✨ Premium Animations & Sound
+Every interaction now has micro-animations and subtle audio feedback — from the satisfying click of each keystroke to the whoosh of the spinning orbit.
+
+Thank you for being part of the Expense Monitor community. Keep tracking, keep saving! 💸
+
+— The Expense Monitor Team`);
+  const [broadcastSubject, setBroadcastSubject] = useState('🚀 Expense Monitor Just Got a Major Upgrade!');
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
