@@ -6,7 +6,7 @@ import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns'
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const resendApiKey = process.env.RESEND_API_KEY;
-const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+const resendFromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@expensemonitor.tech';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 

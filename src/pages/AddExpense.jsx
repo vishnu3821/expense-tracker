@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { 
   Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, 
   ReceiptText, ShieldCheck, CreditCard, ArrowRight, FileSpreadsheet, Download, Database,
-  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal
+  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal, Users
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { get, del } from 'idb-keyval';
@@ -134,8 +134,21 @@ export default function AddExpense() {
     image: null,
     isSplit: false,
     friendName: '',
-    splitAmount: ''
+    friendId: null,
+    friendEmail: null,
   });
+
+  const [isFriendDropdownOpen, setIsFriendDropdownOpen] = useState(false);
+
+  const [friendsList, setFriendsList] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from('friends').select('*').eq('user_id', user.id).then(({ data }) => {
+        if (data) setFriendsList(data);
+      });
+    }
+  }, [user]);
 
   // Cleanup blob URL on unmount
   useEffect(() => {
@@ -381,6 +394,8 @@ export default function AddExpense() {
           user_id: user.id,
           expense_id: newExpense.id,
           friend_name: formData.friendName || 'Friend',
+          friend_id: formData.friendId || null,
+          friend_email: formData.friendEmail || null,
           amount: splitDebtAmount,
           status: 'pending'
         }]);
@@ -980,14 +995,46 @@ export default function AddExpense() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-teal-50 dark:bg-teal-900/20 rounded-2xl border border-teal-100 dark:border-teal-800 animate-in fade-in slide-in-from-top-2">
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-teal-800 dark:text-teal-400">Friend's Name</label>
-                    <input
-                      type="text"
-                      placeholder="E.g. Rahul"
-                      className="input-field bg-white! dark:bg-slate-900!"
-                      value={formData.friendName}
-                      onChange={(e) => setFormData(prev => ({ ...prev, friendName: e.target.value }))}
-                      required={formData.isSplit}
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="E.g. Rahul"
+                        className="input-field bg-white! dark:bg-slate-900!"
+                        value={formData.friendName}
+                        onFocus={() => setIsFriendDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setIsFriendDropdownOpen(false), 200)}
+                        onChange={(e) => setFormData(prev => ({ ...prev, friendName: e.target.value, friendId: null, friendEmail: null }))}
+                        required={formData.isSplit}
+                      />
+                      {isFriendDropdownOpen && friendsList.length > 0 && (
+                        <div className="absolute top-full left-0 w-full z-20 mt-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 border border-teal-200 dark:border-teal-800 shadow-xl animate-in fade-in slide-in-from-top-2">
+                          <p className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <Users className="h-3 w-3" /> Select from Network
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {friendsList.map(f => (
+                              <button
+                                type="button"
+                                key={f.id}
+                                onClick={() => setFormData(prev => ({ ...prev, friendName: `@${f.friend_username.replace(/^@+/, '')}`, friendId: f.friend_id, friendEmail: f.friend_email }))}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                                  formData.friendId === f.friend_id 
+                                  ? 'bg-teal-600 text-white shadow-md ring-2 ring-teal-600 ring-offset-1 dark:ring-offset-slate-900' 
+                                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-teal-300 hover:text-teal-600 dark:hover:border-teal-700 dark:hover:text-teal-400 shadow-sm'
+                                }`}
+                              >
+                                <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] ${
+                                  formData.friendId === f.friend_id ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
+                                }`}>
+                                  {f.friend_username.replace(/^@+/, '').charAt(0).toUpperCase()}
+                                </div>
+                                @{f.friend_username.replace(/^@+/, '')}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-teal-800 dark:text-teal-400">Friend's Share (₹)</label>

@@ -139,19 +139,24 @@ export default async function handler(req, res) {
         </html>
       `;
 
-      await fetch('https://api.resend.com/emails', {
+      const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${RESEND_API_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'Expense Monitor <onboarding@resend.dev>',
+          from: 'Expense Monitor <noreply@expensemonitor.tech>',
           to: [friendEmail],
           subject: `💸 ${ownerName || 'Someone'} says you owe ₹${Number(amount).toLocaleString('en-IN')}`,
           html: emailHtml
         })
       });
+
+      if (!resendResponse.ok) {
+        const resendData = await resendResponse.json();
+        throw new Error(resendData.message || 'Failed to send email via Resend');
+      }
     }
 
     return res.status(200).json({ 

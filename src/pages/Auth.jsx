@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Fingerprint, ShieldCheck, AtSign, Mail } from 'lucide-react';
+import { Fingerprint, ShieldCheck, AtSign, Mail, KeyRound } from 'lucide-react';
 
 import Background3D from '../components/Common/Background3D';
 import OTPVerification from '../components/Auth/OTPVerification';
@@ -15,9 +15,46 @@ export default function Auth() {
   const [error, setError] = useState(null);
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [otpMode, setOtpMode] = useState(false);     // true = show OTP verification screen
-  const [passwordStep, setPasswordStep] = useState(false); // true = show password verification screen
+  const [otpMode, setOtpMode] = useState(false);
+  const [passwordStep, setPasswordStep] = useState(false);
+  const [isRecovery, setIsRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
+  const [resetDone, setResetDone] = useState(false);
   const navigate = useNavigate();
+
+  // Detect password recovery session (from reset email link)
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecovery(true);
+      }
+    });
+  }, []);
+
+  const handleNewPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== newPasswordConfirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setResetDone(true);
+      setTimeout(() => navigate('/'), 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOtpRequest = async (e) => {
     e.preventDefault();
@@ -54,8 +91,8 @@ export default function Auth() {
       setLoading(true);
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/profile',
-        });
+        redirectTo: window.location.origin + '/auth',
+      });
         if (error) throw error;
         alert('Check your email for the password reset link!');
         setIsForgotPassword(false);
@@ -76,20 +113,26 @@ export default function Auth() {
     }
   };
 
-  // Sign-up flow (still uses inline form below)
+  // Sign-up flow
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
     try {
       if (!username.trim()) throw new Error('Username is required');
       const formattedUsername = username.startsWith('@') ? username.trim() : '@' + username.trim();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { username: formattedUsername } },
       });
       if (error) throw error;
-      alert('Check your email for the login link!');
+      // If email confirmation is disabled, user is logged in immediately
+      if (data?.session) {
+        navigate('/');
+      } else {
+        // Fallback if confirmation is still enabled
+        alert('Check your email for the confirmation link!');
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -116,8 +159,9 @@ export default function Auth() {
       setLoading(true);
       setError(null);
       
-      // Explicitly target the root origin to trigger PWA scope
-      const redirectUrl = `${window.location.origin}/`;
+      // Use production domain in prod, localhost in dev
+      const isProd = window.location.hostname !== 'localhost';
+      const redirectUrl = isProd ? 'https://expensemonitor.tech/' : `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -141,6 +185,82 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  // ── Password Recovery Screen (from reset email link) ──
+  if (isRecovery) {
+    return (
+      <div className="relative min-h-screen w-full flex items-center justify-center bg-slate-950 px-4 font-sans overflow-hidden">
+        <Background3D fixedScrollFrac={0.56} />
+        <div className="w-full max-w-md relative z-10">
+          <div className="w-full bg-slate-900/20 backdrop-blur-none rounded-[2.5rem] border border-white/10 shadow-2xl p-8 mx-auto">
+            <div className="text-center mb-8">
+              <div className="relative inline-block mb-4">
+                <div className="absolute inset-0 bg-emerald-500/20 blur-2xl rounded-full" />
+                <img src="/website_logo.png" alt="Orbit" className="h-16 w-auto object-contain relative z-10" />
+              </div>
+              <h2 className="text-2xl font-black text-white tracking-tighter">Set New Password</h2>
+              <p className="text-white/40 mt-2 text-xs font-bold uppercase tracking-widest">Choose a strong new password</p>
+            </div>
+
+            {resetDone ? (
+              <div className="text-center py-8">
+                <div className="h-16 w-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">✅</span>
+                </div>
+                <p className="text-emerald-400 font-bold text-lg">Password Updated!</p>
+                <p className="text-white/40 text-sm mt-2">Redirecting you to the app...</p>
+              </div>
+            ) : (
+              <form onSubmit={handleNewPassword} className="space-y-4">
+                {error && (
+                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 text-rose-400 text-sm font-semibold text-center">
+                    {error}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
+                    <KeyRound className="h-3 w-3" /> New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-bold placeholder:text-white/20 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-[0.2em] ml-1">
+                    <KeyRound className="h-3 w-3" /> Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Confirm new password"
+                    value={newPasswordConfirm}
+                    onChange={e => setNewPasswordConfirm(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm font-bold placeholder:text-white/20 focus:bg-white/10 focus:border-emerald-500/50 outline-none transition-all"
+                  />
+                </div>
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {loading ? 'Updating...' : 'Update Password →'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── OTP Screen ──
   if (otpMode) {
@@ -184,7 +304,10 @@ export default function Auth() {
               onVerify={handlePasswordVerify} 
               onAnimationComplete={handleAnimationComplete}
               onBack={() => setPasswordStep(false)}
-              onForgot={() => setIsForgotPassword(true)}
+              onForgot={() => {
+                setIsForgotPassword(true);
+                setPasswordStep(false);
+              }}
             />
           </div>
         </div>

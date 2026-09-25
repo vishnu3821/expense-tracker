@@ -1,5 +1,5 @@
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'onboarding@resend.dev';
+const FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@expensemonitor.tech';
 const FROM_NAME = 'Orbit Finance';
 
 Deno.serve(async (req: Request) => {

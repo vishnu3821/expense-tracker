@@ -191,7 +191,7 @@ function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
             </div>
 
             <label className="block mb-4">
-              <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 block flex items-center gap-2">
+              <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Mail className="h-3 w-3" /> {split.friend_name}'s email address
               </span>
               <input
@@ -207,7 +207,7 @@ function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
             <button
               onClick={handleSend}
               disabled={sending}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black text-sm uppercase tracking-wider hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-linear-to-r from-emerald-500 to-teal-500 text-black font-black text-sm uppercase tracking-wider hover:from-emerald-400 hover:to-teal-400 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {sending ? 'Sending...' : 'Send Notification Email'}
@@ -553,7 +553,7 @@ export default function Splits() {
       )}
 
       {/* ── Total Owed Banner ── */}
-      <div className="rounded-3xl p-6 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/20 relative overflow-hidden">
+      <div className="rounded-3xl p-6 bg-linear-to-br from-emerald-500 to-teal-600 text-white shadow-xl shadow-emerald-500/20 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-white translate-x-16 -translate-y-16" />
           <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-white -translate-x-10 translate-y-10" />

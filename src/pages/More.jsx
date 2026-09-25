@@ -49,21 +49,18 @@ export default function More() {
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [customMessage, setCustomMessage] = useState(`Hey there! 👋
 
-We've been working hard behind the scenes and are excited to share what's new on Expense Monitor:
+We've just rolled out some massive new features to make tracking shared expenses easier than ever:
 
-🔐 Cinematic Login Experience
-Your password entry now comes alive! As you type, each character fills into individual animated boxes — just like OTP entry. When you hit login, the boxes orbit and spin around the lock icon in a mesmerising animation. A green ✅ tick appears on success, and a red ❌ mark on failure.
+🤝 The New Friends Network
+You can now build your network inside Expense Monitor! Search for users by username, send friend requests, and manage your incoming/outgoing requests right from the "Friends & Network" menu.
 
-📧 Streamlined Sign-In
-We've simplified the login flow — just enter your email, then your password. Clean, fast, and beautiful.
+💸 Split Bills Instantly
+When adding an expense, just toggle "Split this expense". Choose a friend from your new network, set their share, and we'll instantly email them a beautiful breakdown of what they owe you!
 
-✨ Premium Animations & Sound
-Every interaction now has micro-animations and subtle audio feedback — from the satisfying click of each keystroke to the whoosh of the spinning orbit.
-
-Thank you for being part of the Expense Monitor community. Keep tracking, keep saving! 💸
+Ready to start splitting? Head over to the new Friends menu and send your first request!
 
 — The Expense Monitor Team`);
-  const [broadcastSubject, setBroadcastSubject] = useState('🚀 Expense Monitor Just Got a Major Upgrade!');
+  const [broadcastSubject, setBroadcastSubject] = useState("What's New: Friends Network & Split Bills! 💸");
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
@@ -82,6 +79,32 @@ Thank you for being part of the Expense Monitor community. Keep tracking, keep s
   const [isMergingAll, setIsMergingAll] = useState(false);
   const [expandedDedupeGroup, setExpandedDedupeGroup] = useState(null);
   const [showConfirmMergeAll, setShowConfirmMergeAll] = useState(false);
+
+  // Friends state
+  const [showFriendsModal, setShowFriendsModal] = useState(false);
+  const [friendsList, setFriendsList] = useState([]);         // accepted
+  const [pendingRequests, setPendingRequests] = useState([]);  // incoming pending
+  const [sentRequests, setSentRequests] = useState([]);        // my outgoing pending
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
+  const [friendSearchResults, setFriendSearchResults] = useState([]);
+  const [isSearchingFriends, setIsSearchingFriends] = useState(false);
+  const [isFriendsLoading, setIsFriendsLoading] = useState(false);
+
+  // Load pending count on mount for badge
+  React.useEffect(() => {
+    if (user) {
+      supabase.from('friends').select('id').eq('friend_id', user.id).eq('status', 'pending')
+        .then(({ data }) => { if (data) setPendingRequests(data); });
+
+      // Realtime: update pending requests badge live
+      const channel = supabase.channel('friend-requests-more')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'friends', filter: `friend_id=eq.${user.id}` }, () => {
+          supabase.from('friends').select('*').eq('friend_id', user.id).eq('status', 'pending')
+            .then(({ data }) => { if (data) setPendingRequests(data); });
+        }).subscribe();
+      return () => { supabase.removeChannel(channel); };
+    }
+  }, [user]);
 
   React.useEffect(() => {
     if (user) checkNotificationStatus();
@@ -102,6 +125,119 @@ Thank you for being part of the Expense Monitor community. Keep tracking, keep s
       console.error(err);
     } finally {
       setIsTogglingNotifications(false);
+    }
+  };
+
+  const loadFriends = async () => {
+    setIsFriendsLoading(true);
+    try {
+      const [{ data: accepted }, { data: incoming }, { data: outgoing }] = await Promise.all([
+        supabase.from('friends').select('*').eq('user_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
+        supabase.from('friends').select('*').eq('friend_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('friends').select('*').eq('user_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
+      ]);
+      setFriendsList(accepted || []);
+      setPendingRequests(incoming || []);
+      setSentRequests(outgoing || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFriendsLoading(false);
+    }
+  };
+
+  const openFriendsModal = () => {
+    setShowFriendsModal(true);
+    loadFriends();
+  };
+
+  const searchFriends = async (e) => {
+    e.preventDefault();
+    if (!friendSearchQuery || friendSearchQuery.length < 3) return;
+    setIsSearchingFriends(true);
+    try {
+      const res = await fetch(`/api/search-users?query=${encodeURIComponent(friendSearchQuery)}`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      });
+      const data = await res.json();
+      setFriendSearchResults(data.users || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearchingFriends(false);
+    }
+  };
+
+  const sendFriendRequest = async (friendUser) => {
+    try {
+      const { error } = await supabase.from('friends').insert({
+        user_id: user.id,
+        friend_id: friendUser.id,
+        friend_username: friendUser.username || friendUser.email.split('@')[0],
+        friend_email: friendUser.email,
+        user_username: user.user_metadata?.username || user.email.split('@')[0],
+        user_email: user.email,
+        status: 'pending'
+      });
+      if (error) {
+        if (error.code === '23505') alert('Request already sent!');
+        else throw error;
+      } else {
+        setFriendSearchResults(prev => prev.filter(u => u.id !== friendUser.id));
+        loadFriends();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to send request');
+    }
+  };
+
+  const acceptRequest = async (req) => {
+    try {
+      // Mark incoming request as accepted
+      await supabase.from('friends').update({ status: 'accepted' }).eq('id', req.id);
+      // Create reverse connection so I can also see them in my friends list
+      await supabase.from('friends').upsert({
+        user_id: user.id,
+        friend_id: req.user_id,
+        friend_username: (req.user_username || req.user_email?.split('@')[0] || 'Unknown').replace(/^@+/, ''),
+        friend_email: req.user_email || '',
+        user_username: user.user_metadata?.username || user.email.split('@')[0],
+        user_email: user.email,
+        status: 'accepted'
+      }, { onConflict: 'user_id,friend_id' });
+      loadFriends();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const declineRequest = async (reqId) => {
+    try {
+      await supabase.from('friends').update({ status: 'declined' }).eq('id', reqId);
+      loadFriends();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const cancelRequest = async (reqId) => {
+    try {
+      await supabase.from('friends').delete().eq('id', reqId);
+      loadFriends();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const removeFriend = async (friendId) => {
+    if (!window.confirm('Remove this friend?')) return;
+    try {
+      // Remove both directions
+      await supabase.from('friends').delete().eq('id', friendId);
+      loadFriends();
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -768,6 +904,29 @@ Thank you for being part of the Expense Monitor community. Keep tracking, keep s
             <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors" />
           </Link>
 
+          <button 
+            onClick={openFriendsModal}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left border-t border-slate-100 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-4">
+              <div className="relative h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 transition-colors group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50">
+                <Users className="h-5 w-5" />
+                {pendingRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                    {pendingRequests.length}
+                  </span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Friends & Network</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {pendingRequests.length > 0 ? `${pendingRequests.length} pending request${pendingRequests.length > 1 ? 's' : ''}!` : 'Add friends to split bills easily'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
+          </button>
+
           <Link 
             to="/more/education-fees" 
             className="flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
@@ -995,6 +1154,163 @@ Thank you for being part of the Expense Monitor community. Keep tracking, keep s
           </button>
         </div>
       </div>
+      
+      {/* Friends Modal */}
+      {showFriendsModal && createPortal(
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Friends</h3>
+                  <p className="text-xs text-slate-500">Manage your network</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setShowFriendsModal(false); setFriendSearchQuery(''); setFriendSearchResults([]); }}
+                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <form onSubmit={searchFriends} className="relative">
+                <input 
+                  type="text" 
+                  placeholder="Search users by username..."
+                  value={friendSearchQuery}
+                  onChange={(e) => setFriendSearchQuery(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <button type="submit" disabled={isSearchingFriends || friendSearchQuery.length < 3} className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">
+                  {isSearchingFriends ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+                </button>
+              </form>
+
+              {friendSearchResults.length > 0 && (
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800">
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Search Results</h4>
+                  <div className="space-y-2">
+                    {friendSearchResults.map(fu => {
+                      const isFriend = friendsList.some(f => f.friend_id === fu.id);
+                      const hasSent = sentRequests.some(r => r.friend_id === fu.id);
+                      const hasReceived = pendingRequests.some(r => r.user_id === fu.id);
+                      
+                      return (
+                        <div key={fu.id} className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">@{fu.username}</p>
+                            <p className="text-xs text-slate-500 truncate w-40">{fu.email}</p>
+                          </div>
+                          {isFriend ? (
+                            <span className="text-xs font-bold text-slate-400">Friends</span>
+                          ) : hasSent ? (
+                            <span className="text-xs font-bold text-slate-400">Sent</span>
+                          ) : hasReceived ? (
+                            <span className="text-xs font-bold text-blue-500">Respond below</span>
+                          ) : (
+                            <button onClick={() => sendFriendRequest(fu)} className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Incoming Requests */}
+              {pendingRequests.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                    Friend Requests ({pendingRequests.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {pendingRequests.map(req => (
+                      <div key={req.id} className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl border border-blue-200 dark:border-blue-900/50 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold">
+                            {(req.user_username || 'U').replace(/^@+/, '').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">@{req.user_username?.replace(/^@+/, '')}</p>
+                            <p className="text-xs text-slate-500 truncate w-32">{req.user_email}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => acceptRequest(req)} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-sm">
+                            Accept
+                          </button>
+                          <button onClick={() => declineRequest(req.id)} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold">
+                            Decline
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sent Requests */}
+              {sentRequests.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Sent Requests ({sentRequests.length})</h4>
+                  <div className="space-y-2 flex flex-wrap gap-2">
+                    {sentRequests.map(req => (
+                      <div key={req.id} className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800/50 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">@{req.friend_username?.replace(/^@+/, '')}</span>
+                        <button onClick={() => cancelRequest(req.id)} className="text-slate-400 hover:text-red-500" title="Cancel Request">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Your Friends ({friendsList.length})</h4>
+                {isFriendsLoading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div>
+                ) : friendsList.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 text-sm">No friends added yet.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {friendsList.map(f => (
+                      <div key={f.id} className="flex items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
+                          {f.friend_username.replace(/^@+/, '').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white text-sm">@{f.friend_username.replace(/^@+/, '')}</p>
+                            <p className="text-xs text-slate-500 truncate w-48">{f.friend_email}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => removeFriend(f.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Broadcast Dashboard Modal */}
       {showBroadcastModal && createPortal(
         <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
