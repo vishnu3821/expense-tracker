@@ -1007,28 +1007,46 @@ export default function AddExpense() {
                         required={formData.isSplit}
                       />
                       {isFriendDropdownOpen && friendsList.length > 0 && (
-                        <div className="absolute top-full left-0 w-full z-20 mt-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 border border-teal-200 dark:border-teal-800 shadow-xl animate-in fade-in slide-in-from-top-2">
-                          <p className="text-[10px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-                            <Users className="h-3 w-3" /> Select from Network
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {friendsList.map(f => (
+                        <div className="absolute top-full left-0 w-full z-30 mt-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl rounded-2xl p-2 border border-teal-200/50 dark:border-teal-800/50 shadow-2xl shadow-teal-500/10 animate-in fade-in slide-in-from-top-4 duration-300">
+                          <div className="px-2 pb-2 mb-1 border-b border-teal-100 dark:border-teal-900/50 flex items-center justify-between">
+                            <p className="text-[10px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-widest flex items-center gap-1.5">
+                              <Users className="h-3 w-3" /> Select Friend
+                            </p>
+                            <span className="text-[9px] font-bold bg-teal-100 dark:bg-teal-900/50 text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full">
+                              {friendsList.length} Network
+                            </span>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto pr-1 space-y-1 custom-scrollbar">
+                            {friendsList.map((f, i) => (
                               <button
                                 type="button"
                                 key={f.id}
                                 onClick={() => setFormData(prev => ({ ...prev, friendName: `@${f.friend_username.replace(/^@+/, '')}`, friendId: f.friend_id, friendEmail: f.friend_email }))}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-                                  formData.friendId === f.friend_id 
-                                  ? 'bg-teal-600 text-white shadow-md ring-2 ring-teal-600 ring-offset-1 dark:ring-offset-slate-900' 
-                                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-teal-300 hover:text-teal-600 dark:hover:border-teal-700 dark:hover:text-teal-400 shadow-sm'
-                                }`}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-300 flex items-center justify-between group animate-in slide-in-from-right-4 fade-in`}
+                                style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'both' }}
                               >
-                                <div className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] ${
-                                  formData.friendId === f.friend_id ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-700'
-                                }`}>
-                                  {f.friend_username.replace(/^@+/, '').charAt(0).toUpperCase()}
+                                <div className="flex items-center gap-3">
+                                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-black shadow-inner transition-transform group-hover:scale-110 ${
+                                    formData.friendId === f.friend_id 
+                                    ? 'bg-teal-500 text-white shadow-teal-500/50' 
+                                    : 'bg-linear-to-br from-teal-100 to-emerald-100 dark:from-teal-900/40 dark:to-emerald-900/40 text-teal-700 dark:text-teal-300'
+                                  }`}>
+                                    {f.friend_username.replace(/^@+/, '').charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className={`text-sm font-bold transition-colors ${
+                                      formData.friendId === f.friend_id ? 'text-teal-600 dark:text-teal-400' : 'text-slate-700 dark:text-slate-200 group-hover:text-teal-600 dark:group-hover:text-teal-400'
+                                    }`}>
+                                      @{f.friend_username.replace(/^@+/, '')}
+                                    </span>
+                                    {formData.friendId === f.friend_id && (
+                                      <span className="text-[9px] font-black text-teal-500 uppercase tracking-wider">Selected</span>
+                                    )}
+                                  </div>
                                 </div>
-                                @{f.friend_username.replace(/^@+/, '')}
+                                {formData.friendId === f.friend_id && (
+                                  <CheckCircle className="h-5 w-5 text-teal-500 animate-in zoom-in" />
+                                )}
                               </button>
                             ))}
                           </div>
