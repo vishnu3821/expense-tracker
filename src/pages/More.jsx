@@ -1421,7 +1421,7 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                     </div>
                     <div>
                       <p className="text-white font-bold text-sm">Find people in your network</p>
-                      <p className="text-slate-500 text-xs">Search by username or email to connect and start sharing expenses.</p>
+                      <p className="text-slate-500 text-xs">Search by username, email or phone to connect and start sharing expenses.</p>
                     </div>
                   </div>
 
@@ -1430,7 +1430,7 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                       <input
                         type="text"
-                        placeholder="Find friends by username or email..."
+                        placeholder="Find friends by username, email or phone..."
                         value={friendSearchQuery}
                         onChange={(e) => setFriendSearchQuery(e.target.value)}
                         className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"

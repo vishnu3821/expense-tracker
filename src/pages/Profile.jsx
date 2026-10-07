@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap, Shield, Activity, Wallet, BookOpen, Landmark, Laptop, Monitor, Smartphone, HardDrive, Bell, ToggleRight, ToggleLeft, AtSign, Camera } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Eye, EyeOff, User, Lock, Mail, ShieldCheck, BadgeCheck, Zap, Shield, Activity, Wallet, BookOpen, Landmark, Laptop, Monitor, Smartphone, HardDrive, Bell, ToggleRight, ToggleLeft, AtSign, Camera, Phone } from 'lucide-react';
 import { usePageGreeting } from '../hooks/usePageGreeting';
 
 export default function Profile() {
@@ -29,10 +29,27 @@ export default function Profile() {
   const [usernameInput, setUsernameInput] = useState('');
   const [usernameStatus, setUsernameStatus] = useState('idle');
   const [usernameMessage, setUsernameMessage] = useState('');
+  
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneStatus, setPhoneStatus] = useState('idle');
+  const [phoneMessage, setPhoneMessage] = useState('');
+  const [phoneOtpHash, setPhoneOtpHash] = useState(null);
+  const [phoneOtpInput, setPhoneOtpInput] = useState('');
+  useEffect(() => {
+    if (window.location.hash === '#phone-section') {
+      setTimeout(() => {
+        const el = document.getElementById('phone-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.user_metadata?.username) {
       setUsernameInput(user.user_metadata.username.replace('@', ''));
+    }
+    if (user?.user_metadata?.phone) {
+      setPhoneInput(user.user_metadata.phone);
     }
   }, [user]);
 
@@ -183,6 +200,72 @@ export default function Profile() {
     } catch (err) {
       setUsernameStatus('error');
       setUsernameMessage(err.message);
+    }
+  };
+
+  const handleRequestPhoneOtp = async (e) => {
+    e.preventDefault();
+    const formatted = phoneInput.trim();
+    if (formatted === user?.user_metadata?.phone) return;
+    if (!/^\d{10}$/.test(formatted)) {
+      setPhoneStatus('error');
+      setPhoneMessage('Phone number must be exactly 10 digits.');
+      return;
+    }
+    
+    setPhoneStatus('checking');
+    setPhoneMessage('');
+    
+    try {
+      const res = await fetch(`/api/check-phone?phone=${encodeURIComponent(formatted)}`);
+      const data = await res.json();
+      
+      if (data.taken && formatted !== user?.user_metadata?.phone) {
+        setPhoneStatus('taken');
+        setPhoneMessage('This phone number is already registered.');
+        return;
+      }
+      
+      const otpRes = await fetch('/api/send-phone-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formatted, email: user.email })
+      });
+      const otpData = await otpRes.json();
+      if (!otpRes.ok) throw new Error(otpData.error);
+      
+      setPhoneOtpHash(otpData.hash);
+      setPhoneStatus('otp_sent');
+      setPhoneMessage(`OTP sent to your registered email (${user.email})`);
+    } catch (err) {
+      setPhoneStatus('error');
+      setPhoneMessage(err.message);
+    }
+  };
+
+  const handleVerifyPhoneOtp = async (e) => {
+    e.preventDefault();
+    setPhoneStatus('checking');
+    try {
+      const res = await fetch('/api/verify-phone-otp', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ phone: phoneInput, otp: phoneOtpInput, hash: phoneOtpHash })
+      });
+      const data = await res.json();
+      if (!data.verified) throw new Error(data.error);
+      
+      const { error } = await supabase.auth.updateUser({ data: { phone: phoneInput } });
+      if (error) throw error;
+      
+      setPhoneStatus('saved');
+      setPhoneMessage('Phone number verified & saved!');
+      setPhoneOtpHash(null);
+      setPhoneOtpInput('');
+      setTimeout(() => setPhoneStatus('idle'), 3000);
+    } catch (err) {
+      setPhoneStatus('error');
+      setPhoneMessage(err.message);
     }
   };
 
@@ -450,6 +533,103 @@ export default function Profile() {
               >
                 {usernameStatus === 'checking' ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
                 {usernameStatus === 'checking' ? 'Verifying...' : 'Claim Username'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Phone Card */}
+        <div id="phone-section" className="relative overflow-hidden bg-slate-50 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8 group scroll-mt-24">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="h-12 w-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <Phone className="h-6 w-6 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">Contact Number</h3>
+              <p className="text-xs text-slate-500 font-medium">Add a 10-digit mobile number for connections.</p>
+            </div>
+          </div>
+          
+          <form onSubmit={phoneOtpHash ? handleVerifyPhoneOtp : handleRequestPhoneOtp} className="space-y-6">
+            {(phoneStatus === 'saved' || phoneStatus === 'otp_sent') && (
+              <div className="rounded-2xl bg-emerald-500/10 p-4 text-xs font-bold text-emerald-600 border border-emerald-500/20 flex items-center gap-3 animate-in slide-in-from-top-2">
+                <CheckCircle className="h-5 w-5 shrink-0" />
+                <p>{phoneMessage}</p>
+              </div>
+            )}
+
+            {(phoneStatus === 'error' || phoneStatus === 'taken') && (
+              <div className="rounded-2xl bg-red-500/10 p-4 text-xs font-bold text-red-400 border border-red-500/20 flex items-center gap-3 animate-in slide-in-from-top-2">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p>{phoneMessage}</p>
+              </div>
+            )}
+
+            <div className="space-y-2 relative group">
+              <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">
+                <Phone className="h-3 w-3" />
+                Mobile Number
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  maxLength={10}
+                  disabled={!!phoneOtpHash}
+                  className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 pl-14 text-slate-900 dark:text-white text-sm font-bold placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500/50 outline-none transition-all shadow-inner disabled:opacity-50"
+                  placeholder="9876543210"
+                  value={phoneInput}
+                  onChange={(e) => {
+                    setPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 10));
+                    if (phoneStatus !== 'idle') setPhoneStatus('idle');
+                  }}
+                />
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">+91</div>
+              </div>
+              
+              {!user?.user_metadata?.phone && (
+                <div className="absolute -top-10 right-0 bg-slate-900 text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-emerald-500/30 shadow-lg pointer-events-none z-10">
+                  Please add your number to be discovered
+                </div>
+              )}
+            </div>
+
+            {phoneOtpHash && (
+              <div className="space-y-2 relative animate-in fade-in slide-in-from-top-2">
+                <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ml-1">
+                  <Lock className="h-3 w-3" />
+                  6-Digit OTP
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  className="w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-center tracking-[0.5em] text-slate-900 dark:text-white text-xl font-black placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:border-emerald-500/50 outline-none transition-all shadow-inner"
+                  placeholder="••••••"
+                  value={phoneOtpInput}
+                  onChange={(e) => {
+                    setPhoneOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6));
+                    if (phoneStatus !== 'idle' && phoneStatus !== 'otp_sent') setPhoneStatus('idle');
+                  }}
+                />
+                <button 
+                  type="button"
+                  onClick={() => { setPhoneOtpHash(null); setPhoneStatus('idle'); }}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors mt-2 text-center w-full block"
+                >
+                  Cancel Verification
+                </button>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={phoneStatus === 'checking' || (!phoneOtpHash && phoneInput && phoneInput === user?.user_metadata?.phone)}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase tracking-[0.2em] h-14 rounded-2xl shadow-xl shadow-emerald-900/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+              >
+                {phoneStatus === 'checking' ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
+                {phoneStatus === 'checking' ? 'Verifying...' : phoneOtpHash ? 'Verify OTP' : 'Send Verification OTP'}
               </button>
             </div>
           </form>

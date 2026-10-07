@@ -5,7 +5,7 @@ import { getExpenseNameWithEmoji } from '../lib/emojiUtils';
 import { startOfDay, startOfMonth, startOfYear, format, parseISO, getDaysInMonth, getDay, isSameMonth, isToday } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { IndianRupee, TrendingUp, Calendar, CreditCard, Loader2, ChevronLeft, ChevronRight, PieChart as PieChartIcon, GripHorizontal, Trophy } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { requestNotificationPermission } from '../lib/firebase';
 import { usePageGreeting } from '../hooks/usePageGreeting';
@@ -21,7 +21,9 @@ export default function Dashboard() {
   const [calendarData, setCalendarData] = useState({}); // { 'YYYY-MM-DD': amount }
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   
+  const navigate = useNavigate();
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
 
   // Widget Drag and Drop State
   const [widgetOrder, setWidgetOrder] = useState(() => {
@@ -57,6 +59,9 @@ export default function Dashboard() {
       fetchDashboardData();
       if ('Notification' in window && Notification.permission === 'default') {
         setShowNotificationPrompt(true);
+      }
+      if (!user.user_metadata?.phone && !sessionStorage.getItem('skip_phone_prompt')) {
+        setShowPhonePrompt(true);
       }
     }
   }, [user]);
@@ -246,6 +251,34 @@ export default function Dashboard() {
               className="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors shadow-sm flex-1 sm:flex-none"
             >
               Enable
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPhonePrompt && (
+        <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in slide-in-from-top">
+          <div>
+            <h3 className="font-bold text-emerald-800 dark:text-emerald-400">Add Your Phone Number</h3>
+            <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-0.5">Add your mobile number for a better experience and easier connections.</p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                sessionStorage.setItem('skip_phone_prompt', 'true');
+                setShowPhonePrompt(false);
+              }}
+              className="px-4 py-2 text-sm font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-800/50 rounded-xl transition-colors flex-1 sm:flex-none"
+            >
+              Skip
+            </button>
+            <button
+              onClick={() => {
+                navigate('/profile#phone-section');
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-sm flex-1 sm:flex-none"
+            >
+              Add Number
             </button>
           </div>
         </div>
