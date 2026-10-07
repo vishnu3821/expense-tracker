@@ -92,6 +92,9 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
   const [isSearchingFriends, setIsSearchingFriends] = useState(false);
   const [isFriendsLoading, setIsFriendsLoading] = useState(false);
   const [activeNetworkTab, setActiveNetworkTab] = useState('friends'); // 'friends' | 'requests' | 'search'
+  const [networkTabKey, setNetworkTabKey] = useState(0);
+
+  const switchNetworkTab = (id) => { setActiveNetworkTab(id); setNetworkTabKey(k => k + 1); };
 
   // Load pending count on mount for badge
   React.useEffect(() => {
@@ -1215,8 +1218,8 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
               </div>
             </div>
 
-            {/* TAB NAV */}
-            <div className="flex items-center gap-1 px-6 pt-4 pb-0 relative z-10">
+            {/* TAB NAV — pill style */}
+            <div className="flex items-center gap-2 px-6 py-4 relative z-10">
               {[
                 { id: 'friends', label: 'Friends', count: friendsList.length },
                 { id: 'requests', label: 'Requests', count: pendingRequests.length + sentRequests.length },
@@ -1224,18 +1227,18 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
               ].map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveNetworkTab(tab.id)}
-                  className={`relative px-5 py-2.5 rounded-t-xl text-sm font-bold transition-all flex items-center gap-2 ${
-                    activeNetworkTab === tab.id
-                      ? 'text-white'
-                      : 'text-slate-500 hover:text-slate-300'
-                  }`}
+                  onClick={() => switchNetworkTab(tab.id)}
+                  className="relative flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all duration-200"
                   style={activeNetworkTab === tab.id ? {
-                    background: 'rgba(99,102,241,0.15)',
-                    borderTop: '1px solid rgba(99,102,241,0.4)',
-                    borderLeft: '1px solid rgba(99,102,241,0.2)',
-                    borderRight: '1px solid rgba(99,102,241,0.2)',
-                  } : {}}
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.35) 0%, rgba(139,92,246,0.35) 100%)',
+                    border: '1px solid rgba(99,102,241,0.5)',
+                    color: '#fff',
+                    boxShadow: '0 0 12px rgba(99,102,241,0.25)',
+                  } : {
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#64748b',
+                  }}
                 >
                   {tab.label}
                   {tab.count !== null && tab.count > 0 && (
@@ -1249,9 +1252,6 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                       {tab.count}
                     </span>
                   )}
-                  {activeNetworkTab === tab.id && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: 'linear-gradient(90deg,#6366f1,#8b5cf6)' }} />
-                  )}
                 </button>
               ))}
             </div>
@@ -1261,10 +1261,9 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
               className="flex-1 overflow-y-auto border-t"
               style={{ borderColor: 'rgba(99,102,241,0.15)' }}
             >
-
               {/* ── FRIENDS TAB ── */}
               {activeNetworkTab === 'friends' && (
-                <div className="px-6 py-5">
+                <div key={networkTabKey} className="px-6 py-5 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-indigo-400" />
@@ -1287,7 +1286,7 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                       <p className="text-slate-400 font-bold">No connections yet</p>
                       <p className="text-slate-600 text-sm mt-1">Go to Search tab to find friends!</p>
                       <button
-                        onClick={() => setActiveNetworkTab('search')}
+                        onClick={() => switchNetworkTab('search')}
                         className="mt-4 px-5 py-2 rounded-xl text-sm font-bold text-white"
                         style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
                       >
@@ -1299,12 +1298,19 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                       {friendsList.map((f, i) => (
                         <div
                           key={f.id}
-                          className="flex items-center gap-3 p-4 rounded-2xl border border-white/8 bg-white/4 hover:bg-white/8 hover:border-indigo-500/30 transition-all group animate-in fade-in slide-in-from-bottom-2"
-                          style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'both' }}
+                          className="flex items-center gap-3 p-4 rounded-2xl transition-all animate-in fade-in slide-in-from-bottom-2"
+                          style={{
+                            animationDelay: `${i * 50}ms`,
+                            animationFillMode: 'both',
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.border = '1px solid rgba(99,102,241,0.4)'}
+                          onMouseLeave={e => e.currentTarget.style.border = '1px solid rgba(255,255,255,0.08)'}
                         >
                           <div
-                            className="h-12 w-12 rounded-full flex items-center justify-center text-lg font-black text-white shrink-0 ring-2 ring-indigo-500/30 group-hover:ring-indigo-500/60 transition-all"
-                            style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)' }}
+                            className="h-12 w-12 rounded-full flex items-center justify-center text-lg font-black text-white shrink-0"
+                            style={{ background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', boxShadow: '0 0 16px rgba(99,102,241,0.4)' }}
                           >
                             {f.friend_username.replace(/^@+/, '').charAt(0).toUpperCase()}
                           </div>
@@ -1312,17 +1318,30 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                             <p className="text-white font-bold text-sm">@{f.friend_username.replace(/^@+/, '')}</p>
                             <p className="text-slate-500 text-xs truncate">{f.friend_email}</p>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            <button
-                              onClick={() => removeFriend(f.id)}
-                              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-rose-500/20 hover:text-rose-400 transition-colors"
-                              style={{ border: '1px solid rgba(255,255,255,0.06)' }}
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => removeFriend(f.id)}
+                            className="h-8 w-8 rounded-full flex items-center justify-center transition-all shrink-0"
+                            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.25)' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.15)'; }}
+                          >
+                            <X className="h-3.5 w-3.5 text-rose-400" />
+                          </button>
                         </div>
                       ))}
+                      {/* Add more friends CTA */}
+                      <button
+                        onClick={() => switchNetworkTab('search')}
+                        className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all"
+                        style={{ border: '1px dashed rgba(255,255,255,0.12)', background: 'transparent' }}
+                        onMouseEnter={e => { e.currentTarget.style.border = '1px dashed rgba(99,102,241,0.4)'; e.currentTarget.style.background = 'rgba(99,102,241,0.05)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.border = '1px dashed rgba(255,255,255,0.12)'; e.currentTarget.style.background = 'transparent'; }}
+                      >
+                        <div className="h-10 w-10 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.15)' }}>
+                          <Users className="h-5 w-5 text-slate-500" />
+                        </div>
+                        <p className="text-slate-500 text-xs font-bold">Add more friends</p>
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1330,7 +1349,7 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
 
               {/* ── REQUESTS TAB ── */}
               {activeNetworkTab === 'requests' && (
-                <div className="px-6 py-5 space-y-6">
+                <div key={networkTabKey} className="px-6 py-5 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Incoming */}
                   <div>
                     <div className="flex items-center gap-2 mb-3">
@@ -1395,14 +1414,14 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
 
               {/* ── SEARCH TAB ── */}
               {activeNetworkTab === 'search' && (
-                <div className="px-6 py-5">
+                <div key={networkTabKey} className="px-6 py-5 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="flex items-center gap-3 mb-5" style={{ background: 'rgba(30,41,80,0.5)', borderRadius: '16px', padding: '14px 16px' }}>
                     <div className="h-9 w-9 rounded-xl bg-indigo-600/20 flex items-center justify-center shrink-0">
                       <Search className="h-4 w-4 text-indigo-400" />
                     </div>
                     <div>
                       <p className="text-white font-bold text-sm">Find people in your network</p>
-                      <p className="text-slate-500 text-xs">Search by username to connect and start sharing expenses.</p>
+                      <p className="text-slate-500 text-xs">Search by username or email to connect and start sharing expenses.</p>
                     </div>
                   </div>
 
@@ -1411,7 +1430,7 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
                       <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                       <input
                         type="text"
-                        placeholder="Find friends by username..."
+                        placeholder="Find friends by username or email..."
                         value={friendSearchQuery}
                         onChange={(e) => setFriendSearchQuery(e.target.value)}
                         className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"

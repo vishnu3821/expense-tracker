@@ -31,11 +31,11 @@ export default async function handler(req, res) {
 
     const searchTerm = query.toLowerCase().trim();
     
-    // Filter users whose username matches the search query (and exclude the current user)
+    // Filter users whose username or email matches the search query (and exclude the current user)
     const matches = allUsers.users.filter(u => 
       u.id !== user.id && 
-      u.user_metadata?.username &&
-      u.user_metadata.username.toLowerCase().includes(searchTerm)
+      ((u.user_metadata?.username && u.user_metadata.username.toLowerCase().includes(searchTerm)) ||
+       (u.email && u.email.toLowerCase().includes(searchTerm)))
     ).map(u => ({
       id: u.id,
       username: u.user_metadata.username,
