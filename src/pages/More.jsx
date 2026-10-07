@@ -34,7 +34,8 @@ import { ChevronRight, Calendar, UserCircle, Download,
   ToggleLeft,
   ToggleRight,
   CreditCard,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -51,18 +52,21 @@ export default function More() {
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [customMessage, setCustomMessage] = useState(`Hey there! 👋
 
-We've just rolled out some massive new features to make tracking shared expenses easier than ever:
+We've been working hard to make Expense Monitor even better. Here are the latest powerful features we just rolled out:
 
-🤝 The New Friends Network
-You can now build your network inside Expense Monitor! Search for users by username, send friend requests, and manage your incoming/outgoing requests right from the "Friends & Network" menu.
+🗑️ Bulk Delete & Advanced Filters
+You can now filter your Expense History by specific months and years. Plus, you can select multiple expenses and delete them all at once with our new Bulk Delete mode!
 
-💸 Split Bills Instantly
-When adding an expense, just toggle "Split this expense". Choose a friend from your new network, set their share, and we'll instantly email them a beautiful breakdown of what they owe you!
+🤝 Smarter Split Reminders
+When sending a payment reminder to a friend, you can now enter their username OR email. Even if they don't have an account, they'll receive a beautiful, professional email with exactly what they owe you.
 
-Ready to start splitting? Head over to the new Friends menu and send your first request!
+🔐 Complete Account Control
+You now have the option to securely schedule your account for deletion directly from the More page.
+
+Dive in and try them out today!
 
 — The Expense Monitor Team`);
-  const [broadcastSubject, setBroadcastSubject] = useState("What's New: Friends Network & Split Bills! 💸");
+  const [broadcastSubject, setBroadcastSubject] = useState("What's New: Bulk Delete, Smarter Reminders & More! 🚀");
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
@@ -81,7 +85,8 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
   const [isMergingAll, setIsMergingAll] = useState(false);
   const [expandedDedupeGroup, setExpandedDedupeGroup] = useState(null);
   const [showConfirmMergeAll, setShowConfirmMergeAll] = useState(false);
-
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   // Friends state
   const [showFriendsModal, setShowFriendsModal] = useState(false);
   const [friendsList, setFriendsList] = useState([]);         // accepted
@@ -548,6 +553,27 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
       alert('Failed to merge records');
     } finally {
       setMergingGroups(prev => ({ ...prev, [txnId]: false }));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      // Mark account for deletion in user metadata
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          delete_requested_at: new Date().toISOString()
+        }
+      });
+      if (error) throw error;
+      
+      await signOut();
+    } catch (err) {
+      console.error('Error requesting account deletion:', err);
+      alert('Failed to process request. Please try again.');
+    } finally {
+      setIsDeletingAccount(false);
+      setShowDeleteAccountModal(false);
     }
   };
 
@@ -1145,17 +1171,30 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
       )}
 
       <div className="card overflow-hidden">
-        <div className="p-2">
+        <div className="p-2 space-y-1">
           <button 
             onClick={handleSignOut}
-            className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors group text-left"
+            className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left"
           >
-            <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400 transition-colors group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+            <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-400 transition-colors group-hover:bg-slate-200 dark:group-hover:bg-slate-800">
               <LogOut className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">Sign Out</h3>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Sign Out</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">End your current session</p>
+            </div>
+          </button>
+          
+          <button 
+            onClick={() => setShowDeleteAccountModal(true)}
+            className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors group text-left"
+          >
+            <div className="h-10 w-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center text-red-600 dark:text-red-400 transition-colors group-hover:bg-red-100 dark:group-hover:bg-red-900/40">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">Delete Account</h3>
+              <p className="text-xs text-red-500/70 dark:text-red-400/70 mt-0.5">Permanently remove your data</p>
             </div>
           </button>
         </div>
@@ -1868,6 +1907,49 @@ Ready to start splitting? Head over to the new Friends menu and send your first 
               >
                 Yes, Merge All
               </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete Account Modal */}
+      {showDeleteAccountModal && createPortal(
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+          <div className="bg-white dark:bg-[#0b1120] w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+            <div className="p-8 text-center relative">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
+              <div className="h-20 w-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
+                <div className="absolute inset-0 bg-red-500/20 animate-ping rounded-full" />
+                <Trash2 className="h-10 w-10 text-red-600 dark:text-red-500 relative z-10" />
+              </div>
+              <h3 className="font-black text-2xl text-slate-900 dark:text-white mb-4 tracking-tight">
+                Delete Account Request
+              </h3>
+              
+              <div className="bg-red-50 dark:bg-red-900/10 rounded-2xl p-4 mb-8 text-left border border-red-100 dark:border-red-900/20">
+                <p className="text-sm font-medium text-red-800 dark:text-red-400 leading-relaxed text-center">
+                  If you delete your account, <strong className="font-black uppercase">all data will be lost</strong> and is not recoverable at any cost. Your account will be permanently deleted in 3 days.
+                </p>
+              </div>
+
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setShowDeleteAccountModal(false)}
+                  disabled={isDeletingAccount}
+                  className="flex-1 py-3.5 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDeleteAccount}
+                  disabled={isDeletingAccount}
+                  className="flex-1 py-3.5 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDeletingAccount ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
+                  {isDeletingAccount ? 'Processing...' : 'Delete Account'}
+                </button>
+              </div>
             </div>
           </div>
         </div>,

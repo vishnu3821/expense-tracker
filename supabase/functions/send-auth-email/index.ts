@@ -1,7 +1,10 @@
+// @ts-ignore
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+// @ts-ignore
 const FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'noreply@expensemonitor.tech';
 const FROM_NAME = 'Orbit Finance';
 
+// @ts-ignore
 Deno.serve(async (req: Request) => {
   // Supabase sends a POST with the auth hook payload
   const payload = await req.json();

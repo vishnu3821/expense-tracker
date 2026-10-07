@@ -17,16 +17,36 @@ export default function History() {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterYear, setFilterYear] = useState('All');
+  const [filterMonth, setFilterMonth] = useState('All');
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', amount: '', date: '', category: 'Other' });
   const [expenseToDelete, setExpenseToDelete] = useState(null);
 
   const filteredExpenses = expenses.filter(expense => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return expense.name.toLowerCase().includes(query) || expense.amount.toString().includes(query);
+    let match = true;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      match = match && (expense.name.toLowerCase().includes(query) || expense.amount.toString().includes(query));
+    }
+    
+    const d = parseISO(expense.date);
+    if (filterYear !== 'All') {
+      match = match && d.getFullYear().toString() === filterYear;
+    }
+    if (filterMonth !== 'All') {
+      match = match && d.getMonth().toString() === filterMonth;
+    }
+    return match;
   });
+
+  const availableYears = [...new Set(expenses.map(e => parseISO(e.date).getFullYear()))].sort((a,b) => b - a);
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Group filtered expenses by date
   const groupedByDay = filteredExpenses.reduce((acc, expense) => {
@@ -197,6 +217,67 @@ export default function History() {
     }
   };
 
+  const toggleSelection = (id) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAllForDay = (dayExpenses) => {
+    const newSet = new Set(selectedIds);
+    const allSelected = dayExpenses.every(e => newSet.has(e.id));
+    dayExpenses.forEach(e => {
+      if (allSelected) newSet.delete(e.id);
+      else newSet.add(e.id);
+    });
+    setSelectedIds(newSet);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.size} selected expenses?`)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const idsToDelete = Array.from(selectedIds);
+      const expensesToDelete = expenses.filter(e => selectedIds.has(e.id));
+      
+      const { error } = await supabase
+        .from('expenses')
+        .delete()
+        .in('id', idsToDelete)
+        .eq('user_id', user.id);
+        
+      if (error) throw error;
+      
+      // Attempt to delete associated images
+      for (const expense of expensesToDelete) {
+        if (expense.image_url) {
+          try {
+            const fileName = expense.image_url.split('/').pop();
+            if (fileName) {
+              await supabase.storage.from('receipts').remove([`${user.id}/${fileName}`]);
+            }
+          } catch (e) {
+             // Ignore individual image delete errors
+          }
+        }
+      }
+
+      setExpenses(prev => prev.filter(e => !selectedIds.has(e.id)));
+      setSelectedIds(new Set());
+      setIsBulkMode(false);
+    } catch (err) {
+      console.error('Error bulk deleting:', err);
+      alert('Failed to delete selected expenses.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+
   const exportCSV = () => {
     if (filteredExpenses.length === 0) return;
     
@@ -279,25 +360,75 @@ export default function History() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Expense History</h2>
           <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Review, search, and export your records.</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full mt-4 sm:mt-0">
+          
+          <select 
+            className="input-field py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl"
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+          >
+            <option value="All">All Years</option>
+            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          
+          <select 
+            className="input-field py-2 text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-xl"
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value)}
+          >
+            <option value="All">All Months</option>
+            {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+
           <div className="relative w-full sm:w-64 shrink-0">
             <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search name or amount..."
+              placeholder="Search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-field pl-9 w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
             />
           </div>
-          <button
-            onClick={exportCSV}
-            disabled={filteredExpenses.length === 0}
-            className="btn-primary whitespace-nowrap bg-white! dark:bg-slate-900! text-slate-700! dark:text-slate-300! border! border-slate-200! dark:border-slate-700! hover:bg-slate-50! dark:hover:bg-slate-800! flex items-center gap-2 w-full sm:w-auto"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </button>
+          
+          <div className="flex gap-2 w-full sm:w-auto">
+            {isBulkMode ? (
+              <>
+                <button
+                  onClick={confirmBulkDelete}
+                  disabled={selectedIds.size === 0 || isBulkDeleting}
+                  className="btn-primary whitespace-nowrap bg-red-600! hover:bg-red-700! border-transparent! text-white! flex items-center gap-2 w-full sm:w-auto"
+                >
+                  {isBulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Delete ({selectedIds.size})
+                </button>
+                <button
+                  onClick={() => { setIsBulkMode(false); setSelectedIds(new Set()); }}
+                  className="btn-primary whitespace-nowrap bg-slate-200! hover:bg-slate-300! dark:bg-slate-800! dark:hover:bg-slate-700! border-transparent! text-slate-800! dark:text-slate-200! w-full sm:w-auto"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsBulkMode(true)}
+                disabled={filteredExpenses.length === 0}
+                className="btn-primary whitespace-nowrap bg-white! dark:bg-slate-900! text-slate-700! dark:text-slate-300! border! border-slate-200! dark:border-slate-700! hover:bg-slate-50! dark:hover:bg-slate-800! flex items-center gap-2 w-full sm:w-auto"
+              >
+                <List className="h-4 w-4" />
+                Select
+              </button>
+            )}
+            
+            <button
+              onClick={exportCSV}
+              disabled={filteredExpenses.length === 0}
+              className="btn-primary whitespace-nowrap bg-white! dark:bg-slate-900! text-slate-700! dark:text-slate-300! border! border-slate-200! dark:border-slate-700! hover:bg-slate-50! dark:hover:bg-slate-800! flex items-center gap-2 w-full sm:w-auto"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
+          </div>
         </div>
       </div>
 
@@ -312,9 +443,18 @@ export default function History() {
                 {/* Sticky Date Bubble */}
                 <div className="sticky top-4 z-20 -ml-10 mb-6 flex items-center gap-3">
                    <div className="h-9 w-9 rounded-full bg-slate-100 dark:bg-[#030712] border-2 border-slate-300 dark:border-slate-700 flex items-center justify-center relative z-30">
-                      <div className="h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-600" />
+                      {isBulkMode ? (
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                          checked={dayExpenses.length > 0 && dayExpenses.every(e => selectedIds.has(e.id))}
+                          onChange={() => toggleSelectAllForDay(dayExpenses)}
+                        />
+                      ) : (
+                        <div className="h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-600" />
+                      )}
                    </div>
-                   <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-100 dark:border-slate-800 px-4 py-2 rounded-2xl shadow-sm flex items-center gap-4 group">
+                   <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-100 dark:border-slate-800 px-4 py-2 rounded-2xl shadow-sm flex items-center gap-4 group cursor-pointer" onClick={() => isBulkMode && toggleSelectAllForDay(dayExpenses)}>
                       <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">{dayLabel(dateKey)}</span>
                       <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
                       <span className="text-[10px] font-black text-slate-600 dark:text-slate-400">₹{dayTotal.toLocaleString('en-IN')}</span>
@@ -331,14 +471,26 @@ export default function History() {
                     return (
                     <div
                       key={expense.id}
-                      className="relative group cursor-pointer active:scale-[0.98] transition-all duration-200 ease-out"
-                      onClick={() => setSelectedExpense(expense)}
+                      className="relative group cursor-pointer active:scale-[0.98] transition-all duration-200 ease-out flex items-center gap-3"
+                      onClick={() => isBulkMode ? toggleSelection(expense.id) : setSelectedExpense(expense)}
                     >
+                      {isBulkMode && (
+                        <div className="shrink-0 flex items-center justify-center p-2 z-10">
+                          <input
+                            type="checkbox"
+                            className="w-5 h-5 rounded text-teal-600 focus:ring-teal-500 cursor-pointer"
+                            checked={selectedIds.has(expense.id)}
+                            onChange={() => toggleSelection(expense.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      )}
+                      
                       {/* Connector Line/Dot */}
-                      <div className="absolute left-[-1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#030712] transition-all z-10 shadow-sm" />
+                      {!isBulkMode && <div className="absolute left-[-1.65rem] top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#030712] transition-all z-10 shadow-sm" />}
 
                       {/* Apple Wallet Style Card */}
-                      <div className="bg-white dark:bg-[#080d1a] border border-slate-100 dark:border-slate-800/80 rounded-3xl p-4 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg dark:hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] transition-all duration-300 hover:-translate-y-0.5">
+                      <div className={`flex-1 bg-white dark:bg-[#080d1a] border ${isBulkMode && selectedIds.has(expense.id) ? 'border-teal-500 dark:border-teal-500 ring-1 ring-teal-500 shadow-md' : 'border-slate-100 dark:border-slate-800/80'} rounded-3xl p-4 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-lg dark:hover:shadow-[0_0_25px_rgba(255,255,255,0.03)] transition-all duration-300 hover:-translate-y-0.5`}>
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-4 min-w-0">
                             {/* Glowing Category Icon */}
@@ -358,15 +510,17 @@ export default function History() {
                           
                           <div className="flex flex-col items-end gap-1">
                             <span className="text-[17px] font-black text-slate-900 dark:text-white tracking-tighter">₹{Number(expense.amount).toLocaleString('en-IN')}</span>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <button
-                                 onClick={(e) => handleDelete(expense.id, e)}
-                                 disabled={isDeleting}
-                                 className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
-                               >
-                                 <Trash2 className="h-3.5 w-3.5" />
-                               </button>
-                            </div>
+                            {!isBulkMode && (
+                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <button
+                                   onClick={(e) => handleDelete(expense.id, e)}
+                                   disabled={isDeleting}
+                                   className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-all"
+                                 >
+                                   <Trash2 className="h-3.5 w-3.5" />
+                                 </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

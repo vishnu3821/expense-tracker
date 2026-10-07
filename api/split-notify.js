@@ -42,12 +42,20 @@ export default async function handler(req, res) {
 
     if (updateError) throw updateError;
 
-    // 2. Check if friend is an app user (look for their user by email)
+    // 2. Check if friend is an app user (look for their user by email or username)
     const { data: allUsers } = await supabase.auth.admin.listUsers();
-    const friendUser = allUsers?.users?.find(u => u.email === friendEmail);
+    const searchVal = friendEmail.toLowerCase().trim();
+    const friendUser = allUsers?.users?.find(u => 
+      u.email === searchVal || 
+      (u.user_metadata?.username && u.user_metadata.username.toLowerCase() === searchVal) ||
+      (u.user_metadata?.username && u.user_metadata.username.toLowerCase() === `@${searchVal.replace('@', '')}`)
+    );
 
-    // 3. If they're an app user, create an in-app notification
+    let finalEmail = friendEmail.trim();
+
     if (friendUser) {
+      finalEmail = friendUser.email;
+      // 3. Create an in-app notification
       await supabase
         .from('split_notifications')
         .insert({
@@ -63,6 +71,10 @@ export default async function handler(req, res) {
     }
 
     // 4. Send the notification email via Resend
+    if (!finalEmail.includes('@')) {
+      return res.status(400).json({ error: 'User not found. Please provide their email address to notify them.' });
+    }
+
     if (RESEND_API_KEY) {
       const appUrl = process.env.VITE_APP_URL || 'https://expense-monitor.vercel.app';
       const emailHtml = `
@@ -147,7 +159,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           from: 'Expense Monitor <noreply@expensemonitor.tech>',
-          to: [friendEmail],
+          to: [finalEmail],
           subject: `💸 ${ownerName || 'Someone'} says you owe ₹${Number(amount).toLocaleString('en-IN')}`,
           html: emailHtml
         })

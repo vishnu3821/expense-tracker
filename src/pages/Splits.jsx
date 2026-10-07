@@ -117,8 +117,8 @@ function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
   const [error, setError] = useState('');
 
   const handleSend = async () => {
-    if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email address.');
+    if (!email.trim()) {
+      setError('Please enter an email or username.');
       return;
     }
     setSending(true);
@@ -192,13 +192,13 @@ function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
 
             <label className="block mb-4">
               <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
-                <Mail className="h-3 w-3" /> {split.friend_name}'s email address
+                <Mail className="h-3 w-3" /> {split.friend_name}'s Email or Username
               </span>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
-                placeholder="friend@example.com"
+                placeholder="friend@example.com or @username"
                 className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-600 focus:outline-none focus:border-emerald-500/50 focus:bg-white/8 transition-all"
               />
               {error && <p className="text-red-400 text-xs mt-2">{error}</p>}

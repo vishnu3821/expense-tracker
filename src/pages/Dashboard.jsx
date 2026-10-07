@@ -115,16 +115,16 @@ export default function Dashboard() {
 
         // 🔥 CRITICAL: Exclude internal transfers from actual spending totals
         if (expense.category !== 'Transfer') {
-          if (expenseDate >= today) todayTotal += amount;
-          if (expenseDate >= monthStart) monthTotal += amount;
-          if (expenseDate >= yearStart) yearTotal += amount;
+          if (isToday(expenseDate)) todayTotal += amount;
+          if (isSameMonth(expenseDate, now)) monthTotal += amount;
+          if (expenseDate.getFullYear() === now.getFullYear()) yearTotal += amount;
 
           // Group by month for trend chart
           const monthKey = format(expenseDate, 'MMM yyyy');
           monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
           
           // Group by category for pie chart (Only current month)
-          if (expenseDate >= monthStart) {
+          if (isSameMonth(expenseDate, now)) {
             const cat = expense.category || 'Other';
             categoryMap[cat] = (categoryMap[cat] || 0) + amount;
           }
