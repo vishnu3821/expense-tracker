@@ -35,7 +35,9 @@ import { ChevronRight, Calendar, UserCircle, Download,
   ToggleRight,
   CreditCard,
   Sparkles,
-  Trash2
+  Trash2,
+  Camera,
+  Landmark
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 
@@ -55,10 +57,13 @@ export default function More() {
 We've been working hard to make Expense Monitor even better. Here are the latest powerful features we just rolled out:
 
 🗑️ Bulk Delete & Advanced Filters
-You can now filter your Expense History by specific months and years. Plus, you can select multiple expenses and delete them all at once with our new Bulk Delete mode!
+Filter your Expense History by month/year, and delete multiple expenses at once with our new Bulk Delete mode.
 
 🤝 Smarter Split Reminders
-When sending a payment reminder to a friend, you can now enter their username OR email. Even if they don't have an account, they'll receive a beautiful, professional email with exactly what they owe you.
+Send payment reminders to friends using just their username or email. They'll receive a beautifully formatted email with exactly what they owe.
+
+📱 Scan to Pay (Custom QRs)
+You can now upload your Bank/UPI QR codes (like GPay or HDFC) from the More page and give them custom labels! When you send a split reminder, you can attach any of your QRs so your friends can scan and pay you instantly.
 
 🔐 Complete Account Control
 You now have the option to securely schedule your account for deletion directly from the More page.
@@ -66,7 +71,7 @@ You now have the option to securely schedule your account for deletion directly 
 Dive in and try them out today!
 
 — The Expense Monitor Team`);
-  const [broadcastSubject, setBroadcastSubject] = useState("What's New: Bulk Delete, Smarter Reminders & More! 🚀");
+  const [broadcastSubject, setBroadcastSubject] = useState("What's New: Payment QRs, Bulk Delete & More! 🚀");
   const [isFetchingUsers, setIsFetchingUsers] = useState(false);
   const [isTogglingNotifications, setIsTogglingNotifications] = useState(true);
   const [isTesting, setIsTesting] = useState(false);
@@ -98,6 +103,104 @@ Dive in and try them out today!
   const [isFriendsLoading, setIsFriendsLoading] = useState(false);
   const [activeNetworkTab, setActiveNetworkTab] = useState('friends'); // 'friends' | 'requests' | 'search'
   const [networkTabKey, setNetworkTabKey] = useState(0);
+
+  // QR Logic
+  const [paymentQrs, setPaymentQrs] = React.useState([]);
+  const [isUploadingQr, setIsUploadingQr] = React.useState(false);
+  const [showQrNameModal, setShowQrNameModal] = useState(false);
+  const [pendingQrFile, setPendingQrFile] = useState(null);
+  const [qrNameInput, setQrNameInput] = useState('');
+  const qrInputRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (user?.user_metadata?.payment_qrs) {
+      setPaymentQrs(user.user_metadata.payment_qrs);
+    }
+  }, [user]);
+
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+          } else {
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => { resolve(blob); }, 'image/jpeg', 0.8);
+        };
+      };
+    });
+  };
+
+  const handleQrUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPendingQrFile(file);
+    setQrNameInput(`Bank QR ${paymentQrs.length + 1}`);
+    setShowQrNameModal(true);
+  };
+
+  const executeQrUpload = async () => {
+    if (!pendingQrFile || !qrNameInput.trim()) return;
+
+    setShowQrNameModal(false);
+    setIsUploadingQr(true);
+    try {
+      const compressedBlob = await compressImage(pendingQrFile);
+      const fileName = `${Date.now()}-qr.jpg`;
+      const filePath = `${user.id}/${fileName}`;
+      const { error: uploadError } = await supabase.storage.from('receipts').upload(filePath, compressedBlob);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('receipts').getPublicUrl(filePath);
+      const newQr = { id: Date.now().toString(), url: publicUrl, name: qrNameInput.trim() };
+      const updatedQrs = [...paymentQrs, newQr];
+      const { error: updateError } = await supabase.auth.updateUser({ data: { payment_qrs: updatedQrs } });
+      if (updateError) throw updateError;
+      setPaymentQrs(updatedQrs);
+    } catch (error) {
+      alert('Failed to upload QR code.');
+    } finally {
+      setIsUploadingQr(false);
+      setPendingQrFile(null);
+      setQrNameInput('');
+      if (qrInputRef.current) qrInputRef.current.value = '';
+    }
+  };
+
+  const cancelQrUpload = () => {
+    setShowQrNameModal(false);
+    setPendingQrFile(null);
+    setQrNameInput('');
+    if (qrInputRef.current) qrInputRef.current.value = '';
+  };
+
+  const handleDeleteQr = async (qrId) => {
+    if (!window.confirm("Delete this QR code?")) return;
+    try {
+      const updatedQrs = paymentQrs.filter(qr => qr.id !== qrId);
+      const { error } = await supabase.auth.updateUser({ data: { payment_qrs: updatedQrs } });
+      if (error) throw error;
+      setPaymentQrs(updatedQrs);
+    } catch (err) {
+      alert("Failed to delete QR.");
+    }
+  };
+
 
   const switchNetworkTab = (id) => { setActiveNetworkTab(id); setNetworkTabKey(k => k + 1); };
 
@@ -1170,6 +1273,54 @@ Dive in and try them out today!
         </div>
       )}
 
+      {/* Payment QRs Section */}
+      <div className="card overflow-hidden mt-6 mb-6" id="qr-section">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="h-10 w-10 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-900/30 flex items-center justify-center">
+                <Landmark className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-400" />
+             </div>
+             <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Payment QRs</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Attach QRs to your split reminders</p>
+             </div>
+          </div>
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-2 gap-3">
+            {paymentQrs.map((qr) => (
+              <div key={qr.id} className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 aspect-4/3 bg-white dark:bg-slate-800">
+                <img src={qr.url} alt={qr.name} className="w-full h-full object-contain p-2" />
+                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                  <p className="text-white font-bold text-[10px] mb-2 text-center line-clamp-1">{qr.name}</p>
+                  <button onClick={() => handleDeleteQr(qr.id)} className="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-red-600 transition-colors">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+            
+            <button 
+              onClick={() => qrInputRef.current?.click()}
+              disabled={isUploadingQr}
+              className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-fuchsia-500 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-900/20 transition-all aspect-4/3"
+            >
+              <input type="file" ref={qrInputRef} className="hidden" accept="image/*" onChange={handleQrUpload} />
+              {isUploadingQr ? (
+                <Loader2 className="h-6 w-6 text-fuchsia-500 animate-spin" />
+              ) : (
+                <>
+                  <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                    <Camera className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Upload QR</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="card overflow-hidden">
         <div className="p-2 space-y-1">
           <button 
@@ -1918,7 +2069,7 @@ Dive in and try them out today!
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
           <div className="bg-white dark:bg-[#0b1120] w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
             <div className="p-8 text-center relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-rose-500 to-red-500" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-red-500 via-rose-500 to-red-500" />
               <div className="h-20 w-20 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-6 relative">
                 <div className="absolute inset-0 bg-red-500/20 animate-ping rounded-full" />
                 <Trash2 className="h-10 w-10 text-red-600 dark:text-red-500 relative z-10" />
@@ -1950,6 +2101,42 @@ Dive in and try them out today!
                   {isDeletingAccount ? 'Processing...' : 'Delete Account'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* QR Name Modal */}
+      {showQrNameModal && createPortal(
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col">
+            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-2">Name your QR Code</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Give it a label like "GPay", "SBI", or "HDFC" to easily identify it later.
+            </p>
+            <input
+              autoFocus
+              type="text"
+              value={qrNameInput}
+              onChange={(e) => setQrNameInput(e.target.value)}
+              placeholder="e.g. GPay"
+              className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-slate-900 dark:text-white mb-6 focus:ring-2 focus:ring-fuchsia-500 transition-all outline-none"
+            />
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={cancelQrUpload}
+                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-colors text-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeQrUpload}
+                disabled={!qrNameInput.trim()}
+                className="flex-1 py-3 px-4 bg-fuchsia-500 hover:bg-fuchsia-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-fuchsia-500/30 text-sm disabled:opacity-50"
+              >
+                Upload QR
+              </button>
             </div>
           </div>
         </div>,

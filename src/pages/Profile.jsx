@@ -302,6 +302,7 @@ export default function Profile() {
     }
   };
 
+
   return (
     <div className="max-w-2xl mx-auto space-y-10 pb-10 animate-in fade-in duration-500">
       {isScanning && (
@@ -761,6 +762,7 @@ export default function Profile() {
              <button className="w-full py-4 rounded-2xl border-2 border-red-500/20 text-red-500 text-xs font-black uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors">Logout all devices</button>
           </div>
         </div>
+
 
         {/* Storage Usage */}
         <div className="relative overflow-hidden bg-slate-50 dark:bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8 group">

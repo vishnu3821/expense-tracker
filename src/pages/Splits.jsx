@@ -110,11 +110,13 @@ function SettleAnimation({ split, onDone }) {
 }
 
 /* ─── Notify Modal ─── */
-function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
+function NotifyModal({ split, session, user, ownerName, onClose, onNotified }) {
   const [email, setEmail] = useState(split.friend_email || '');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [selectedQr, setSelectedQr] = useState(null);
+  const paymentQrs = user?.user_metadata?.payment_qrs || [];
 
   const handleSend = async () => {
     if (!email.trim()) {
@@ -136,7 +138,8 @@ function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
           friendName: split.friend_name,
           amount: split.amount,
           expenseName: split.expenses?.name,
-          ownerName: ownerName
+          ownerName: ownerName,
+          qrUrl: selectedQr?.url || null
         })
       });
       const data = await res.json();
@@ -203,6 +206,39 @@ function NotifyModal({ split, session, ownerName, onClose, onNotified }) {
               />
               {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
             </label>
+
+            {paymentQrs.length > 0 && (
+              <div className="mb-6">
+                <span className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-2">
+                  Attach Payment QR (Optional)
+                </span>
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                  <button
+                    onClick={() => setSelectedQr(null)}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                      selectedQr === null 
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                    }`}
+                  >
+                    None
+                  </button>
+                  {paymentQrs.map((qr) => (
+                    <button
+                      key={qr.id}
+                      onClick={() => setSelectedQr(qr)}
+                      className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 ${
+                        selectedQr?.id === qr.id 
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                      }`}
+                    >
+                      {qr.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleSend}
@@ -458,6 +494,7 @@ export default function Splits() {
         <NotifyModal
           split={notifyModal}
           session={session}
+          user={user}
           ownerName={ownerName}
           onClose={() => setNotifyModal(null)}
           onNotified={handleNotified}

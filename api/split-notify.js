@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 
-  const { splitId, friendEmail, friendName, amount, expenseName, ownerName } = req.body;
+  const { splitId, friendEmail, friendName, amount, expenseName, ownerName, qrUrl } = req.body;
 
   if (!splitId || !friendEmail || !amount) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -130,6 +130,14 @@ export default async function handler(req, res) {
                   <span style="color:#34ffb4;font-size:13px;font-weight:600;">₹${Number(amount).toLocaleString('en-IN')}</span>
                 </div>
               </div>
+              
+              ${qrUrl ? `
+              <!-- QR Code Attachment -->
+              <div style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;margin-bottom:28px;">
+                <p style="color:#d1d5db;font-size:13px;font-weight:600;margin:0 0 16px;">Scan to Pay</p>
+                <img src="${qrUrl}" alt="Payment QR" style="max-width:200px;border-radius:12px;border:4px solid white;" />
+              </div>
+              ` : ''}
 
               <!-- CTA Button -->
               <a href="${appUrl}/splits" style="display:block;text-align:center;background:linear-gradient(135deg,#34ffb4,#00d4aa);color:#060a12;font-weight:900;font-size:14px;letter-spacing:0.1em;text-transform:uppercase;padding:16px 24px;border-radius:14px;text-decoration:none;margin-bottom:16px;">
