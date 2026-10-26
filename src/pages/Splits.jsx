@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePageGreeting } from '../hooks/usePageGreeting';
 import {
   Loader2, CheckCircle, HandCoins, Bell, BellDot, Send,
-  X, Mail, ChevronDown, ChevronUp, Zap, Users, Clock
+  X, Mail, ChevronDown, ChevronUp, Zap, Users, Clock, MessageCircle
 } from 'lucide-react';
 import { format, parseISO, formatDistanceToNow } from 'date-fns';
 import confetti from 'canvas-confetti';
@@ -110,7 +110,7 @@ function SettleAnimation({ split, onDone }) {
 }
 
 /* ─── Notify Modal ─── */
-function NotifyModal({ split, session, user, ownerName, onClose, onNotified }) {
+function NotifyModal({ split, session, user, ownerName, onClose, onNotified, onWhatsAppShare }) {
   const [email, setEmail] = useState(split.friend_email || '');
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
@@ -247,6 +247,18 @@ function NotifyModal({ split, session, user, ownerName, onClose, onNotified }) {
             >
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               {sending ? 'Sending...' : 'Send Notification Email'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                onWhatsAppShare?.(split);
+                onClose();
+              }}
+              className="w-full mt-3 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-bold text-xs uppercase tracking-wider hover:bg-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <MessageCircle className="h-4 w-4 text-emerald-400" />
+              <span>1-Tap Share via WhatsApp (with UPI Link)</span>
             </button>
           </>
         )}
@@ -466,6 +478,45 @@ export default function Splits() {
     ));
   };
 
+  const handleShareWhatsApp = (split) => {
+    let upiId = user?.user_metadata?.upi_id || localStorage.getItem('user_upi_id') || '';
+    if (!upiId) {
+      upiId = prompt('Enter your UPI ID to attach 1-tap payment link (e.g. 9876543210@paytm or yourname@okhdfcbank):') || '';
+      if (upiId.trim()) {
+        localStorage.setItem('user_upi_id', upiId.trim());
+      }
+    }
+
+    const cleanAmount = Number(split.amount).toFixed(2);
+    const payeeName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Friend';
+    const expenseName = split.expenses?.name || 'our shared expense';
+
+    // Standard NPCI UPI URI
+    const upiLink = upiId.trim()
+      ? `upi://pay?pa=${encodeURIComponent(upiId.trim())}&pn=${encodeURIComponent(payeeName)}&am=${cleanAmount}&cu=INR&tn=${encodeURIComponent(`Split for ${expenseName}`)}`
+      : '';
+
+    let text = `Hey *${split.friend_name}*! 👋\n\nQuick reminder from Expense Monitor for *${expenseName}*:\n💰 *Amount to settle:* ₹${Number(split.amount).toLocaleString('en-IN')}`;
+
+    if (upiLink) {
+      text += `\n\n⚡ *1-Tap Pay via UPI (GPay / PhonePe / Paytm):*\n${upiLink}\n\n_UPI ID: ${upiId.trim()}_`;
+    }
+
+    text += `\n\nTracked securely on Expense Monitor 🚀`;
+
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank');
+
+    // Update notified_at in database
+    supabase
+      .from('expense_splits')
+      .update({ notified_at: new Date().toISOString() })
+      .eq('id', split.id)
+      .then(() => {
+        setSplits(prev => prev.map(s => s.id === split.id ? { ...s, notified_at: new Date().toISOString() } : s));
+      });
+  };
+
   const unreadCount = notifications.filter(n => n.status === 'unread').length;
   const pendingSplits = splits.filter(s => s.status === 'pending');
   const settledSplits = splits.filter(s => s.status === 'settled');
@@ -498,6 +549,7 @@ export default function Splits() {
           ownerName={ownerName}
           onClose={() => setNotifyModal(null)}
           onNotified={handleNotified}
+          onWhatsAppShare={handleShareWhatsApp}
         />
       )}
 
@@ -652,11 +704,20 @@ export default function Splits() {
                     ₹{Number(split.amount).toLocaleString('en-IN')}
                   </span>
 
+                  {/* WhatsApp 1-Tap Share Button */}
+                  <button
+                    onClick={() => handleShareWhatsApp(split)}
+                    title="Share to WhatsApp with 1-tap UPI payment link"
+                    className="p-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 transition-all active:scale-95 flex items-center justify-center cursor-pointer"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </button>
+
                   {/* Notify Button */}
                   <button
                     onClick={() => setNotifyModal(split)}
                     title="Send reminder email"
-                    className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 transition-all"
+                    className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-slate-500 hover:text-orange-600 dark:hover:text-orange-400 transition-all cursor-pointer"
                   >
                     <Send className="h-4 w-4" />
                   </button>

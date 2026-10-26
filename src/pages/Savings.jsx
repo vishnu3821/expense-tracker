@@ -32,14 +32,19 @@ import {
   ArrowDown,
   Share2,
   CheckCircle,
-  ArrowRightCircle
+  ArrowRightCircle,
+  Lock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import SavingsBiometricLock from '../components/Savings/SavingsBiometricLock';
 
 
 export default function Savings() {
   usePageGreeting("Welcome to savings.");
   const { user } = useAuth();
+  const [isVaultUnlocked, setIsVaultUnlocked] = useState(() => {
+    return sessionStorage.getItem('savings_vault_unlocked') === 'true';
+  });
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -359,7 +364,11 @@ export default function Savings() {
     setShowModal(true);
   };
 
-  const totalSavings = accounts.reduce((sum, acc) => sum + Number(acc.balance), 0);
+  if (!isVaultUnlocked) {
+    return <SavingsBiometricLock onUnlock={() => setIsVaultUnlocked(true)} />;
+  }
+
+  const totalSavings = accounts.reduce((sum, acc) => sum + Number(acc.balance || 0), 0);
 
   if (loading && accounts.length === 0) {
     return (
@@ -402,6 +411,16 @@ export default function Savings() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('savings_vault_unlocked');
+              setIsVaultUnlocked(false);
+            }}
+            className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-600 dark:text-slate-400 hover:text-rose-600 rounded-xl transition-all cursor-pointer"
+            title="Lock Savings Vault"
+          >
+            <Lock className="h-5 w-5 text-emerald-500" />
+          </button>
           <button 
             onClick={() => setShowTransferModal(true)}
             className="p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-900/40 text-slate-600 dark:text-slate-400 hover:text-teal-600 rounded-xl transition-all"

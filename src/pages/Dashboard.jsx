@@ -9,6 +9,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { requestNotificationPermission } from '../lib/firebase';
 import { usePageGreeting } from '../hooks/usePageGreeting';
+import PendingSplitToast from '../components/Dashboard/PendingSplitToast';
 
 export default function Dashboard() {
   usePageGreeting("Welcome to Expense Monitor Dashboard");
@@ -334,11 +335,11 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 pointer-events-none">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Today's Flow</p>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-white">₹{stats.today.toLocaleString('en-IN')}</span>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate">Today's Flow</p>
+                      <div className="flex items-baseline gap-1 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-black text-white truncate">₹{Math.round(stats.today).toLocaleString('en-IN')}</span>
                         <span className="text-[10px] font-bold text-emerald-400">{(stats.today / (stats.month || 1) * 100).toFixed(0)}% of month</span>
                       </div>
                       <div className="h-1 w-full bg-white/10 rounded-full mt-2 overflow-hidden">
@@ -346,31 +347,33 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Monthly Spending</p>
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate">Monthly Spending</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-emerald-400">₹{stats.month.toLocaleString('en-IN')}</span>
+                        <span className="text-xl sm:text-2xl font-black text-emerald-400 truncate">₹{Math.round(stats.month).toLocaleString('en-IN')}</span>
                       </div>
-                      <p className="text-[10px] font-bold text-white/20 italic">Cumulative Month Activity</p>
+                      <p className="text-[10px] font-bold text-white/20 italic truncate">Cumulative Month Activity</p>
                     </div>
 
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Annual Outflow</p>
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate">Annual Outflow</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-white">₹{stats.year.toLocaleString('en-IN')}</span>
+                        <span className="text-xl sm:text-2xl font-black text-white truncate" title={`₹${stats.year.toLocaleString('en-IN')}`}>
+                          ₹{Math.round(stats.year).toLocaleString('en-IN')}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                         <TrendingUp className="h-3 w-3 text-emerald-500" />
-                         <span className="text-[9px] font-black text-white/40 uppercase">Tracking Year {new Date().getFullYear()}</span>
+                      <div className="flex items-center gap-1.5 mt-2">
+                         <TrendingUp className="h-3 w-3 text-emerald-500 shrink-0" />
+                         <span className="text-[9px] font-black text-white/40 uppercase truncate">Tracking Year {new Date().getFullYear()}</span>
                       </div>
                     </div>
 
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">All-Time Logs</p>
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate">All-Time Logs</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-2xl font-black text-white">{stats.totalTransactions?.toLocaleString('en-IN') || 0}</span>
+                        <span className="text-xl sm:text-2xl font-black text-white truncate">{stats.totalTransactions?.toLocaleString('en-IN') || 0}</span>
                       </div>
-                      <p className="text-[10px] font-bold text-white/20 italic">Total Expenses Tracked</p>
+                      <p className="text-[10px] font-bold text-white/20 italic truncate">Total Expenses Tracked</p>
                     </div>
                   </div>
                 </div>
@@ -526,6 +529,8 @@ export default function Dashboard() {
         })}
       </div>
 
+      {/* Floating Pending Settle-Up Reminder */}
+      <PendingSplitToast />
     </div>
   );
 }

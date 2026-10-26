@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,11 +7,12 @@ import { format } from 'date-fns';
 import { 
   Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, 
   ReceiptText, ShieldCheck, CreditCard, ArrowRight, FileSpreadsheet, Download, Database,
-  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal, Users
+  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal, Users, Clipboard
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { get, del } from 'idb-keyval';
 import { usePageGreeting } from '../hooks/usePageGreeting';
+import { parseBankSms } from '../utils/smsParser';
 
 import { createWorker } from 'tesseract.js';
 
@@ -112,6 +114,73 @@ export default function AddExpense() {
   const [transferStatus, setTransferStatus] = useState('idle'); // 'idle' | 'processing' | 'success' | 'error'
   const [transferStep, setTransferStep] = useState(0);
   const [rewardMessage, setRewardMessage] = useState('');
+
+  // Bank SMS Auto-Fill State
+  const location = useLocation();
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [manualSmsText, setManualSmsText] = useState('');
+  const [smsFeedback, setSmsFeedback] = useState(null);
+
+  // Auto trigger scanner if opened via PWA Shortcut (?mode=scan)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('mode') === 'scan') {
+      const timer = setTimeout(() => {
+        document.getElementById('image-upload')?.click();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [location.search]);
+
+  const applyParsedSms = (parsed) => {
+    setFormData(prev => ({
+      ...prev,
+      name: parsed.merchant || prev.name,
+      amount: parsed.amount || prev.amount,
+      category: parsed.category || prev.category,
+      transaction_id: parsed.transactionId || prev.transaction_id,
+      date: parsed.date || prev.date,
+      payment_mode: parsed.paymentMode || prev.payment_mode
+    }));
+
+    setSmsFeedback({
+      type: 'success',
+      text: `✓ Auto-filled: ₹${parsed.amount || '0'} for ${parsed.merchant} (${parsed.category})`
+    });
+
+    setTimeout(() => {
+      setSmsFeedback(null);
+    }, 4500);
+  };
+
+  const handleAutoFillClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim().length > 6) {
+          const parsed = parseBankSms(text, SMART_CATEGORIES);
+          if (parsed && (parsed.amount || parsed.merchant !== 'Bank Debit')) {
+            applyParsedSms(parsed);
+            return;
+          }
+        }
+      }
+      setShowSmsModal(true);
+    } catch {
+      setShowSmsModal(true);
+    }
+  };
+
+  const handleManualSmsSubmit = (e) => {
+    e.preventDefault();
+    if (!manualSmsText.trim()) return;
+    const parsed = parseBankSms(manualSmsText, SMART_CATEGORIES);
+    if (parsed) {
+      applyParsedSms(parsed);
+      setShowSmsModal(false);
+      setManualSmsText('');
+    }
+  };
 
   const REWARDS = [
     "Wealth Secured! 💰",
@@ -857,6 +926,34 @@ export default function AddExpense() {
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3 text-red-800">
               <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
               <p className="text-sm font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Smart Bank SMS Auto-Fill Button */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-teal-500/10 dark:bg-teal-950/30 border border-teal-500/30 backdrop-blur-md">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-600 dark:text-teal-400 shrink-0">
+                <Clipboard className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100">Smart Bank SMS Auto-Fill</h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Copy transaction SMS & tap to auto-extract amount & merchant</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAutoFillClipboard}
+              className="px-3.5 py-1.5 rounded-xl bg-linear-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Paste SMS</span>
+            </button>
+          </div>
+
+          {smsFeedback && (
+            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500" />
+              <span>{smsFeedback.text}</span>
             </div>
           )}
 
@@ -1709,6 +1806,58 @@ export default function AddExpense() {
                 )}
               </div>
             </div>
+          </div>
+        </div>,
+      )}
+
+      {/* Manual SMS Paste Modal */}
+      {showSmsModal && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-teal-500/30 p-6 text-slate-100 shadow-2xl relative">
+            <button
+              onClick={() => setShowSmsModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/40 flex items-center justify-center text-teal-400">
+                <Clipboard className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Paste Bank / UPI SMS</h3>
+                <p className="text-xs text-slate-400">Auto-detects Amount, Merchant & Category</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleManualSmsSubmit} className="space-y-4">
+              <textarea
+                value={manualSmsText}
+                onChange={(e) => setManualSmsText(e.target.value)}
+                rows={4}
+                placeholder="e.g. Rs 350.00 debited from A/C for Swiggy on 26-Oct. UPI Ref 12345678."
+                className="w-full p-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 text-xs focus:outline-none focus:border-teal-500/50 resize-none"
+                autoFocus
+              />
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSmsModal(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-white text-xs font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!manualSmsText.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-linear-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 active:scale-95 transition-all disabled:opacity-50"
+                >
+                  Extract Expense
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body

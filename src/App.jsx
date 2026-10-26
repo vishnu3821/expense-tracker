@@ -17,6 +17,7 @@ import Goals from './pages/Goals'
 import SplashScreen from './components/Common/SplashScreen'
 import Splits from './pages/Splits'
 import LandingPage from './pages/LandingPage'
+import PWAInstallBanner from './components/Common/PWAInstallBanner'
 import { Analytics } from '@vercel/analytics/react'
 import { useState, useEffect } from 'react'
 
@@ -53,6 +54,7 @@ function App() {
               <Route path="splits" element={<Splits />} />
             </Route>
           </Routes>
+          <PWAInstallBanner />
         </Router>
         <Analytics />
       </ThemeProvider>

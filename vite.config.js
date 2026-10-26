@@ -35,13 +35,19 @@ export default defineConfig({
         icons: [
           {
             src: '/app_logo.png',
-            sizes: '500x500',
+            sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
             src: '/app_logo.png',
-            sizes: '500x500',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any'
+          },
+          {
+            src: '/app_logo.png',
+            sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
           }
@@ -52,7 +58,21 @@ export default defineConfig({
             short_name: 'Add',
             description: 'Log a new expense quickly',
             url: '/add',
-            icons: [{ src: '/app_logo.png', sizes: '500x500' }]
+            icons: [{ src: '/app_logo.png', sizes: '192x192' }]
+          },
+          {
+            name: 'Scan Receipt',
+            short_name: 'Scan',
+            description: 'Scan receipt with camera',
+            url: '/add?mode=scan',
+            icons: [{ src: '/app_logo.png', sizes: '192x192' }]
+          },
+          {
+            name: 'My Splits',
+            short_name: 'Splits',
+            description: 'Manage debts and split bills',
+            url: '/splits',
+            icons: [{ src: '/app_logo.png', sizes: '192x192' }]
           }
         ],
         share_target: {

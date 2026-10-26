@@ -37,9 +37,11 @@ import { ChevronRight, Calendar, UserCircle, Download,
   Sparkles,
   Trash2,
   Camera,
-  Landmark
+  Landmark,
+  Smartphone
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
+import { isAppInstalled } from '../utils/pwaInstall';
 
 export default function More() {
   usePageGreeting("Welcome to More options.");
@@ -1231,7 +1233,38 @@ Dive in and try them out today!
             </div>
           </button>
 
-
+          <button 
+            onClick={() => {
+              if (isAppInstalled()) {
+                alert('Expense Monitor is already installed and running on your device! 🎉');
+              } else {
+                window.dispatchEvent(new CustomEvent('pwa-open-install-prompt'));
+              }
+            }}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left border-t border-slate-100 dark:border-slate-800"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 transition-colors group-hover:bg-amber-100 dark:group-hover:bg-amber-900/50">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Install App</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {isAppInstalled() ? 'App is installed on this device' : 'Add to home screen for 1-tap offline access'}
+                </p>
+              </div>
+            </div>
+            {isAppInstalled() ? (
+              <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                Installed
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 flex items-center gap-1">
+                <Download className="h-3.5 w-3.5" />
+                Install
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
