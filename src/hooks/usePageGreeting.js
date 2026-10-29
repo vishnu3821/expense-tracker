@@ -4,10 +4,16 @@ export function usePageGreeting(text) {
   const hasSpoken = useRef(false);
 
   useEffect(() => {
+    // Suppress module greetings completely while the interactive tour is active
+    if (typeof window !== 'undefined' && (window.__isTourActive || sessionStorage.getItem('is_tour_active') === 'true')) {
+      return;
+    }
+
     hasSpoken.current = false;
 
     const setVoiceAndSpeak = (voices, utterance) => {
       if (hasSpoken.current) return;
+      if (window.__isTourActive || sessionStorage.getItem('is_tour_active') === 'true') return;
       
       let selectedVoice = voices.find(voice => 
         voice.lang.includes('en-IN') && 
@@ -39,6 +45,7 @@ export function usePageGreeting(text) {
 
     const speak = () => {
       if (hasSpoken.current || !('speechSynthesis' in window)) return;
+      if (window.__isTourActive || sessionStorage.getItem('is_tour_active') === 'true') return;
       
       try {
         window.speechSynthesis.cancel();
@@ -48,6 +55,7 @@ export function usePageGreeting(text) {
         
         if (voices.length === 0) {
           const onVoicesChanged = () => {
+            if (window.__isTourActive || sessionStorage.getItem('is_tour_active') === 'true') return;
             voices = window.speechSynthesis.getVoices();
             if (voices.length > 0) {
                 setVoiceAndSpeak(voices, utterance);
@@ -57,7 +65,7 @@ export function usePageGreeting(text) {
           window.speechSynthesis.addEventListener('voiceschanged', onVoicesChanged);
           
           setTimeout(() => {
-             if (!hasSpoken.current) {
+             if (!hasSpoken.current && !(window.__isTourActive || sessionStorage.getItem('is_tour_active') === 'true')) {
                 voices = window.speechSynthesis.getVoices();
                 setVoiceAndSpeak(voices, utterance);
              }

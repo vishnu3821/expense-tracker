@@ -13,9 +13,23 @@ export default function PWAInstallBanner() {
   const location = useLocation();
   const [isVisible, setIsVisible] = useState(false);
   const [installedSuccess, setInstalledSuccess] = useState(false);
+  const [isVoiceModalActive, setIsVoiceModalActive] = useState(false);
 
   // Requirement: Visible strictly in the dashboard only
   const isDashboard = location.pathname === '/';
+
+  useEffect(() => {
+    const handleVoiceOpen = () => setIsVoiceModalActive(true);
+    const handleVoiceClose = () => setIsVoiceModalActive(false);
+
+    window.addEventListener('voice-modal-opened', handleVoiceOpen);
+    window.addEventListener('voice-modal-closed', handleVoiceClose);
+
+    return () => {
+      window.removeEventListener('voice-modal-opened', handleVoiceOpen);
+      window.removeEventListener('voice-modal-closed', handleVoiceClose);
+    };
+  }, []);
 
   useEffect(() => {
     // 1. If not on Dashboard or already running as installed app, hide immediately
@@ -99,20 +113,20 @@ export default function PWAInstallBanner() {
     }
   };
 
-  // Only render on the Dashboard and when app is not already installed
-  if (!isDashboard || isAppInstalled() || !isVisible) {
+  // Only render on the Dashboard, when app is not already installed, and voice modal is closed
+  if (!isDashboard || isAppInstalled() || !isVisible || isVoiceModalActive) {
     return null;
   }
 
   return (
     <AnimatePresence>
-      {isVisible && (
+      {isVisible && !isVoiceModalActive && (
         <motion.div
           initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 30, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-          className="fixed z-50 pointer-events-auto bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 w-[92%] max-w-sm sm:max-w-md md:max-w-lg"
+          className="fixed z-30 pointer-events-auto bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 w-[92%] max-w-sm sm:max-w-md md:max-w-lg"
         >
           <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-slate-950/95 dark:bg-[#070b14]/95 backdrop-blur-2xl border-2 border-amber-500/80 p-3 sm:p-3.5 shadow-[0_15px_40px_rgba(0,0,0,0.8),0_0_25px_rgba(245,158,11,0.2)]">
             {/* Subtle top amber highlight glow */}

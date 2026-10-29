@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { 
   Loader2, UploadCloud, CheckCircle, AlertCircle, X, Sparkles, Hash, Landmark, 
   ReceiptText, ShieldCheck, CreditCard, ArrowRight, FileSpreadsheet, Download, Database,
-  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal, Users, Clipboard
+  Utensils, Car, ShoppingBag, Film, Zap, HeartPulse, Home, MoreHorizontal, Users, Clipboard, Mic
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { get, del } from 'idb-keyval';
@@ -940,14 +940,25 @@ export default function AddExpense() {
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">Copy transaction SMS & tap to auto-extract amount & merchant</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handleAutoFillClipboard}
-              className="px-3.5 py-1.5 rounded-xl bg-linear-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer ml-auto"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Paste SMS</span>
-            </button>
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-voice-assistant'))}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 border border-teal-500/40 text-teal-400 hover:bg-teal-500/20 font-bold text-xs shadow-md shadow-teal-500/10 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Speak your expense step-by-step"
+              >
+                <Mic className="w-3.5 h-3.5 text-teal-400" />
+                <span>Voice AI</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleAutoFillClipboard}
+                className="px-3.5 py-1.5 rounded-xl bg-linear-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold text-xs shadow-md shadow-teal-500/20 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Paste SMS</span>
+              </button>
+            </div>
           </div>
 
           {smsFeedback && (

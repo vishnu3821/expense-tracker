@@ -6,6 +6,9 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import BottomNav from './BottomNav';
 import OnboardingModal from '../OnboardingModal';
+import VoiceExpenseAssistant from '../Voice/VoiceExpenseAssistant';
+import WakeWordListener from '../Voice/WakeWordListener';
+import AppModuleTour from '../Common/AppModuleTour';
 
 export default function Layout() {
   const location = useLocation();
@@ -41,6 +44,9 @@ export default function Layout() {
       {/* Mobile bottom navigation */}
       <BottomNav />
       <OnboardingModal />
+      <VoiceExpenseAssistant />
+      <WakeWordListener />
+      <AppModuleTour />
     </div>
   );
 }

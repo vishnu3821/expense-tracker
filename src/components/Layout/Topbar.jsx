@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Menu, RefreshCw, Cloud, Zap, ArrowRightCircle, MessageSquarePlus, X, Send, Loader2 } from 'lucide-react';
+import { LogOut, Menu, RefreshCw, Cloud, Zap, ArrowRightCircle, MessageSquarePlus, X, Send, Loader2, Mic, Compass } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
@@ -8,6 +8,29 @@ export default function Topbar() {
   const { user, signOut } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(() => {
+    return localStorage.getItem('hey_expense_wake_word') !== 'false';
+  });
+
+  useEffect(() => {
+    const handleSync = (e) => {
+      if (e?.detail?.enabled !== undefined) {
+        setWakeWordEnabled(e.detail.enabled);
+      } else {
+        setWakeWordEnabled(localStorage.getItem('hey_expense_wake_word') !== 'false');
+      }
+    };
+    window.addEventListener('toggle-wake-word', handleSync);
+    return () => window.removeEventListener('toggle-wake-word', handleSync);
+  }, []);
+
+  const handleToggleWakeWord = (e) => {
+    e.stopPropagation();
+    const next = !wakeWordEnabled;
+    setWakeWordEnabled(next);
+    localStorage.setItem('hey_expense_wake_word', next ? 'true' : 'false');
+    window.dispatchEvent(new CustomEvent('toggle-wake-word', { detail: { enabled: next } }));
+  };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -68,7 +91,70 @@ export default function Topbar() {
             {user?.email}
           </div>
 
+          {/* 🎙️ Voice Assistant + "Hey Expense" ON/OFF Wake Word Toggle */}
+          <div id="tour-voice-btn" className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60 shadow-xs">
+            {/* 1-Tap Voice AI Logger Button */}
+            <button
+              onClick={() => {
+                if (wakeWordEnabled) {
+                  window.dispatchEvent(new CustomEvent('activate-wake-word'));
+                }
+                window.dispatchEvent(new CustomEvent('open-voice-assistant'));
+              }}
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-teal-600 dark:text-teal-400 hover:bg-teal-500/10 rounded-lg transition-all active:scale-95 cursor-pointer text-xs font-bold"
+              title="Tap to speak an expense step-by-step"
+            >
+              <Mic className="h-4 w-4 text-teal-500" />
+              <span className="hidden sm:inline">Voice AI</span>
+            </button>
+
+            {/* Vertical Divider */}
+            <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-0.5" />
+
+            {/* Wake Word ON / OFF Switch Button */}
+            <button
+              onClick={handleToggleWakeWord}
+              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-all active:scale-95 cursor-pointer text-xs font-extrabold ${
+                wakeWordEnabled
+                  ? 'text-emerald-500 hover:bg-emerald-500/10'
+                  : 'text-slate-400 dark:text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+              }`}
+              title={
+                wakeWordEnabled
+                  ? '"Hey Expense" wake word is ACTIVE (say "Hey Expense" anytime). Tap to turn OFF.'
+                  : '"Hey Expense" wake word is OFF (mic will not listen in background). Tap to turn ON.'
+              }
+            >
+              {wakeWordEnabled ? (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              ) : (
+                <span className="h-2 w-2 rounded-full bg-slate-400 dark:bg-slate-600 inline-block"></span>
+              )}
+              <span className="hidden sm:inline">
+                {wakeWordEnabled ? 'Hey Expense: ON' : 'Hey Expense: OFF'}
+              </span>
+              <span className="sm:hidden">
+                {wakeWordEnabled ? 'ON' : 'OFF'}
+              </span>
+            </button>
+          </div>
+
+          {/* 🧭 Interactive App Module Tour Button */}
           <button
+            id="tour-topbar-tour"
+            onClick={() => window.dispatchEvent(new CustomEvent('start-app-tour'))}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/30 text-teal-600 dark:text-teal-300 rounded-lg transition-all active:scale-95 text-xs font-bold shadow-xs cursor-pointer group"
+            title="Take a quick interactive tour shifting across app modules"
+          >
+            <Compass className="h-4 w-4 text-teal-500 group-hover:rotate-45 transition-transform" />
+            <span className="hidden sm:inline">Tour</span>
+          </button>
+
+          <button
+            id="tour-topbar-feedback"
             onClick={() => setShowFeedbackModal(true)}
             className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors text-xs font-bold"
             title="Submit Feedback"
@@ -78,6 +164,7 @@ export default function Topbar() {
           </button>
 
           <button
+            id="tour-topbar-refresh"
             onClick={handleRefresh}
             className="p-2 text-slate-400 dark:text-slate-500 hover:text-teal-600 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-lg transition-all active:scale-90"
             title="Refresh App"
@@ -85,7 +172,7 @@ export default function Topbar() {
             <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
 
-          <Link to="/profile" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-teal-900/40 border border-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-lg sm:text-xl uppercase shadow-lg hover:scale-105 transition-transform overflow-hidden cursor-pointer shrink-0">
+          <Link id="tour-topbar-profile" to="/profile" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-teal-900/40 border border-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-lg sm:text-xl uppercase shadow-lg hover:scale-105 transition-transform overflow-hidden cursor-pointer shrink-0">
             {user?.user_metadata?.avatar_url ? (
               <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
             ) : (

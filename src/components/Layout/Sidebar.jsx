@@ -4,11 +4,11 @@ import { LayoutDashboard, PlusCircle, History, X, Menu, HandCoins } from 'lucide
 import { motion } from 'framer-motion';
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard, end: true },
-  { name: 'Add Expense', path: '/add', icon: PlusCircle, end: false },
-  { name: 'History', path: '/history', icon: History, end: false },
-  { name: 'Splits', path: '/splits', icon: HandCoins, end: false },
-  { name: 'More', path: '/more', icon: Menu, end: false },
+  { id: 'tour-nav-dashboard', name: 'Dashboard', path: '/', icon: LayoutDashboard, end: true },
+  { id: 'tour-nav-add', name: 'Add Expense', path: '/add', icon: PlusCircle, end: false },
+  { id: 'tour-nav-history', name: 'History', path: '/history', icon: History, end: false },
+  { id: 'tour-nav-splits', name: 'Splits', path: '/splits', icon: HandCoins, end: false },
+  { id: 'tour-nav-more', name: 'More', path: '/more', icon: Menu, end: false },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -47,6 +47,7 @@ export default function Sidebar({ isOpen, onClose }) {
             return (
               <NavLink
                 key={item.path}
+                id={item.id}
                 to={item.path}
                 end={item.end}
                 onClick={onClose}

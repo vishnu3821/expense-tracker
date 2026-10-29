@@ -38,7 +38,9 @@ import { ChevronRight, Calendar, UserCircle, Download,
   Trash2,
   Camera,
   Landmark,
-  Smartphone
+  Smartphone,
+  Compass,
+  Mic
 } from 'lucide-react';
 import { requestNotificationPermission } from '../lib/firebase';
 import { isAppInstalled } from '../utils/pwaInstall';
@@ -47,6 +49,29 @@ export default function More() {
   usePageGreeting("Welcome to More options.");
   const { user, session, signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
+  const [wakeWordEnabled, setWakeWordEnabled] = useState(() => {
+    return localStorage.getItem('hey_expense_wake_word') !== 'false';
+  });
+
+  React.useEffect(() => {
+    const handleSync = (e) => {
+      if (e?.detail?.enabled !== undefined) {
+        setWakeWordEnabled(e.detail.enabled);
+      } else {
+        setWakeWordEnabled(localStorage.getItem('hey_expense_wake_word') !== 'false');
+      }
+    };
+    window.addEventListener('toggle-wake-word', handleSync);
+    return () => window.removeEventListener('toggle-wake-word', handleSync);
+  }, []);
+
+  const handleToggleWakeWord = () => {
+    const next = !wakeWordEnabled;
+    setWakeWordEnabled(next);
+    localStorage.setItem('hey_expense_wake_word', next ? 'true' : 'false');
+    window.dispatchEvent(new CustomEvent('toggle-wake-word', { detail: { enabled: next } }));
+  };
+
   const [isExporting, setIsExporting] = useState(false);
   const [isPdfExporting, setIsPdfExporting] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -1264,6 +1289,44 @@ Dive in and try them out today!
                 Install
               </span>
             )}
+          </button>
+
+          {/* 🎙️ Hey Expense Wake Word Toggle */}
+          <button 
+            onClick={handleToggleWakeWord}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left border-t border-slate-100 dark:border-slate-800 cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400 transition-colors group-hover:bg-teal-100 dark:group-hover:bg-teal-900/50">
+                <Mic className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">"Hey Expense" Voice Wake Word</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {wakeWordEnabled ? 'Active • Say "Hey Expense" anytime to log' : 'Disabled • Mic will not listen in background'}
+                </p>
+              </div>
+            </div>
+            <div className={`w-12 h-6 rounded-full flex items-center transition-colors px-1 shadow-inner ${wakeWordEnabled ? 'bg-teal-500 justify-end' : 'bg-slate-200 dark:bg-slate-700 justify-start'}`}>
+              <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+            </div>
+          </button>
+
+          {/* 🧭 Interactive App Guided Tour */}
+          <button 
+            onClick={() => window.dispatchEvent(new CustomEvent('start-app-tour'))}
+            className="w-full flex items-center justify-between p-4 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group text-left border-t border-slate-100 dark:border-slate-800 cursor-pointer"
+          >
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 transition-colors group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50">
+                <Compass className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Quick App Guided Tour</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Interactive walkthrough shifting across modules & features</p>
+              </div>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 transition-colors" />
           </button>
         </div>
       </div>

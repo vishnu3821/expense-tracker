@@ -3,10 +3,10 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Plus, History, Menu } from 'lucide-react';
 
 const navItems = [
-  { name: 'Home', path: '/', icon: LayoutDashboard, end: true },
-  { name: 'Add', path: '/add', icon: Plus, end: false },
-  { name: 'History', path: '/history', icon: History, end: false },
-  { name: 'More', path: '/more', icon: Menu, end: false },
+  { id: 'tour-nav-dashboard-m', name: 'Home', path: '/', icon: LayoutDashboard, end: true },
+  { id: 'tour-nav-add-m', name: 'Add', path: '/add', icon: Plus, end: false },
+  { id: 'tour-nav-history-m', name: 'History', path: '/history', icon: History, end: false },
+  { id: 'tour-nav-more-m', name: 'More', path: '/more', icon: Menu, end: false },
 ];
 
 export default function BottomNav() {
@@ -38,6 +38,7 @@ export default function BottomNav() {
             return (
               <NavLink
                 key={item.path}
+                id={item.id}
                 to={item.path}
                 end={item.end}
                 className="flex-1 group"
