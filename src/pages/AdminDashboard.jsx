@@ -460,7 +460,18 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="h-12 w-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-teal-600 dark:text-teal-400 group-hover:bg-teal-600 group-hover:text-white transition-all duration-500 overflow-hidden shrink-0">
                     {u.raw_user_meta_data?.avatar_url || u.user_metadata?.avatar_url ? (
-                      <img src={u.raw_user_meta_data?.avatar_url || u.user_metadata?.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                      <img 
+                        src={u.raw_user_meta_data?.avatar_url || u.user_metadata?.avatar_url} 
+                        alt="Profile" 
+                        className="h-full w-full object-cover" 
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          if (e.currentTarget.parentElement) {
+                            e.currentTarget.parentElement.innerText = (u.email?.[0] || 'U').toUpperCase();
+                          }
+                        }}
+                      />
                     ) : (
                       <span className="text-lg font-bold uppercase">{u.email?.[0] || 'U'}</span>
                     )}

@@ -87,7 +87,7 @@ function isWakePhraseMatch(rawText) {
 
 export default function WakeWordListener() {
   const [isEnabled, setIsEnabled] = useState(() => {
-    return localStorage.getItem('hey_expense_wake_word') !== 'false';
+    return localStorage.getItem('hey_expense_wake_word') === 'true';
   });
   const [isAwake, setIsAwake] = useState(false);
   const [isModalActive, setIsModalActive] = useState(false);

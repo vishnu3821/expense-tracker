@@ -369,7 +369,15 @@ export default function Profile() {
                         {isUploading ? (
                           <Loader2 className="h-5 w-5 text-emerald-400 animate-spin" />
                         ) : user?.user_metadata?.avatar_url ? (
-                          <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+                          <img 
+                            src={user.user_metadata.avatar_url} 
+                            alt="Profile" 
+                            className="h-full w-full object-cover" 
+                            referrerPolicy="no-referrer"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                         ) : (
                           <BadgeCheck className="h-8 w-8 text-emerald-400" />
                         )}

@@ -382,6 +382,18 @@ export default function AddExpense() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate that the date is not in the future
+    if (formData.date) {
+      const selectedDate = new Date(formData.date);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      if (selectedDate > today) {
+        setError('Date is wrong: Date cannot be in the future (beyond today).');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+    }
+
     if (formData.savings_account_id) {
       const selectedAccount = accounts.find(a => a.id === formData.savings_account_id);
       if (selectedAccount && parseFloat(formData.amount) > Number(selectedAccount.balance)) {
@@ -584,6 +596,70 @@ export default function AddExpense() {
 
   // ─── Bulk Upload Logic ────────────────────────────────────────────────────────
 
+  /**
+   * Universal Date Parser for Bank Statements (Excel, CSV, PDF).
+   * Correctly parses DD/MM/YYYY, DD-MM-YYYY, DD-MMM-YYYY, YYYY-MM-DD, and Excel serial numbers.
+   * Prevents standard American MM/DD/YYYY misinterpretations (e.g. 10/11 becoming October 11 instead of 10 November).
+   */
+  const parseBankStatementDate = (raw) => {
+    if (!raw && raw !== 0) return null;
+
+    // 1. If it is an Excel numeric serial date (e.g. 46337)
+    if (typeof raw === 'number') {
+      const jsDate = new Date(Math.round((raw - 25569) * 86400 * 1000));
+      return isNaN(jsDate.getTime()) ? null : jsDate;
+    }
+
+    const str = String(raw).trim();
+
+    // 2. Format: YYYY-MM-DD or YYYY/MM/DD
+    const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (ymdMatch) {
+      const y = parseInt(ymdMatch[1], 10);
+      const m = parseInt(ymdMatch[2], 10) - 1;
+      const d = parseInt(ymdMatch[3], 10);
+      const date = new Date(y, m, d);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    // 3. Format: DD-MMM-YYYY or DD MMM YYYY (e.g., 10-Nov-2026, 11-Dec-2026)
+    const dMmmMatch = str.match(/^(\d{1,2})[\/\-\.\s]([A-Za-z]{3,9})[\/\-\.\s](\d{2,4})/);
+    if (dMmmMatch) {
+      const day = parseInt(dMmmMatch[1], 10);
+      const monthStr = dMmmMatch[2].substring(0, 3).toLowerCase();
+      let year = parseInt(dMmmMatch[3], 10);
+      if (year < 100) year += 2000;
+      const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const mIdx = months.indexOf(monthStr);
+      if (mIdx !== -1) {
+        const date = new Date(year, mIdx, day);
+        return isNaN(date.getTime()) ? null : date;
+      }
+    }
+
+    // 4. Format: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY (Standard Indian bank statement format)
+    const dmyMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+    if (dmyMatch) {
+      let day = parseInt(dmyMatch[1], 10);
+      let month = parseInt(dmyMatch[2], 10);
+      let year = parseInt(dmyMatch[3], 10);
+      if (year < 100) year += 2000;
+
+      // In Indian statements, day comes first. If month was placed first and > 12, swap them.
+      if (month > 12 && day <= 12) {
+        const temp = day;
+        day = month;
+        month = temp;
+      }
+
+      const date = new Date(year, month - 1, day);
+      return isNaN(date.getTime()) ? null : date;
+    }
+
+    const fallback = new Date(str);
+    return isNaN(fallback.getTime()) ? null : fallback;
+  };
+
   const parseBankStatementPDF = async (fileBuffer, password = null) => {
     try {
       const loadingTask = pdfjsLib.getDocument({
@@ -607,19 +683,23 @@ export default function AddExpense() {
       const dateRegex = /\b(\d{1,2}[\/\-](?:[A-Za-z]{3}|\d{1,2})[\/\-]\d{2,4})\b/;
       const amountRegex = /([\d,]+\.\d{2})|(\b\d+\b)(?=\s*(Cr|Dr)?$)/i;
 
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      let futureCount = 0;
+
       for (let line of rows) {
         if (!line) continue;
         const dateMatch = line.match(dateRegex);
         if (dateMatch) {
           const dateStr = dateMatch[1];
-          const cleanDate = dateStr.replace(/\//g, '-');
-          let parsedDate = new Date(cleanDate);
-          
-          if (isNaN(parsedDate.getTime())) {
-            parsedDate = new Date(dateStr);
-          }
+          const parsedDate = parseBankStatementDate(dateStr);
 
-          if (!isNaN(parsedDate.getTime())) {
+          if (parsedDate && !isNaN(parsedDate.getTime())) {
+            if (parsedDate > today) {
+              futureCount++;
+              continue;
+            }
+
             const amountMatches = [...line.matchAll(/([\d,]+(?:\.\d{2})?)/g)];
             if (amountMatches.length > 0) {
               let amount = 0;
@@ -650,6 +730,10 @@ export default function AddExpense() {
         }
       }
 
+      if (expenses.length === 0 && futureCount > 0) {
+        throw new Error('Date is wrong: All transactions have future dates (beyond today).');
+      }
+
       return expenses;
     } catch (err) {
       if (err.name === 'PasswordException') {
@@ -669,8 +753,196 @@ export default function AddExpense() {
     XLSX.writeFile(wb, "Expense_Monitor_Sample.xlsx");
   };
 
-  const [pdfPasswordPrompt, setPdfPasswordPrompt] = useState({ show: false, fileBuffer: null });
-  const [pdfPasswordInput, setPdfPasswordInput] = useState('');
+  const [filePasswordPrompt, setFilePasswordPrompt] = useState({ show: false, fileBuffer: null, fileType: null, fileName: '' });
+  const [filePasswordInput, setFilePasswordInput] = useState('');
+
+  const parseExcelBuffer = (workbookBuffer) => {
+    const workbook = XLSX.read(workbookBuffer);
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+    if (rawData.length === 0) {
+      throw new Error('The uploaded file is empty.');
+    }
+
+    let headerRowIndex = -1;
+    let dateCol = -1;
+    let descCol = -1;
+    let amountCol = -1;
+    let typeCol = -1;
+    let txnIdCol = -1;
+
+    // Scan up to the first 50 rows to find the actual table headers
+    for (let i = 0; i < Math.min(rawData.length, 50); i++) {
+      const row = rawData[i];
+      if (!row || !Array.isArray(row)) continue;
+      
+      const rowString = row.map(c => String(c).toLowerCase()).join(' ');
+      
+      if ((rowString.includes('date') || rowString.includes('txn')) && 
+          (rowString.includes('amount') || rowString.includes('withdrawal') || rowString.includes('debit') || rowString.includes('dr') || rowString.includes('particulars') || rowString.includes('narration') || rowString.includes('details'))) {
+        
+        headerRowIndex = i;
+        
+        for (let j = 0; j < row.length; j++) {
+          const cellText = String(row[j]).toLowerCase().trim();
+          if (cellText === 'date' || cellText.includes('txn date') || cellText.includes('tran date') || cellText.includes('value date') || cellText.includes('transaction date')) {
+            dateCol = j;
+          } else if (cellText.includes('name') || cellText.includes('desc') || cellText.includes('particulars') || cellText.includes('narration') || cellText.includes('remarks') || cellText.includes('details')) {
+            descCol = j;
+          } else if (cellText === 'transaction type' || cellText === 'type' || cellText === 'dr/cr') {
+            typeCol = j;
+          } else if (cellText.includes('withdrawal') || cellText.includes('debit') || cellText === 'dr' || cellText.includes('dr amount') || cellText.includes('withdrawal (dr)')) {
+            if (!cellText.includes('instrument') && !cellText.includes('type')) amountCol = j;
+          } else if (amountCol === -1 && (cellText === 'amount' || cellText.includes('cost') || cellText.includes('value'))) {
+            amountCol = j;
+          } else if (cellText.includes('transaction id') || cellText.includes('txn id') || cellText.includes('ref no') || cellText.includes('reference') || cellText.includes('chq')) {
+            txnIdCol = j;
+          }
+        }
+        break; // Stop scanning once we find the headers
+      }
+    }
+
+    // Fallbacks if exact match fails
+    if (headerRowIndex !== -1 && (dateCol === -1 || amountCol === -1)) {
+       for (let j = 0; j < rawData[headerRowIndex].length; j++) {
+          const cellText = String(rawData[headerRowIndex][j]).toLowerCase();
+          if (dateCol === -1 && cellText.includes('date')) dateCol = j;
+          if (amountCol === -1 && cellText.includes('amount')) amountCol = j;
+       }
+    }
+
+    if (headerRowIndex === -1 || dateCol === -1 || amountCol === -1) {
+      let debugText = rawData.slice(0, 15).map(r => JSON.stringify(r)).join(' | ');
+      throw new Error('Could not find standard bank statement columns. ' + debugText);
+    }
+
+    const processedData = [];
+    let idCounter = 1;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    let futureCount = 0;
+
+    // Read rows below the header
+    for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+      const row = rawData[i];
+      if (!row || !row[dateCol]) continue; // Skip empty rows
+
+      // If there's a type column (like "Transaction Type"), filter out Credits
+      if (typeCol !== -1) {
+         const tType = String(row[typeCol]).toLowerCase();
+         if (tType.includes('credit') || tType === 'cr' || tType.includes('deposit') || tType.includes('received')) {
+            continue; 
+         }
+      }
+
+      let name = descCol !== -1 ? String(row[descCol]) : 'Bank Transaction';
+      if (!name.trim()) name = 'Bank Transaction';
+
+      let amountStr = row[amountCol];
+      let amount = 0;
+      
+      if (typeof amountStr === 'number') {
+        amount = amountStr;
+      } else if (typeof amountStr === 'string') {
+        amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
+      }
+
+      if (amount < 0) amount = Math.abs(amount);
+      
+      if (amount === 0) continue; // Skip deposits or zero amounts if this is a withdrawal column
+
+      let dateVal = row[dateCol];
+      let parsedDate = parseBankStatementDate(dateVal);
+
+      if (parsedDate && !isNaN(parsedDate.getTime())) {
+        if (parsedDate > today) {
+          futureCount++;
+          continue;
+        }
+
+        let txn_id = null;
+        if (txnIdCol !== -1 && row[txnIdCol]) {
+          txn_id = String(row[txnIdCol]).trim();
+        }
+
+        processedData.push({
+          id: idCounter++,
+          name: name,
+          amount: amount,
+          date: format(parsedDate, 'yyyy-MM-dd'),
+          category: 'Other',
+          payment_mode: 'UPI',
+          transaction_id: txn_id || null
+        });
+      }
+    }
+
+    if (processedData.length === 0) {
+      if (futureCount > 0) {
+        throw new Error('Date is wrong: All transactions have future dates (beyond today).');
+      }
+      let debugText = rawData.slice(0, 15).map(r => JSON.stringify(r)).join(' | ');
+      throw new Error('No valid expenses found. Ensure your file has correct columns. ' + debugText);
+    }
+
+    return processedData;
+  };
+
+  const decryptAndParseExcel = async (fileBuffer, password) => {
+    // 1. Try in-browser decryption with xlsx-populate
+    try {
+      const XlsxPopulate = await import('xlsx-populate').then(m => m.default || m);
+      const workbook = await XlsxPopulate.fromDataAsync(fileBuffer, { password });
+      const decryptedOutput = await workbook.outputAsync();
+      return parseExcelBuffer(decryptedOutput);
+    } catch (err) {
+      const errStr = (err?.message || '').toLowerCase();
+      // If it failed because of password mismatch or zip format issues
+      // 2. Try server-side decrypt-excel API endpoint as seamless fallback
+      try {
+        let binaryStr = '';
+        const bytes = new Uint8Array(fileBuffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i += 8192) {
+          binaryStr += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
+        }
+        const fileBase64 = btoa(binaryStr);
+
+        const res = await fetch('/api/decrypt-excel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileBase64, password })
+        });
+
+        if (res.ok) {
+          const resData = await res.json();
+          if (resData.decryptedBase64) {
+            const decBin = atob(resData.decryptedBase64);
+            const decBytes = new Uint8Array(decBin.length);
+            for (let i = 0; i < decBin.length; i++) {
+              decBytes[i] = decBin.charCodeAt(i);
+            }
+            return parseExcelBuffer(decBytes.buffer);
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          if (res.status === 401 || (errData.error && errData.error.toLowerCase().includes('password'))) {
+            throw new Error('PASSWORD_INCORRECT');
+          }
+        }
+      } catch (apiErr) {
+        if (apiErr.message === 'PASSWORD_INCORRECT') throw apiErr;
+      }
+
+      if (errStr.includes('password') || errStr.includes('central directory') || errStr.includes('zip file')) {
+        throw new Error('PASSWORD_INCORRECT');
+      }
+      throw err;
+    }
+  };
 
   const handleBulkFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -680,6 +952,7 @@ export default function AddExpense() {
     try {
       const data = await file.arrayBuffer();
 
+      // Check PDF file
       if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
         try {
           const expenses = await parseBankStatementPDF(data);
@@ -689,7 +962,7 @@ export default function AddExpense() {
           return;
         } catch (err) {
           if (err.message === 'PASSWORD_REQUIRED') {
-            setPdfPasswordPrompt({ show: true, fileBuffer: data });
+            setFilePasswordPrompt({ show: true, fileBuffer: data, fileType: 'pdf', fileName: file.name });
             e.target.value = null;
             return;
           }
@@ -697,146 +970,38 @@ export default function AddExpense() {
         }
       }
 
-      const workbook = XLSX.read(data);
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-
-      if (rawData.length === 0) {
-        throw new Error('The uploaded file is empty.');
-      }
-
-      let headerRowIndex = -1;
-      let dateCol = -1;
-      let descCol = -1;
-      let amountCol = -1;
-      let typeCol = -1;
-      let txnIdCol = -1;
-
-      // Scan up to the first 50 rows to find the actual table headers
-      for (let i = 0; i < Math.min(rawData.length, 50); i++) {
-        const row = rawData[i];
-        if (!row || !Array.isArray(row)) continue;
-        
-        const rowString = row.map(c => String(c).toLowerCase()).join(' ');
-        
-        if ((rowString.includes('date') || rowString.includes('txn')) && 
-            (rowString.includes('amount') || rowString.includes('withdrawal') || rowString.includes('debit') || rowString.includes('dr') || rowString.includes('particulars') || rowString.includes('narration') || rowString.includes('details'))) {
-          
-          headerRowIndex = i;
-          
-          for (let j = 0; j < row.length; j++) {
-            const cellText = String(row[j]).toLowerCase().trim();
-            if (cellText === 'date' || cellText.includes('txn date') || cellText.includes('tran date') || cellText.includes('value date') || cellText.includes('transaction date')) {
-              dateCol = j;
-            } else if (cellText.includes('name') || cellText.includes('desc') || cellText.includes('particulars') || cellText.includes('narration') || cellText.includes('remarks') || cellText.includes('details')) {
-              descCol = j;
-            } else if (cellText === 'transaction type' || cellText === 'type' || cellText === 'dr/cr') {
-              typeCol = j;
-            } else if (cellText.includes('withdrawal') || cellText.includes('debit') || cellText === 'dr' || cellText.includes('dr amount') || cellText.includes('withdrawal (dr)')) {
-              if (!cellText.includes('instrument') && !cellText.includes('type')) amountCol = j;
-            } else if (amountCol === -1 && (cellText === 'amount' || cellText.includes('cost') || cellText.includes('value'))) {
-              amountCol = j;
-            } else if (cellText.includes('transaction id') || cellText.includes('txn id') || cellText.includes('ref no') || cellText.includes('reference') || cellText.includes('chq')) {
-              txnIdCol = j;
-            }
-          }
-          break; // Stop scanning once we find the headers
-        }
-      }
-
-      // Fallbacks if exact match fails
-      if (dateCol === -1 || amountCol === -1) {
-         for (let j = 0; j < rawData[headerRowIndex].length; j++) {
-            const cellText = String(rawData[headerRowIndex][j]).toLowerCase();
-            if (dateCol === -1 && cellText.includes('date')) dateCol = j;
-            if (amountCol === -1 && cellText.includes('amount')) amountCol = j;
-         }
-      }
-
-      if (headerRowIndex === -1 || dateCol === -1 || amountCol === -1) {
-        let debugText = rawData.slice(0, 15).map(r => JSON.stringify(r)).join(' | ');
-        throw new Error('Could not find standard bank statement columns. ' + debugText);
-      }
-
-      const processedData = [];
-      let idCounter = 1;
-
-      // Read rows below the header
-      for (let i = headerRowIndex + 1; i < rawData.length; i++) {
-        const row = rawData[i];
-        if (!row || !row[dateCol]) continue; // Skip empty rows
-
-        // If there's a type column (like "Transaction Type"), filter out Credits
-        if (typeCol !== -1) {
-           const tType = String(row[typeCol]).toLowerCase();
-           if (tType.includes('credit') || tType === 'cr' || tType.includes('deposit') || tType.includes('received')) {
-              continue; 
-           }
-        }
-
-        let name = descCol !== -1 ? String(row[descCol]) : 'Bank Transaction';
-        if (!name.trim()) name = 'Bank Transaction';
-
-        let amountStr = row[amountCol];
-        let amount = 0;
-        
-        if (typeof amountStr === 'number') {
-          amount = amountStr;
-        } else if (typeof amountStr === 'string') {
-          amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
-        }
-
-        if (amount < 0) amount = Math.abs(amount);
-        
-        if (amount === 0) continue; // Skip deposits or zero amounts if this is a withdrawal column
-
-        let dateVal = row[dateCol];
-        let parsedDate = null;
-
-        if (typeof dateVal === 'number') {
-          parsedDate = new Date((dateVal - (25567 + 2)) * 86400 * 1000);
-        } else if (dateVal) {
-          const strVal = String(dateVal).trim();
-          let tempDate = new Date(strVal);
-          if (!isNaN(tempDate.valueOf())) {
-             parsedDate = tempDate;
-          } else {
-             const parts = strVal.split(/[\/-]/);
-             if (parts.length === 3) {
-                // assume DD-MM-YYYY or DD/MM/YYYY
-                tempDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-                if (!isNaN(tempDate.valueOf())) {
-                  parsedDate = tempDate;
-                }
-             }
+      // Check if Excel/CFB is password-encrypted
+      let isExcelEncrypted = false;
+      try {
+        if (XLSX.CFB) {
+          const cfb = XLSX.CFB.read(new Uint8Array(data), { type: 'array' });
+          if (XLSX.CFB.find(cfb, 'EncryptedPackage') || XLSX.CFB.find(cfb, '/EncryptionInfo')) {
+            isExcelEncrypted = true;
           }
         }
-
-        let txn_id = null;
-        if (txnIdCol !== -1 && row[txnIdCol]) {
-          txn_id = String(row[txnIdCol]).trim();
-        }
-
-        if (parsedDate && !isNaN(parsedDate.getTime())) {
-          processedData.push({
-            id: idCounter++,
-            name: name,
-            amount: amount,
-            date: format(parsedDate, 'yyyy-MM-dd'),
-            category: 'Other',
-            payment_mode: 'UPI',
-            transaction_id: txn_id || null
-          });
-        }
+      } catch {
+        // Not a CFB container or normal zip file
       }
 
-      if (processedData.length === 0) {
-        let debugText = rawData.slice(0, 15).map(r => JSON.stringify(r)).join(' | ');
-        throw new Error('No valid expenses found. Ensure your file has correct columns. ' + debugText);
+      if (isExcelEncrypted) {
+        setFilePasswordPrompt({ show: true, fileBuffer: data, fileType: 'excel', fileName: file.name });
+        e.target.value = null;
+        return;
       }
 
-      setParsedExpenses(processedData);
+      // Try normal Excel / CSV parsing
+      try {
+        const expenses = parseExcelBuffer(data);
+        setParsedExpenses(expenses);
+      } catch (xlsxErr) {
+        const errMsg = (xlsxErr.message || '').toLowerCase();
+        if (errMsg.includes('password') || errMsg.includes('protected') || errMsg.includes('encrypted')) {
+          setFilePasswordPrompt({ show: true, fileBuffer: data, fileType: 'excel', fileName: file.name });
+          e.target.value = null;
+          return;
+        }
+        throw xlsxErr;
+      }
     } catch (err) {
       console.error('File parsing error:', err);
       setBulkError(err.message || 'Failed to read the file.');
@@ -1699,48 +1864,79 @@ export default function AddExpense() {
         document.body
       )}
 
-      {/* ─── PDF Password Modal ────────────────────────────────────────────────── */}
-      {pdfPasswordPrompt.show && createPortal(
+      {/* ─── Encrypted File Password Modal (PDF & Excel) ───────────────────────── */}
+      {filePasswordPrompt.show && createPortal(
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl p-6">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Encrypted PDF</h3>
-            <p className="text-sm text-slate-500 mb-4">This bank statement is password protected. Please enter the password (usually your DOB or account number).</p>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+              {filePasswordPrompt.fileType === 'pdf' ? 'Encrypted PDF' : 'Password-Protected File'}
+            </h3>
+            <p className="text-sm text-slate-500 mb-4">
+              {filePasswordPrompt.fileType === 'pdf'
+                ? 'This bank statement is password protected. Please enter the password (usually your DOB or account number).'
+                : 'This Excel statement is password protected. Please enter the file password to scan and record expenses.'}
+            </p>
             <input
               type="password"
-              value={pdfPasswordInput}
-              onChange={(e) => setPdfPasswordInput(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl mb-4"
-              placeholder="Enter PDF password"
+              value={filePasswordInput}
+              onChange={(e) => setFilePasswordInput(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  document.getElementById('unlock-file-btn')?.click();
+                }
+              }}
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl mb-4 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Enter file password"
+              autoFocus
             />
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => { setPdfPasswordPrompt({ show: false, fileBuffer: null }); setPdfPasswordInput(''); }}
+                type="button"
+                onClick={() => { setFilePasswordPrompt({ show: false, fileBuffer: null, fileType: null, fileName: '' }); setFilePasswordInput(''); }}
                 className="px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
+                id="unlock-file-btn"
+                type="button"
                 onClick={async () => {
+                  if (!filePasswordInput) return;
                   try {
                     setBulkError(null);
-                    const expenses = await parseBankStatementPDF(pdfPasswordPrompt.fileBuffer, pdfPasswordInput);
-                    if (expenses.length === 0) throw new Error('No valid transactions found in PDF.');
+                    let expenses = [];
+                    if (filePasswordPrompt.fileType === 'pdf') {
+                      expenses = await parseBankStatementPDF(filePasswordPrompt.fileBuffer, filePasswordInput);
+                    } else {
+                      expenses = await decryptAndParseExcel(filePasswordPrompt.fileBuffer, filePasswordInput);
+                    }
+
+                    if (!expenses || expenses.length === 0) {
+                      throw new Error('No valid transactions found in file.');
+                    }
                     setParsedExpenses(expenses);
-                    setPdfPasswordPrompt({ show: false, fileBuffer: null });
-                    setPdfPasswordInput('');
+                    setFilePasswordPrompt({ show: false, fileBuffer: null, fileType: null, fileName: '' });
+                    setFilePasswordInput('');
                   } catch (err) {
-                    if (err.message === 'PASSWORD_REQUIRED' || err.message.includes('PasswordException')) {
+                    const msg = err.message || '';
+                    if (
+                      msg === 'PASSWORD_REQUIRED' ||
+                      msg === 'PASSWORD_INCORRECT' ||
+                      msg.includes('PasswordException') ||
+                      msg.toLowerCase().includes('password')
+                    ) {
                       setBulkError('Incorrect password. Please try again.');
                     } else {
-                      setBulkError(err.message);
-                      setPdfPasswordPrompt({ show: false, fileBuffer: null });
-                      setPdfPasswordInput('');
+                      setBulkError(err.message || 'Failed to decrypt file.');
+                      setFilePasswordPrompt({ show: false, fileBuffer: null, fileType: null, fileName: '' });
+                      setFilePasswordInput('');
                     }
                   }
                 }}
                 className="px-4 py-2 text-sm font-bold text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors"
               >
-                Unlock
+                Unlock & Scan
               </button>
             </div>
           </div>
@@ -1819,6 +2015,7 @@ export default function AddExpense() {
             </div>
           </div>
         </div>,
+        document.body
       )}
 
       {/* Manual SMS Paste Modal */}

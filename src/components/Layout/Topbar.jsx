@@ -9,7 +9,7 @@ export default function Topbar() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(() => {
-    return localStorage.getItem('hey_expense_wake_word') !== 'false';
+    return localStorage.getItem('hey_expense_wake_word') === 'true';
   });
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export default function Topbar() {
       if (e?.detail?.enabled !== undefined) {
         setWakeWordEnabled(e.detail.enabled);
       } else {
-        setWakeWordEnabled(localStorage.getItem('hey_expense_wake_word') !== 'false');
+        setWakeWordEnabled(localStorage.getItem('hey_expense_wake_word') === 'true');
       }
     };
     window.addEventListener('toggle-wake-word', handleSync);
@@ -174,7 +174,18 @@ export default function Topbar() {
 
           <Link id="tour-topbar-profile" to="/profile" className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-teal-900/40 border border-teal-500/20 flex items-center justify-center text-teal-400 font-bold text-lg sm:text-xl uppercase shadow-lg hover:scale-105 transition-transform overflow-hidden cursor-pointer shrink-0">
             {user?.user_metadata?.avatar_url ? (
-              <img src={user.user_metadata.avatar_url} alt="Profile" className="h-full w-full object-cover" />
+              <img 
+                src={user.user_metadata.avatar_url} 
+                alt="Profile" 
+                className="h-full w-full object-cover" 
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.parentElement) {
+                    e.currentTarget.parentElement.innerText = (user?.email?.[0] || 'U').toUpperCase();
+                  }
+                }}
+              />
             ) : (
               user?.email?.[0] || 'U'
             )}

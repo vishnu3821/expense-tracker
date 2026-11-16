@@ -50,7 +50,7 @@ export default function More() {
   const { user, session, signOut } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [wakeWordEnabled, setWakeWordEnabled] = useState(() => {
-    return localStorage.getItem('hey_expense_wake_word') !== 'false';
+    return localStorage.getItem('hey_expense_wake_word') === 'true';
   });
 
   React.useEffect(() => {
@@ -58,7 +58,7 @@ export default function More() {
       if (e?.detail?.enabled !== undefined) {
         setWakeWordEnabled(e.detail.enabled);
       } else {
-        setWakeWordEnabled(localStorage.getItem('hey_expense_wake_word') !== 'false');
+        setWakeWordEnabled(localStorage.getItem('hey_expense_wake_word') === 'true');
       }
     };
     window.addEventListener('toggle-wake-word', handleSync);
