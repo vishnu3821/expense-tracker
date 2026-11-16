@@ -892,7 +892,7 @@ export default function AddExpense() {
   };
 
   const decryptAndParseExcel = async (fileBuffer, password) => {
-    // 1. Try in-browser decryption with xlsx-populate
+    // In-browser decryption with xlsx-populate (supports standard & agile ECMA-376 Excel encryption)
     try {
       const XlsxPopulate = await import('xlsx-populate').then(m => m.default || m);
       const workbook = await XlsxPopulate.fromDataAsync(fileBuffer, { password });
@@ -900,43 +900,6 @@ export default function AddExpense() {
       return parseExcelBuffer(decryptedOutput);
     } catch (err) {
       const errStr = (err?.message || '').toLowerCase();
-      // If it failed because of password mismatch or zip format issues
-      // 2. Try server-side decrypt-excel API endpoint as seamless fallback
-      try {
-        let binaryStr = '';
-        const bytes = new Uint8Array(fileBuffer);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i += 8192) {
-          binaryStr += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
-        }
-        const fileBase64 = btoa(binaryStr);
-
-        const res = await fetch('/api/decrypt-excel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileBase64, password })
-        });
-
-        if (res.ok) {
-          const resData = await res.json();
-          if (resData.decryptedBase64) {
-            const decBin = atob(resData.decryptedBase64);
-            const decBytes = new Uint8Array(decBin.length);
-            for (let i = 0; i < decBin.length; i++) {
-              decBytes[i] = decBin.charCodeAt(i);
-            }
-            return parseExcelBuffer(decBytes.buffer);
-          }
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          if (res.status === 401 || (errData.error && errData.error.toLowerCase().includes('password'))) {
-            throw new Error('PASSWORD_INCORRECT');
-          }
-        }
-      } catch (apiErr) {
-        if (apiErr.message === 'PASSWORD_INCORRECT') throw apiErr;
-      }
-
       if (errStr.includes('password') || errStr.includes('central directory') || errStr.includes('zip file')) {
         throw new Error('PASSWORD_INCORRECT');
       }
